@@ -19,7 +19,9 @@
   },
   "homepage": "https://github.com/shuji-bonji/pdf-spec-mcp#readme",
   "dependencies": {
+    "mupdf": "^1.27.0",
     "pdf-parse": "^2.4.5",
+    "pdf2json": "^4.0.2",
     "pdfjs-dist": "^5.4.624"
   }
 }
