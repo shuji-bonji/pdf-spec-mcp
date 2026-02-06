@@ -1,5 +1,8 @@
+
 node_modules/
 dist/
 
 # PDF spec files (copyrighted, user must download separately)
 pdf-spec/
+
+.claude/
