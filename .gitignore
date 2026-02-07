@@ -6,3 +6,6 @@ dist/
 pdf-spec/
 
 .claude/
+
+# Vitest temp files (残存する一時トランスパイル成果物)
+*.timestamp-*
