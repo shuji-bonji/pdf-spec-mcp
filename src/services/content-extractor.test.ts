@@ -243,6 +243,99 @@ describe('extractSectionContent', () => {
     ]);
   });
 
+  it('extracts table with THead/TBody wrappers', async () => {
+    const doc = createMockDoc([
+      {
+        structTree: {
+          role: 'Document',
+          children: [
+            {
+              role: 'Table',
+              children: [
+                {
+                  role: 'THead',
+                  children: [
+                    {
+                      role: 'TR',
+                      children: [
+                        { role: 'TH', children: [{ type: 'content', id: 'h0' }] },
+                        { role: 'TH', children: [{ type: 'content', id: 'h1' }] },
+                        { role: 'TH', children: [{ type: 'content', id: 'h2' }] },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  role: 'TBody',
+                  children: [
+                    {
+                      role: 'TR',
+                      children: [
+                        { role: 'TH', children: [{ type: 'content', id: 'k0' }] },
+                        { role: 'TD', children: [{ type: 'content', id: 't0' }] },
+                        { role: 'TD', children: [{ type: 'content', id: 'v0' }] },
+                      ],
+                    },
+                    {
+                      role: 'TR',
+                      children: [
+                        { role: 'TH', children: [{ type: 'content', id: 'k1' }] },
+                        { role: 'TD', children: [{ type: 'content', id: 't1' }] },
+                        { role: 'TD', children: [{ type: 'content', id: 'v1' }] },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        textItems: [
+          { type: 'beginMarkedContentProps', id: 'h0' },
+          { str: 'Key', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 'h1' },
+          { str: 'Type', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 'h2' },
+          { str: 'Value', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 'k0' },
+          { str: 'LW', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 't0' },
+          { str: 'number', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 'v0' },
+          { str: 'Line width.', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 'k1' },
+          { str: 'LC', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 't1' },
+          { str: 'integer', hasEOL: false },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 'v1' },
+          { str: 'Line cap style.', hasEOL: false },
+          { type: 'endMarkedContent' },
+        ],
+      },
+    ]);
+
+    const elements = await extractSectionContent(doc, 1, 1);
+
+    expect(elements).toEqual([
+      {
+        type: 'table',
+        headers: ['Key', 'Type', 'Value'],
+        rows: [
+          ['LW', 'number', 'Line width.'],
+          ['LC', 'integer', 'Line cap style.'],
+        ],
+      },
+    ]);
+  });
+
   it('skips Artifact elements', async () => {
     const doc = createMockDoc([
       {

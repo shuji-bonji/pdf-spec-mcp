@@ -296,12 +296,12 @@ export async function getTables(sectionId: string, tableIndex?: number): Promise
  */
 function collectStructTreeTables(content: ContentElement[]): TableInfo[] {
   const tables: TableInfo[] = [];
-  let idx = 0;
 
   for (let i = 0; i < content.length; i++) {
     const element = content[i];
     if (element.type !== 'table') continue;
 
+    // Check for caption in preceding paragraph
     let caption: string | null = null;
     if (i > 0) {
       const prev = content[i - 1];
@@ -310,8 +310,20 @@ function collectStructTreeTables(content: ContentElement[]): TableInfo[] {
       }
     }
 
+    // Merge with previous table if this is a continuation (same headers, no caption)
+    if (
+      !caption &&
+      tables.length > 0 &&
+      element.headers.length > 0 &&
+      arraysEqual(tables[tables.length - 1].headers, element.headers)
+    ) {
+      // Continuation of previous table across a page boundary
+      tables[tables.length - 1].rows.push(...element.rows);
+      continue;
+    }
+
     tables.push({
-      index: idx++,
+      index: tables.length,
       caption,
       headers: element.headers,
       rows: element.rows,
@@ -319,6 +331,14 @@ function collectStructTreeTables(content: ContentElement[]): TableInfo[] {
   }
 
   return tables;
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }
 
 /**

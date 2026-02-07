@@ -295,34 +295,88 @@ function collectListItemBody(li: StructTreeNode, textMap: Map<string, string>): 
 function collectTable(node: StructTreeNode, textMap: Map<string, string>): TableElement | null {
   const headers: string[] = [];
   const rows: string[][] = [];
-  let isFirstRow = true;
 
   if (!node.children) return null;
+
+  // Collect TR rows, handling both direct TR children and THead/TBody wrappers
+  const headRows: StructTreeNode[] = [];
+  const bodyRows: StructTreeNode[] = [];
 
   for (const child of node.children) {
     if (isStructContent(child)) continue;
 
     if (child.role === 'TR') {
-      const cells: string[] = [];
-      let hasHeaders = false;
-
+      // Direct TR child (no THead/TBody wrapper)
+      bodyRows.push(child);
+    } else if (child.role === 'THead') {
+      // THead wrapper — collect TR children as header rows
       if (child.children) {
-        for (const cell of child.children) {
-          if (isStructContent(cell)) continue;
-          const text = collectText(cell, textMap).trim();
-          if (cell.role === 'TH') {
-            hasHeaders = true;
+        for (const tr of child.children) {
+          if (!isStructContent(tr) && tr.role === 'TR') {
+            headRows.push(tr);
           }
-          cells.push(text);
         }
       }
+    } else if (child.role === 'TBody' || child.role === 'TFoot') {
+      // TBody/TFoot wrapper — collect TR children as data rows
+      if (child.children) {
+        for (const tr of child.children) {
+          if (!isStructContent(tr) && tr.role === 'TR') {
+            bodyRows.push(tr);
+          }
+        }
+      }
+    }
+  }
 
-      if (hasHeaders && isFirstRow) {
+  // Extract header cells from THead rows
+  for (const tr of headRows) {
+    if (tr.children) {
+      const cells: string[] = [];
+      for (const cell of tr.children) {
+        if (isStructContent(cell)) continue;
+        cells.push(collectText(cell, textMap).trim());
+      }
+      if (cells.length > 0 && headers.length === 0) {
         headers.push(...cells);
-      } else {
+      } else if (cells.length > 0) {
         rows.push(cells);
       }
-      isFirstRow = false;
+    }
+  }
+
+  // If no THead, use first body row with all-TH cells as header
+  let firstBodyIsHeader = false;
+  if (headers.length === 0 && bodyRows.length > 0) {
+    const firstRow = bodyRows[0];
+    if (firstRow.children) {
+      const allTH = firstRow.children
+        .filter((c) => !isStructContent(c))
+        .every((c) => (c as StructTreeNode).role === 'TH');
+      if (allTH) {
+        const cells: string[] = [];
+        for (const cell of firstRow.children) {
+          if (isStructContent(cell)) continue;
+          cells.push(collectText(cell, textMap).trim());
+        }
+        headers.push(...cells);
+        firstBodyIsHeader = true;
+      }
+    }
+  }
+
+  // Extract body row cells
+  for (let i = firstBodyIsHeader ? 1 : 0; i < bodyRows.length; i++) {
+    const tr = bodyRows[i];
+    if (tr.children) {
+      const cells: string[] = [];
+      for (const cell of tr.children) {
+        if (isStructContent(cell)) continue;
+        cells.push(collectText(cell, textMap).trim());
+      }
+      if (cells.length > 0) {
+        rows.push(cells);
+      }
     }
   }
 
