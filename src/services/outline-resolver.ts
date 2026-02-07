@@ -46,7 +46,10 @@ export function buildSectionIndex(outline: OutlineEntry[], totalPages: number): 
   // Calculate endPage: next entry's page - 1
   for (let i = 0; i < flatOrder.length; i++) {
     if (i + 1 < flatOrder.length) {
-      flatOrder[i].endPage = Math.min(totalPages, Math.max(flatOrder[i].page, flatOrder[i + 1].page - 1));
+      flatOrder[i].endPage = Math.min(
+        totalPages,
+        Math.max(flatOrder[i].page, flatOrder[i + 1].page - 1)
+      );
     } else {
       flatOrder[i].endPage = totalPages;
     }

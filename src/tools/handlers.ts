@@ -17,6 +17,7 @@ import {
   getSpecInfo,
 } from '../services/pdf-registry.js';
 import { compareVersions } from '../services/compare-service.js';
+import { ToolPrerequisiteError } from '../errors.js';
 import {
   validateSectionId,
   validateSearchQuery,
@@ -163,13 +164,13 @@ async function handleCompareVersions(args: CompareVersionsArgs) {
 
   // Prerequisite: both pdf17 and iso32000-2 must be available
   if (!isSpecAvailable('pdf17')) {
-    throw new Error(
+    throw new ToolPrerequisiteError(
       'compare_versions requires PDF32000_2008.pdf in PDF_SPEC_DIR. ' +
         'Download it from https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf'
     );
   }
   if (!isSpecAvailable('iso32000-2')) {
-    throw new Error(
+    throw new ToolPrerequisiteError(
       'compare_versions requires ISO_32000-2_sponsored-ec2.pdf in PDF_SPEC_DIR. ' +
         'Download it from https://pdfa.org/resource/iso-32000-pdf/'
     );

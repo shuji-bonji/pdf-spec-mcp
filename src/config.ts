@@ -28,6 +28,26 @@ export const MAX_CACHED_DOCS = 4;
 /** Default spec ID when `spec` parameter is omitted */
 export const DEFAULT_SPEC_ID = 'iso32000-2';
 
+/** Validation limits (extracted from magic numbers in validation.ts) */
+export const VALIDATION_LIMITS = {
+  queryMaxLength: 500,
+  termMaxLength: 200,
+  specIdMaxLength: 50,
+  maxDepthRange: { min: 1, max: 10 } as const,
+  maxResultsRange: { min: 1, max: 50 } as const,
+  defaultMaxResults: 10,
+} as const;
+
+/** Concurrency limits for chunked parallel processing */
+export const CONCURRENCY = {
+  /** Pages processed in parallel during search index build */
+  searchIndex: 20,
+  /** Sections processed in parallel during requirements index build */
+  requirementsIndex: 10,
+  /** Pages processed in parallel during content extraction */
+  contentExtraction: 10,
+} as const;
+
 /** Filename pattern → spec ID mapping rule */
 export interface SpecPattern {
   pattern: RegExp;

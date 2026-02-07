@@ -2,41 +2,66 @@
  * Input Validation Utilities
  */
 
+import { VALIDATION_LIMITS } from '../config.js';
+import { ValidationError } from '../errors.js';
 import type { ISORequirementLevel } from '../types/index.js';
+
+const {
+  queryMaxLength,
+  termMaxLength,
+  specIdMaxLength,
+  maxDepthRange,
+  maxResultsRange,
+  defaultMaxResults,
+} = VALIDATION_LIMITS;
 
 export function validateSectionId(section: unknown): asserts section is string {
   if (typeof section !== 'string') {
-    throw new Error(`Section must be a string, got ${typeof section}`);
+    throw new ValidationError(`Section must be a string, got ${typeof section}`);
   }
   if (section.trim().length === 0) {
-    throw new Error('Section must not be empty');
+    throw new ValidationError('Section must not be empty');
   }
 }
 
 export function validateSearchQuery(query: unknown): asserts query is string {
   if (typeof query !== 'string') {
-    throw new Error(`Query must be a string, got ${typeof query}`);
+    throw new ValidationError(`Query must be a string, got ${typeof query}`);
   }
   if (query.trim().length === 0) {
-    throw new Error('Query must not be empty');
+    throw new ValidationError('Query must not be empty');
   }
-  if (query.length > 500) {
-    throw new Error('Query too long (max 500 characters)');
+  if (query.length > queryMaxLength) {
+    throw new ValidationError(`Query too long (max ${queryMaxLength} characters)`);
   }
 }
 
 export function validateMaxDepth(depth: unknown): number | undefined {
   if (depth === undefined || depth === null) return undefined;
-  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 10) {
-    throw new Error(`max_depth must be an integer between 1 and 10, got ${depth}`);
+  if (
+    typeof depth !== 'number' ||
+    !Number.isInteger(depth) ||
+    depth < maxDepthRange.min ||
+    depth > maxDepthRange.max
+  ) {
+    throw new ValidationError(
+      `max_depth must be an integer between ${maxDepthRange.min} and ${maxDepthRange.max}, got ${depth}`
+    );
   }
   return depth;
 }
 
 export function validateMaxResults(max: unknown): number {
-  if (max === undefined || max === null) return 10;
-  if (typeof max !== 'number' || !Number.isInteger(max) || max < 1 || max > 50) {
-    throw new Error(`max_results must be an integer between 1 and 50, got ${max}`);
+  if (max === undefined || max === null) return defaultMaxResults;
+  if (
+    typeof max !== 'number' ||
+    !Number.isInteger(max) ||
+    max < maxResultsRange.min ||
+    max > maxResultsRange.max
+  ) {
+    throw new ValidationError(
+      `max_results must be an integer between ${maxResultsRange.min} and ${maxResultsRange.max}, got ${max}`
+    );
   }
   return max;
 }
@@ -52,11 +77,11 @@ const VALID_REQUIREMENT_LEVELS: ISORequirementLevel[] = [
 export function validateRequirementLevel(level: unknown): ISORequirementLevel | undefined {
   if (level === undefined || level === null) return undefined;
   if (typeof level !== 'string') {
-    throw new Error(`level must be a string, got ${typeof level}`);
+    throw new ValidationError(`level must be a string, got ${typeof level}`);
   }
   const normalized = level.toLowerCase().trim() as ISORequirementLevel;
   if (!VALID_REQUIREMENT_LEVELS.includes(normalized)) {
-    throw new Error(
+    throw new ValidationError(
       `Invalid requirement level "${level}". Valid levels: ${VALID_REQUIREMENT_LEVELS.join(', ')}`
     );
   }
@@ -66,13 +91,13 @@ export function validateRequirementLevel(level: unknown): ISORequirementLevel | 
 export function validateTermQuery(term: unknown): string | undefined {
   if (term === undefined || term === null) return undefined;
   if (typeof term !== 'string') {
-    throw new Error(`term must be a string, got ${typeof term}`);
+    throw new ValidationError(`term must be a string, got ${typeof term}`);
   }
   if (term.trim().length === 0) {
-    throw new Error('term must not be empty');
+    throw new ValidationError('term must not be empty');
   }
-  if (term.length > 200) {
-    throw new Error('term too long (max 200 characters)');
+  if (term.length > termMaxLength) {
+    throw new ValidationError(`term too long (max ${termMaxLength} characters)`);
   }
   return term.trim();
 }
@@ -80,7 +105,7 @@ export function validateTermQuery(term: unknown): string | undefined {
 export function validateTableIndex(index: unknown): number | undefined {
   if (index === undefined || index === null) return undefined;
   if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) {
-    throw new Error(`table_index must be a non-negative integer, got ${index}`);
+    throw new ValidationError(`table_index must be a non-negative integer, got ${index}`);
   }
   return index;
 }
@@ -92,10 +117,10 @@ export function validateTableIndex(index: unknown): number | undefined {
 export function validateSpecId(specId: unknown): string | undefined {
   if (specId === undefined || specId === null) return undefined;
   if (typeof specId !== 'string' || specId.length === 0) {
-    throw new Error('spec must be a non-empty string');
+    throw new ValidationError('spec must be a non-empty string');
   }
-  if (specId.length > 50) {
-    throw new Error('spec must be 50 characters or less');
+  if (specId.length > specIdMaxLength) {
+    throw new ValidationError(`spec must be ${specIdMaxLength} characters or less`);
   }
   return specId;
 }

@@ -5,41 +5,47 @@
 
 import type { SectionIndex, PageText, TextIndex, SearchHit } from '../types/index.js';
 import type { PDFDocumentProxy, TextItem } from './pdf-loader.js';
+import { CONCURRENCY } from '../config.js';
+import { mapConcurrent } from '../utils/concurrency.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Build full-text search index from all PDF pages
+ * Build full-text search index from all PDF pages.
+ * Uses chunked parallel processing for improved performance.
  */
 export async function buildSearchIndex(
   doc: PDFDocumentProxy,
   sectionIndex: SectionIndex
 ): Promise<TextIndex> {
   const start = Date.now();
-  const pages: PageText[] = [];
   const totalPages = doc.numPages;
 
-  logger.info('SearchIndex', `Building search index for ${totalPages} pages...`);
+  logger.info(
+    'SearchIndex',
+    `Building search index for ${totalPages} pages (concurrency: ${CONCURRENCY.searchIndex})...`
+  );
 
-  for (let i = 1; i <= totalPages; i++) {
-    const page = await doc.getPage(i);
-    const textContent = await page.getTextContent();
-    const text = textContent.items
-      .filter((item): item is TextItem => 'str' in item)
-      .map((item) => item.str)
-      .join(' ');
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
-    const section = findSectionForPage(sectionIndex, i);
-    pages.push({
-      page: i,
-      section: section?.sectionNumber || '',
-      text,
-    });
+  const pages: PageText[] = await mapConcurrent(
+    pageNumbers,
+    async (pageNum) => {
+      const page = await doc.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const text = textContent.items
+        .filter((item): item is TextItem => 'str' in item)
+        .map((item) => item.str)
+        .join(' ');
 
-    // Log progress every 100 pages
-    if (i % 100 === 0) {
-      logger.debug('SearchIndex', `Indexed ${i}/${totalPages} pages`);
-    }
-  }
+      const section = findSectionForPage(sectionIndex, pageNum);
+      return {
+        page: pageNum,
+        section: section?.sectionNumber || '',
+        text,
+      };
+    },
+    CONCURRENCY.searchIndex
+  );
 
   const buildTime = Date.now() - start;
   logger.info('SearchIndex', `Search index built in ${buildTime}ms (${totalPages} pages)`);

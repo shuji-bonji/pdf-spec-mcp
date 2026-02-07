@@ -19,11 +19,14 @@ import type {
   TextMarkedContent,
   TextContent,
 } from './pdf-loader.js';
+import { CONCURRENCY } from '../config.js';
+import { mapConcurrent } from '../utils/concurrency.js';
 
 type TextContentItem = TextItem | TextMarkedContent;
 
 /**
- * Extract structured content from a range of pages
+ * Extract structured content from a range of pages.
+ * Uses chunked parallel processing for multi-page ranges.
  * @param sectionNumber - If provided, skip content before this section's heading on the first page
  */
 export async function extractSectionContent(
@@ -32,17 +35,21 @@ export async function extractSectionContent(
   endPage: number,
   sectionNumber?: string
 ): Promise<ContentElement[]> {
-  const elements: ContentElement[] = [];
-
   // Clamp page range to valid bounds (defensive against outline/PagesMapper issues)
   const totalPages = doc.numPages || endPage;
   const safeStart = Math.max(1, Math.min(startPage, totalPages));
   const safeEnd = Math.max(1, Math.min(endPage, totalPages));
 
-  for (let pageNum = safeStart; pageNum <= safeEnd; pageNum++) {
-    const pageElements = await extractPageContent(doc, pageNum);
-    elements.push(...pageElements);
-  }
+  const pageNumbers = Array.from({ length: safeEnd - safeStart + 1 }, (_, i) => safeStart + i);
+
+  // mapConcurrent preserves input order, so page order is maintained
+  const pageResults = await mapConcurrent(
+    pageNumbers,
+    (pageNum) => extractPageContent(doc, pageNum),
+    CONCURRENCY.contentExtraction
+  );
+
+  const elements = pageResults.flat();
 
   // Skip content from previous sections on the first page
   if (sectionNumber) {

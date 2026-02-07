@@ -11,6 +11,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 
 import { tools } from './tools/definitions.js';
 import { toolHandlers, type ToolName } from './tools/handlers.js';
+import { PDFSpecError } from './errors.js';
 import { PACKAGE_INFO } from './config.js';
 
 const server = new Server(
@@ -49,8 +50,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const code = error instanceof PDFSpecError ? error.code : 'INTERNAL_ERROR';
     return {
-      content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
+      content: [{ type: 'text', text: JSON.stringify({ error: message, code }, null, 2) }],
       isError: true,
     };
   }

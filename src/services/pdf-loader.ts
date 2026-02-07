@@ -11,6 +11,7 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { readFile } from 'fs/promises';
 import { MAX_CACHED_DOCS } from '../config.js';
 import { logger } from '../utils/logger.js';
+import { stripZeroWidthChars } from '../utils/text.js';
 import type { OutlineEntry } from '../types/index.js';
 
 // Use pdfjs-dist types directly
@@ -34,26 +35,192 @@ interface OutlineNode {
 }
 
 // ========================================
-// Multi-document LRU cache
+// DocumentLoaderService Class
 // ========================================
 
-const documentCache = new Map<string, PDFDocumentProxy>();
-const accessOrder: string[] = []; // LRU tracking: oldest first
+/**
+ * Class-based PDF loader service with multi-document LRU cache.
+ */
+export class DocumentLoaderService {
+  private documentCache: Map<string, PDFDocumentProxy>;
+  private accessOrder: string[]; // LRU tracking: oldest first
+  private maxCachedDocs: number;
+
+  constructor(maxCachedDocs: number = MAX_CACHED_DOCS) {
+    this.documentCache = new Map();
+    this.accessOrder = [];
+    this.maxCachedDocs = maxCachedDocs;
+  }
+
+  /**
+   * Load PDF document (LRU cached, up to maxCachedDocs)
+   */
+  async loadDocument(pdfPath: string): Promise<PDFDocumentProxy> {
+    const existing = this.documentCache.get(pdfPath);
+    if (existing) {
+      // Move to end of access order (most recently used)
+      const idx = this.accessOrder.indexOf(pdfPath);
+      if (idx >= 0) this.accessOrder.splice(idx, 1);
+      this.accessOrder.push(pdfPath);
+      return existing;
+    }
+
+    return this.loadDocumentFresh(pdfPath);
+  }
+
+  /**
+   * Force-reload a PDF document, bypassing the LRU cache.
+   *
+   * Required before full-page iteration (e.g., building a search index) because
+   * pdfjs-dist v5 uses a global singleton `PagesMapper` with static state.
+   * `PagesMapper.#pagesNumber` is set to the page count of the LAST document
+   * loaded via `getDocument()`, so any previously cached document whose page
+   * count differs from the current `PagesMapper.#pagesNumber` will reject
+   * `getPage()` calls for pages beyond that number with "Invalid page request."
+   *
+   * By reloading the document, `getDocument()` resets `PagesMapper.#pagesNumber`
+   * to the correct value for this document.
+   */
+  async reloadDocument(pdfPath: string): Promise<PDFDocumentProxy> {
+    // Evict from cache if present
+    const existing = this.documentCache.get(pdfPath);
+    if (existing) {
+      existing.destroy();
+      this.documentCache.delete(pdfPath);
+      const idx = this.accessOrder.indexOf(pdfPath);
+      if (idx >= 0) this.accessOrder.splice(idx, 1);
+    }
+
+    return this.loadDocumentFresh(pdfPath);
+  }
+
+  /**
+   * Get outline with resolved page numbers
+   */
+  async getOutlineWithPages(doc: PDFDocumentProxy): Promise<OutlineEntry[]> {
+    const rawOutline = await doc.getOutline();
+    if (!rawOutline) return [];
+    return this.resolveOutlineNodes(doc, rawOutline);
+  }
+
+  /**
+   * Get the current cache size.
+   */
+  get cacheSize(): number {
+    return this.documentCache.size;
+  }
+
+  /**
+   * Clear all cached documents and free memory.
+   */
+  clearCache(): void {
+    for (const doc of this.documentCache.values()) {
+      doc.destroy();
+    }
+    this.documentCache.clear();
+    this.accessOrder = [];
+    logger.debug('PDFLoader', 'Cleared document cache');
+  }
+
+  /**
+   * Internal: Load a fresh document from disk and add to LRU cache.
+   */
+  private async loadDocumentFresh(pdfPath: string): Promise<PDFDocumentProxy> {
+    // Evict oldest if cache is full
+    while (this.documentCache.size >= this.maxCachedDocs && this.accessOrder.length > 0) {
+      const oldest = this.accessOrder.shift()!;
+      const doc = this.documentCache.get(oldest);
+      if (doc) {
+        doc.destroy();
+        this.documentCache.delete(oldest);
+        logger.debug('PDFLoader', `Evicted cached document: ${oldest}`);
+      }
+    }
+
+    // Load new document
+    const start = Date.now();
+    const data = new Uint8Array(await readFile(pdfPath));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc: PDFDocumentProxy = await (pdfjsLib as any).getDocument({ data }).promise;
+    const elapsed = Date.now() - start;
+
+    logger.info('PDFLoader', `Loaded ${pdfPath} (${doc.numPages} pages) in ${elapsed}ms`);
+
+    this.documentCache.set(pdfPath, doc);
+    this.accessOrder.push(pdfPath);
+    return doc;
+  }
+
+  /**
+   * Internal: Resolve outline nodes recursively.
+   */
+  private async resolveOutlineNodes(
+    doc: PDFDocumentProxy,
+    nodes: OutlineNode[]
+  ): Promise<OutlineEntry[]> {
+    const entries: OutlineEntry[] = [];
+
+    for (const node of nodes) {
+      const page = await this.resolveDestToPage(doc, node.dest);
+      const sectionNumber = parseSectionNumber(node.title);
+      const children = node.items ? await this.resolveOutlineNodes(doc, node.items) : [];
+
+      entries.push({
+        title: node.title,
+        page,
+        sectionNumber,
+        children,
+      });
+    }
+
+    return entries;
+  }
+
+  /**
+   * Internal: Resolve a destination to a page number.
+   */
+  private async resolveDestToPage(
+    doc: PDFDocumentProxy,
+    dest: string | unknown[] | null
+  ): Promise<number> {
+    if (!dest) return -1;
+
+    try {
+      let destArray: unknown[];
+      if (typeof dest === 'string') {
+        const resolved = await doc.getDestination(dest);
+        if (!resolved) return -1;
+        destArray = resolved;
+      } else {
+        destArray = dest;
+      }
+
+      const pageIndex = await doc.getPageIndex(destArray[0] as RefProxy);
+      return pageIndex + 1; // 1-based
+    } catch {
+      return -1;
+    }
+  }
+}
+
+// ========================================
+// Default Service Instance
+// ========================================
+
+/**
+ * Default loader instance exported for use by adapter functions and direct access.
+ */
+export const defaultLoader = new DocumentLoaderService();
+
+// ========================================
+// Backward-Compatible Adapter Functions
+// ========================================
 
 /**
  * Load PDF document (LRU cached, up to MAX_CACHED_DOCS)
  */
 export async function loadDocument(pdfPath: string): Promise<PDFDocumentProxy> {
-  const existing = documentCache.get(pdfPath);
-  if (existing) {
-    // Move to end of access order (most recently used)
-    const idx = accessOrder.indexOf(pdfPath);
-    if (idx >= 0) accessOrder.splice(idx, 1);
-    accessOrder.push(pdfPath);
-    return existing;
-  }
-
-  return loadDocumentFresh(pdfPath);
+  return defaultLoader.loadDocument(pdfPath);
 }
 
 /**
@@ -70,107 +237,18 @@ export async function loadDocument(pdfPath: string): Promise<PDFDocumentProxy> {
  * to the correct value for this document.
  */
 export async function reloadDocument(pdfPath: string): Promise<PDFDocumentProxy> {
-  // Evict from cache if present
-  const existing = documentCache.get(pdfPath);
-  if (existing) {
-    existing.destroy();
-    documentCache.delete(pdfPath);
-    const idx = accessOrder.indexOf(pdfPath);
-    if (idx >= 0) accessOrder.splice(idx, 1);
-  }
-
-  return loadDocumentFresh(pdfPath);
+  return defaultLoader.reloadDocument(pdfPath);
 }
-
-/**
- * Internal: Load a fresh document from disk and add to LRU cache.
- */
-async function loadDocumentFresh(pdfPath: string): Promise<PDFDocumentProxy> {
-  // Evict oldest if cache is full
-  while (documentCache.size >= MAX_CACHED_DOCS && accessOrder.length > 0) {
-    const oldest = accessOrder.shift()!;
-    const doc = documentCache.get(oldest);
-    if (doc) {
-      doc.destroy();
-      documentCache.delete(oldest);
-      logger.debug('PDFLoader', `Evicted cached document: ${oldest}`);
-    }
-  }
-
-  // Load new document
-  const start = Date.now();
-  const data = new Uint8Array(await readFile(pdfPath));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const doc: PDFDocumentProxy = await (pdfjsLib as any).getDocument({ data }).promise;
-  const elapsed = Date.now() - start;
-
-  logger.info('PDFLoader', `Loaded ${pdfPath} (${doc.numPages} pages) in ${elapsed}ms`);
-
-  documentCache.set(pdfPath, doc);
-  accessOrder.push(pdfPath);
-  return doc;
-}
-
-// ========================================
-// Outline resolution
-// ========================================
 
 /**
  * Get outline with resolved page numbers
  */
 export async function getOutlineWithPages(doc: PDFDocumentProxy): Promise<OutlineEntry[]> {
-  const rawOutline = await doc.getOutline();
-  if (!rawOutline) return [];
-  return resolveOutlineNodes(doc, rawOutline);
-}
-
-async function resolveOutlineNodes(
-  doc: PDFDocumentProxy,
-  nodes: OutlineNode[]
-): Promise<OutlineEntry[]> {
-  const entries: OutlineEntry[] = [];
-
-  for (const node of nodes) {
-    const page = await resolveDestToPage(doc, node.dest);
-    const sectionNumber = parseSectionNumber(node.title);
-    const children = node.items ? await resolveOutlineNodes(doc, node.items) : [];
-
-    entries.push({
-      title: node.title,
-      page,
-      sectionNumber,
-      children,
-    });
-  }
-
-  return entries;
-}
-
-async function resolveDestToPage(
-  doc: PDFDocumentProxy,
-  dest: string | unknown[] | null
-): Promise<number> {
-  if (!dest) return -1;
-
-  try {
-    let destArray: unknown[];
-    if (typeof dest === 'string') {
-      const resolved = await doc.getDestination(dest);
-      if (!resolved) return -1;
-      destArray = resolved;
-    } else {
-      destArray = dest;
-    }
-
-    const pageIndex = await doc.getPageIndex(destArray[0] as RefProxy);
-    return pageIndex + 1; // 1-based
-  } catch {
-    return -1;
-  }
+  return defaultLoader.getOutlineWithPages(doc);
 }
 
 // ========================================
-// Section number parsing
+// Section number parsing (standalone function)
 // ========================================
 
 /**
@@ -186,7 +264,7 @@ async function resolveDestToPage(
  */
 export function parseSectionNumber(title: string): string | null {
   // Strip zero-width spaces and normalize whitespace
-  const cleaned = title.replace(/[\u200B-\u200F\uFEFF]/g, '').trim();
+  const cleaned = stripZeroWidthChars(title).trim();
 
   // Numeric section: "7", "7.3", "7.3.4.1" followed by whitespace
   const numMatch = cleaned.match(/^(\d+(?:\.\d+)*)\s+/);
