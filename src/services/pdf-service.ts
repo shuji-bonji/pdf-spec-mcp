@@ -170,8 +170,15 @@ export async function getRequirements(
       );
     }
 
+    // Only extract from leaf sections (no children in the matching set)
+    // to avoid duplicates from parent sections including child content
+    const matchingNumbers = new Set(matchingSections.map((s) => s.sectionNumber));
+    const leafSections = matchingSections.filter(
+      (s) => !s.children.some((child) => matchingNumbers.has(child))
+    );
+
     allRequirements = [];
-    for (const sec of matchingSections) {
+    for (const sec of leafSections) {
       const result = await getSectionContent(sec.sectionNumber);
       const reqs = extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
       allRequirements.push(...reqs);
@@ -227,8 +234,7 @@ async function buildRequirementsIndex(): Promise<Requirement[]> {
 export async function getDefinitions(term?: string): Promise<DefinitionsResult> {
   if (!definitionsPromise) {
     logger.info('PDFService', 'Extracting definitions from Section 3...');
-    const index = await getSectionIndex();
-    definitionsPromise = extractAllDefinitions(index, getSectionContent);
+    definitionsPromise = extractAllDefinitions(getSectionContent);
   }
 
   let definitions = await definitionsPromise;
@@ -250,33 +256,17 @@ export async function getDefinitions(term?: string): Promise<DefinitionsResult> 
 
 /**
  * Get tables from a specific section.
+ * First tries StructTree-based extraction, then falls back to text-based detection.
  */
 export async function getTables(sectionId: string, tableIndex?: number): Promise<TablesResult> {
   const result = await getSectionContent(sectionId);
 
-  // Collect tables with captions
-  const tables: TableInfo[] = [];
-  let idx = 0;
+  // Collect tables from StructTree (type: 'table')
+  let tables: TableInfo[] = collectStructTreeTables(result.content);
 
-  for (let i = 0; i < result.content.length; i++) {
-    const element = result.content[i];
-    if (element.type !== 'table') continue;
-
-    // Try to detect caption from preceding paragraph
-    let caption: string | null = null;
-    if (i > 0) {
-      const prev = result.content[i - 1];
-      if (prev.type === 'paragraph' && /^Table\s+\d+/.test(prev.text)) {
-        caption = prev.text;
-      }
-    }
-
-    tables.push({
-      index: idx++,
-      caption,
-      headers: element.headers,
-      rows: element.rows,
-    });
+  // Fallback: text-based table detection if StructTree has no tables
+  if (tables.length === 0) {
+    tables = detectTablesFromText(result.content);
   }
 
   if (tableIndex !== undefined) {
@@ -299,6 +289,109 @@ export async function getTables(sectionId: string, tableIndex?: number): Promise
     totalTables: tables.length,
     tables,
   };
+}
+
+/**
+ * Collect tables from StructTree-extracted content (type: 'table').
+ */
+function collectStructTreeTables(content: ContentElement[]): TableInfo[] {
+  const tables: TableInfo[] = [];
+  let idx = 0;
+
+  for (let i = 0; i < content.length; i++) {
+    const element = content[i];
+    if (element.type !== 'table') continue;
+
+    let caption: string | null = null;
+    if (i > 0) {
+      const prev = content[i - 1];
+      if (prev.type === 'paragraph' && /^Table\s+\d+/.test(prev.text)) {
+        caption = prev.text;
+      }
+    }
+
+    tables.push({
+      index: idx++,
+      caption,
+      headers: element.headers,
+      rows: element.rows,
+    });
+  }
+
+  return tables;
+}
+
+/**
+ * Text-based fallback: detect tables from paragraph patterns.
+ * Looks for "Table N — Title" captions and extracts subsequent lines as table data.
+ * Used when the PDF's StructTree lacks proper Table elements.
+ */
+function detectTablesFromText(content: ContentElement[]): TableInfo[] {
+  const tables: TableInfo[] = [];
+  const TABLE_CAPTION_RE = /^(Table\s+\d+)\s*[—–-]\s*(.+)/;
+
+  for (let i = 0; i < content.length; i++) {
+    const el = content[i];
+    if (el.type !== 'paragraph') continue;
+
+    const captionMatch = el.text.match(TABLE_CAPTION_RE);
+    if (!captionMatch) continue;
+
+    const caption = el.text;
+
+    // Collect subsequent paragraphs as table rows
+    // Table data typically has consistent column patterns (tab or multi-space separated)
+    const rows: string[][] = [];
+    let headers: string[] = [];
+    let j = i + 1;
+
+    while (j < content.length) {
+      const next = content[j];
+      if (next.type !== 'paragraph') break;
+
+      // Stop at next table caption or very long text (paragraph, not table row)
+      if (TABLE_CAPTION_RE.test(next.text)) break;
+      if (next.text.length > 300 && !next.text.includes('\t')) break;
+
+      // Try to split by tabs first, then by 2+ spaces
+      let cells: string[];
+      if (next.text.includes('\t')) {
+        cells = next.text
+          .split('\t')
+          .map((c) => c.trim())
+          .filter(Boolean);
+      } else {
+        cells = next.text
+          .split(/\s{2,}/)
+          .map((c) => c.trim())
+          .filter(Boolean);
+      }
+
+      // Only treat as a table row if it has 2+ cells
+      if (cells.length >= 2) {
+        if (headers.length === 0) {
+          headers = cells;
+        } else {
+          rows.push(cells);
+        }
+      } else {
+        // Single cell or no split — end of table
+        break;
+      }
+      j++;
+    }
+
+    if (headers.length > 0 || rows.length > 0) {
+      tables.push({
+        index: tables.length,
+        caption,
+        headers,
+        rows,
+      });
+    }
+  }
+
+  return tables;
 }
 
 /**

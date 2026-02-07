@@ -1,36 +1,55 @@
 import { describe, it, expect } from 'vitest';
-import { parseDefinitionContent } from './definition-extractor.js';
+import { parseSection3Content } from './definition-extractor.js';
 import type { ContentElement } from '../types/index.js';
 
-describe('parseDefinitionContent', () => {
-  it('parses term from heading and definition from paragraphs', () => {
+describe('parseSection3Content', () => {
+  it('parses term-definition pairs from paragraphs', () => {
     const content: ContentElement[] = [
-      { type: 'heading', level: 3, text: '3.1 approval signature' },
-      {
-        type: 'paragraph',
-        text: 'one or more digital signatures applied to a document',
-      },
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'For the purposes of this document, the following terms apply.' },
+      { type: 'paragraph', text: 'approval signature' },
+      { type: 'paragraph', text: 'one or more digital signatures applied to a document.' },
     ];
-    const def = parseDefinitionContent('3.1', content);
-    expect(def).not.toBeNull();
-    expect(def!.term).toBe('approval signature');
-    expect(def!.definition).toBe('one or more digital signatures applied to a document');
-    expect(def!.section).toBe('3.1');
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(1);
+    expect(defs[0].term).toBe('approval signature');
+    expect(defs[0].definition).toBe('one or more digital signatures applied to a document.');
+    expect(defs[0].section).toBe('3.1');
   });
 
-  it('concatenates multiple paragraphs', () => {
+  it('handles section number markers as paragraphs', () => {
     const content: ContentElement[] = [
-      { type: 'heading', level: 3, text: '3.5 font' },
-      { type: 'paragraph', text: 'A collection of glyphs.' },
-      { type: 'paragraph', text: 'Used for rendering text on a page.' },
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: '3.1' },
+      { type: 'paragraph', text: 'approval signature' },
+      { type: 'paragraph', text: 'one or more digital signatures applied to a document.' },
+      { type: 'paragraph', text: '3.2' },
+      { type: 'paragraph', text: 'array object' },
+      { type: 'paragraph', text: 'one-dimensional collection of objects accessible by index.' },
     ];
-    const def = parseDefinitionContent('3.5', content);
-    expect(def!.definition).toBe('A collection of glyphs. Used for rendering text on a page.');
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(2);
+    expect(defs[0].term).toBe('approval signature');
+    expect(defs[0].section).toBe('3.1');
+    expect(defs[1].term).toBe('array object');
+    expect(defs[1].section).toBe('3.2');
+  });
+
+  it('handles section numbers in headings (e.g., "3.5 font")', () => {
+    const content: ContentElement[] = [
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'heading', level: 3, text: '3.1 approval signature' },
+      { type: 'paragraph', text: 'one or more digital signatures applied to a document.' },
+    ];
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(1);
+    expect(defs[0].term).toBe('approval signature');
   });
 
   it('extracts notes', () => {
     const content: ContentElement[] = [
-      { type: 'heading', level: 3, text: '3.10 glyph' },
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'glyph' },
       { type: 'paragraph', text: 'A graphical shape used to represent a character.' },
       {
         type: 'note',
@@ -38,60 +57,83 @@ describe('parseDefinitionContent', () => {
         text: 'A glyph may correspond to zero or more characters.',
       },
     ];
-    const def = parseDefinitionContent('3.10', content);
-    expect(def!.notes).toHaveLength(1);
-    expect(def!.notes![0]).toBe(
-      'Note 1 to entry: A glyph may correspond to zero or more characters.'
-    );
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(1);
+    expect(defs[0].notes).toHaveLength(1);
+    expect(defs[0].notes![0]).toContain('Note 1 to entry');
   });
 
   it('extracts source references', () => {
     const content: ContentElement[] = [
-      { type: 'heading', level: 3, text: '3.20 ICC profile' },
-      {
-        type: 'paragraph',
-        text: 'A colour profile format [SOURCE: ISO/IEC 9541-1:2012, 3.12]',
-      },
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'ICC profile' },
+      { type: 'paragraph', text: 'A colour profile format [SOURCE: ISO/IEC 9541-1:2012, 3.12]' },
     ];
-    const def = parseDefinitionContent('3.20', content);
-    expect(def!.source).toBe('ISO/IEC 9541-1:2012, 3.12');
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(1);
+    expect(defs[0].source).toBe('ISO/IEC 9541-1:2012, 3.12');
   });
 
-  it('returns null for empty content', () => {
-    const def = parseDefinitionContent('3.99', []);
-    expect(def).toBeNull();
-  });
-
-  it('returns null when no heading is present', () => {
+  it('skips number-only list elements', () => {
     const content: ContentElement[] = [
-      { type: 'paragraph', text: 'Just a paragraph without a heading.' },
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'For the purposes of this document, terms apply.' },
+      { type: 'list', items: ['3.1\n3.2\n3.3'] },
+      { type: 'paragraph', text: 'approval signature' },
+      { type: 'paragraph', text: 'one or more digital signatures.' },
     ];
-    const def = parseDefinitionContent('3.99', content);
-    expect(def).toBeNull();
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(1);
+    expect(defs[0].term).toBe('approval signature');
   });
 
-  it('returns null when no definition paragraphs exist', () => {
-    const content: ContentElement[] = [{ type: 'heading', level: 3, text: '3.50 orphan term' }];
-    const def = parseDefinitionContent('3.50', content);
-    expect(def).toBeNull();
-  });
-
-  it('strips section number prefix from term', () => {
+  it('concatenates multiple definition paragraphs', () => {
     const content: ContentElement[] = [
-      { type: 'heading', level: 3, text: '3.71 XMP metadata' },
-      { type: 'paragraph', text: 'Extensible metadata platform data.' },
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'font' },
+      { type: 'paragraph', text: 'A collection of glyphs.' },
+      { type: 'paragraph', text: 'Used for rendering text on a page.' },
     ];
-    const def = parseDefinitionContent('3.71', content);
-    expect(def!.term).toBe('XMP metadata');
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(1);
+    expect(defs[0].definition).toBe('A collection of glyphs. Used for rendering text on a page.');
   });
 
-  it('handles definition without notes or source', () => {
+  it('returns empty array for content with no definitions', () => {
     const content: ContentElement[] = [
-      { type: 'heading', level: 3, text: '3.2 array object' },
-      { type: 'paragraph', text: 'An ordered collection of objects.' },
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'For the purposes of this document, terms apply.' },
     ];
-    const def = parseDefinitionContent('3.2', content);
-    expect(def!.notes).toBeUndefined();
-    expect(def!.source).toBeUndefined();
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(0);
+  });
+
+  it('stops at Section 4 heading', () => {
+    const content: ContentElement[] = [
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'font' },
+      { type: 'paragraph', text: 'A collection of glyphs.' },
+      { type: 'heading', level: 2, text: '4 Notation' },
+      { type: 'paragraph', text: 'This is not a definition.' },
+    ];
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(1);
+  });
+
+  it('handles sequential definitions without number markers', () => {
+    const content: ContentElement[] = [
+      { type: 'heading', level: 2, text: '3 Terms and definitions' },
+      { type: 'paragraph', text: 'approval signature' },
+      { type: 'paragraph', text: 'one or more digital signatures applied to a document.' },
+      { type: 'paragraph', text: 'array object' },
+      { type: 'paragraph', text: 'one-dimensional collection of objects accessible by index.' },
+      { type: 'paragraph', text: 'boolean object' },
+      { type: 'paragraph', text: 'an object with a value of true or false.' },
+    ];
+    const defs = parseSection3Content(content);
+    expect(defs).toHaveLength(3);
+    expect(defs[0].section).toBe('3.1');
+    expect(defs[1].section).toBe('3.2');
+    expect(defs[2].section).toBe('3.3');
   });
 });
