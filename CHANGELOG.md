@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-02-08
+
+### Improved
+
+- **README overhaul**: Added Mermaid architecture diagram, detailed per-tool usage examples with `jsonc`, and layer overview table
+- **PDF file setup guide**: Prominent `[!IMPORTANT]` / `[!WARNING]` callouts at top of README with download links
+- **Full file listing**: Complete tree of all 17 supported PDF filenames with spec IDs and descriptions
+- **`spec` parameter documentation**: Clarified that all tools accept `spec` parameter (replacing the previously planned `get_ts_section`)
+- **Bilingual**: All improvements applied to both `README.md` (EN) and `README.ja.md` (JA)
+
 ## [0.2.1] - 2026-02-08
 
 ### Added
@@ -49,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic section extraction, search, requirements, and definitions
 - Unit tests
 
+[0.2.2]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/shuji-bonji/pdf-spec-mcp/releases/tag/v0.1.0
