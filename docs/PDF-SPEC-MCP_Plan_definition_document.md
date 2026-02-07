@@ -197,15 +197,15 @@ MCP サーバー起動時に構造解析・インデックス化
 
 ```json
 {
-	"mcpServers": {
-		"pdf-spec": {
-			"command": "npx",
-			"args": ["@shuji-bonji/pdf-spec-mcp"],
-			"env": {
-				"PDF_SPEC_DIR": "/path/to/pdf-specs"
-			}
-		}
-	}
+  "mcpServers": {
+    "pdf-spec": {
+      "command": "npx",
+      "args": ["@shuji-bonji/pdf-spec-mcp"],
+      "env": {
+        "PDF_SPEC_DIR": "/path/to/pdf-specs"
+      }
+    }
+  }
 }
 ```
 
@@ -308,9 +308,9 @@ ISO_32000-2-2020_sponsored.pdf の**Tagged PDF構造**がどこまで機械的�
 
 ### Phase 2: 要件・定義抽出
 
-- [ ] `get_requirements` — 規範的要件抽出
-- [ ] `get_definitions` — 用語定義取得
-- [ ] `get_tables` — テーブル構造取得
+- [x] `get_requirements` — 規範的要件抽出
+- [x] `get_definitions` — 用語定義取得
+- [x] `get_tables` — テーブル構造取得
 
 ### Phase 3: 横断参照・拡張仕様
 

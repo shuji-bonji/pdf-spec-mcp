@@ -1,0 +1,1163 @@
+[
+  {
+    "filename": "ISO-14289-1-2014-sponsored.pdf",
+    "fileSize": "0.9 MB",
+    "pages": 25,
+    "outline": {
+      "exists": true,
+      "totalEntries": 90,
+      "maxDepth": 4,
+      "topLevelEntries": [
+        "Cover page",
+        "Contents",
+        "Foreword ",
+        "Introduction ",
+        "1\tScope ",
+        "2\tNormative references ",
+        "3\tTerms and definitions ",
+        "4\tNotation ",
+        "5\tVersion identification ",
+        "6\tConformance requirements ",
+        "7\tFile format requirements ",
+        "8\tConforming reader requirements ",
+        "9\tAT requirements ",
+        "Bibliography "
+      ],
+      "sampleEntries": [
+        "Cover page",
+        "Contents",
+        "Foreword ",
+        "Introduction ",
+        "1\tScope ",
+        "2\tNormative references ",
+        "3\tTerms and definitions ",
+        "3.1 assistive technology AT ",
+        "3.2 alternate description ",
+        "3.3 dictionary ",
+        "3.4 interactive reader ",
+        "3.5 Portable Document Format PDF ",
+        "3.6 reader ",
+        "3.7 replacement text ",
+        "3.8 writer ",
+        "4\tNotation ",
+        "5\tVersion identification ",
+        "6\tConformance requirements ",
+        "6.1\tGeneral ",
+        "6.2\tConforming files "
+      ],
+      "sectionNumberFormat": "other/title-only: 4, numeric (e.g., 7.3.4): 16"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "Figure",
+        "P",
+        "Root"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 783,
+      "sampleText": "COPYRIGHT PROTECTED DOCUMENT  © ISO 2014  All rights reserved. Unless otherwise specified, no part of this publication may be reproduced or utilized otherwise in any form or by any means, electronic or mechanical, including photocopying, or posting on the internet or an intranet, without prior writt"
+    },
+    "metadata": {
+      "title": "International Standard ISO 14289-1:2014 Document management applications — Electronic document file format enhancement for accessibility — Part 1: Use of ISO 32000-1 (PDF/UA-1)",
+      "author": "ISO TC 171 SC 2 WG 9, PDF/UA",
+      "subject": "Accessibility"
+    }
+  },
+  {
+    "filename": "ISO-14289-2-2024-sponsored.pdf",
+    "fileSize": "2.9 MB",
+    "pages": 51,
+    "outline": {
+      "exists": true,
+      "totalEntries": 172,
+      "maxDepth": 5,
+      "topLevelEntries": [
+        "Cover page",
+        "Contents ",
+        "Foreword",
+        "Introduction",
+        "1 Scope",
+        "2 Normative references",
+        "3 Terms and definitions",
+        "4 Notation",
+        "5 Version identification",
+        "6  Conformity requirements",
+        "7 Accessible PDF",
+        "8 File format requirements",
+        "Annex A (informative)  Example PDF Declaration",
+        "Annex B (informative)  Examples of attribute usage",
+        "Bibliography"
+      ],
+      "sampleEntries": [
+        "Cover page",
+        "Contents ",
+        "Foreword",
+        "Introduction",
+        "1 Scope",
+        "2 Normative references",
+        "3 Terms and definitions",
+        "4 Notation",
+        "5 Version identification",
+        "6  Conformity requirements",
+        "6.1 General",
+        "6.2  Conforming files",
+        "7 Accessible PDF",
+        "7.1 Principles",
+        "7.2 Using other standards in the PDF/UA context",
+        "7.2.1 Accessibility standards",
+        "7.2.2 Declarations",
+        "7.2.3 Other PDF subset standards",
+        "8 File format requirements",
+        "8.1 General"
+      ],
+      "sectionNumberFormat": "other/title-only: 4, numeric (e.g., 7.3.4): 16"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "Figure",
+        "Link",
+        "P",
+        "Root"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 843,
+      "sampleText": "ii  ISO 14289-2:2024(en)  © ISO 2024 – All rights reserved  COPYRIGHT PROTECTED DOCUMENT  © ISO 2024  All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may be reproduced or utilized otherwise in any form or by any means, el"
+    },
+    "metadata": {
+      "title": "Document management applications — Electronic document file format enhancement for accessibility —Part 2: Use of ISO 32000-2 (PDF/UA-2)",
+      "author": "I S O",
+      "subject": "Document management applications — Electronic document file format enhancement for accessibility —Part 2: Use of ISO 32000-2 (PDF/UA-2)"
+    }
+  },
+  {
+    "filename": "ISO-TS-32004-2024_sponsored.pdf",
+    "fileSize": "1.2 MB",
+    "pages": 25,
+    "outline": {
+      "exists": true,
+      "totalEntries": 40,
+      "maxDepth": 3,
+      "topLevelEntries": [
+        "Cover page",
+        "ISO front cover",
+        "Foreword ",
+        "Introduction ",
+        "1 Scope ",
+        "2 Normative references ",
+        "3 Terms and Definitions ",
+        "4 Extension schema details ",
+        "5 Proposed changes ",
+        "6 Composing PDF MAC tokens ",
+        "Annex A (informative)  ASN.1 module for PDF MAC ",
+        "Annex B (informative)  Validation of document integrity using PDF MAC ",
+        "Annex C (informative)  Examples ",
+        "Bibliography "
+      ],
+      "sampleEntries": [
+        "Cover page",
+        "ISO front cover",
+        "Foreword ",
+        "Introduction ",
+        "1 Scope ",
+        "2 Normative references ",
+        "3 Terms and Definitions ",
+        "4 Extension schema details ",
+        "5 Proposed changes ",
+        "5.1 Encrypt dictionary ",
+        "5.1.1 Additions to ISO 32000-2:2020, 7.6.2 ",
+        "5.1.2 Additions to ISO 32000-2:2020, 7.6.4.2 ",
+        "5.1.3 Additions to ISO 32000-2:2020, 7.6.5.2 ",
+        "5.2 File trailer ",
+        "5.2.1 Additions to ISO 32000-2:2020, 7.5.5 ",
+        "5.2.2 Additions to ISO 32000-2:2020, 7.6.2 ",
+        "5.2.3 AuthCode dictionary ",
+        "6 Composing PDF MAC tokens ",
+        "6.1 General ",
+        "6.2 PdfMacIntegrityInfo data type "
+      ],
+      "sectionNumberFormat": "other/title-only: 4, numeric (e.g., 7.3.4): 16"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Art",
+        "Document",
+        "Root",
+        "Sect"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 725,
+      "sampleText": "ii  ISO/TS 32004:2024(en)  © ISO 2024 – All rights reserved  COPYRIGHT PROTECTED DOCUMENT  © ISO 2024  All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may  be reproduced or utilized otherwise in any form or by any means, "
+    },
+    "metadata": {
+      "title": "ISO/TS 32004:2024",
+      "author": "ISO",
+      "subject": "Document management — Portable Document Format — Integrity protection in encrypted documents in PDF 2.0 "
+    }
+  },
+  {
+    "filename": "ISO-TS-32005-2023-sponsored.pdf",
+    "fileSize": "1.9 MB",
+    "pages": 49,
+    "outline": {
+      "exists": true,
+      "totalEntries": 24,
+      "maxDepth": 3,
+      "topLevelEntries": [
+        "Cover page",
+        "Foreword ",
+        "Introduction ",
+        "1 Scope ",
+        "2 Normative references ",
+        "3 Terms and definitions ",
+        "4 Declaration of conformance ",
+        "5 Using the PDF 1.7 namespace with the PDF 2.0 namespace ",
+        "6 Attributes ",
+        "7 Parent-child relationships between the standard structure elements in the standard structure namespace for PDF 2.0 and PDF 1.7 ",
+        "Bibliography "
+      ],
+      "sampleEntries": [
+        "Cover page",
+        "Foreword ",
+        "Introduction ",
+        "1 Scope ",
+        "2 Normative references ",
+        "3 Terms and definitions ",
+        "4 Declaration of conformance ",
+        "5 Using the PDF 1.7 namespace with the PDF 2.0 namespace ",
+        "5.1 General ",
+        "5.2 PDF 1.7 as a standalone namespace ",
+        "5.3 Elements defined in both the PDF 1.7 and PDF 2.0 namespace ",
+        "5.4 Elements defined solely in the PDF 2.0 namespace ",
+        "5.5 Elements defined solely in the PDF 1.7 namespace ",
+        "5.5.1 General ",
+        "5.5.2 Permitted PDF 1.7 element types ",
+        "5.6 Role mapping ",
+        "6 Attributes ",
+        "6.1 General ",
+        "6.2 Attribute owners ",
+        "6.3 Attribute namespaces "
+      ],
+      "sectionNumberFormat": "other/title-only: 3, numeric (e.g., 7.3.4): 17"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Art",
+        "Document",
+        "Root",
+        "Sect"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 838,
+      "sampleText": "ii  ISO/TS 32005:2023(E)  COPYRIGHT PROTECTED DOCUMENT  © ISO 2023  All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may  be reproduced or utilized otherwise in any form or by any means, electronic or mechanical, including"
+    },
+    "metadata": {
+      "title": "ISO/TS 32005:2023",
+      "author": "ISO",
+      "subject": null
+    }
+  },
+  {
+    "filename": "ISO_32000-2-2020_sponsored.pdf",
+    "fileSize": "14.8 MB",
+    "pages": 1003,
+    "outline": {
+      "exists": true,
+      "totalEntries": 965,
+      "maxDepth": 5,
+      "topLevelEntries": [
+        "Foreword",
+        "Introduction",
+        "1 Scope",
+        "2 Normative references",
+        "3 Terms and definitions",
+        "4 Notation",
+        "5 Version designations",
+        "6 Conformance",
+        "7 Syntax",
+        "8 Graphics",
+        "9 Text",
+        "10 Rendering",
+        "11  Transparency",
+        "12 Interactive features",
+        "13 Multimedia features"
+      ],
+      "sampleEntries": [
+        "Foreword",
+        "Introduction",
+        "0.1 PDF",
+        "0.2 ISO 32000 and PDF",
+        "0.3 Changes introduced in ISO 32000-2:2017",
+        "0.4 Changes introduced in ISO 32000-2:2020",
+        "1 Scope",
+        "2 Normative references",
+        "3 Terms and definitions",
+        "4 Notation",
+        "4.1 General",
+        "4.2 Established notations",
+        "5 Version designations",
+        "6 Conformance",
+        "6.1 General",
+        "6.2 Conforming PDF documents",
+        "6.3 PDF processors",
+        "6.3.1 General",
+        "6.3.2 Conformance of PDF processors",
+        "6.3.2.1 General"
+      ],
+      "sectionNumberFormat": "other/title-only: 2, numeric (e.g., 7.3.4): 18"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "Part",
+        "Root"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 843,
+      "sampleText": "ISO 32000-2:2020(E)  ii   © ISO 2020 – All rights reserved  COPYRIGHT PROTECTED DOCUMENT  © ISO 2020  All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may  be reproduced or utilized otherwise in any form or by any means, e"
+    },
+    "metadata": {
+      "title": "﻿ISO 32000-2:2020﻿ with errata",
+      "author": "ISO",
+      "subject": null
+    }
+  },
+  {
+    "filename": "ISO_32000-2_sponsored-ec2.pdf",
+    "fileSize": "17.2 MB",
+    "pages": 1020,
+    "outline": {
+      "exists": true,
+      "totalEntries": 985,
+      "maxDepth": 5,
+      "topLevelEntries": [
+        "Cover page",
+        "Errata explanation",
+        "ISO 32000-2:2020 front page",
+        "Foreword",
+        "Introduction",
+        "1 Scope",
+        "2 Normative references",
+        "3 Terms and definitions",
+        "4 Notation",
+        "5 Version designations",
+        "6 Conformance",
+        "7 Syntax",
+        "8 Graphics",
+        "9 Text",
+        "10 Rendering"
+      ],
+      "sampleEntries": [
+        "Cover page",
+        "Errata explanation",
+        "ISO 32000-2:2020 front page",
+        "Contents",
+        "Foreword",
+        "Introduction",
+        "0.1 PDF",
+        "0.2 ISO 32000 and PDF",
+        "0.3 Changes introduced in ISO 32000-2:2017",
+        "0.4 Changes introduced in ISO 32000-2:2020",
+        "1 Scope",
+        "2 Normative references",
+        "3 Terms and definitions",
+        "4 Notation",
+        "4.1 General",
+        "4.2 Established notations",
+        "5 Version designations",
+        "6 Conformance",
+        "6.1 General",
+        "6.2 Conforming PDF documents"
+      ],
+      "sectionNumberFormat": "other/title-only: 6, numeric (e.g., 7.3.4): 14"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "Part",
+        "Root"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 383,
+      "sampleText": "Document management   — Portable  document format   —  Part   2:  PDF 2.0  Gestion de documents   — Format de document portable   —  Partie   2: PDF 2.0  ©   ISO 2020  INTERNATIONAL  STANDARD  ISO  32000-2  Second edition  2020-12  Reference number  ISO 32000-2:2020(E)  Sold by the PDF Association t"
+    },
+    "metadata": {
+      "title": "ISO 32000-2:2020 (PDF 2.0) including Errata Collection 2",
+      "author": null,
+      "subject": "International Standard"
+    }
+  },
+  {
+    "filename": "ISO_TS_32001-2022_sponsored.pdf",
+    "fileSize": "0.9 MB",
+    "pages": 13,
+    "outline": {
+      "exists": true,
+      "totalEntries": 13,
+      "maxDepth": 3,
+      "topLevelEntries": [
+        "Foreword ",
+        "Introduction ",
+        "1 ​Scope ",
+        "2 ​Normative references ",
+        "3 ​Terms and definitions ",
+        "4 ​Extension schema details ",
+        "5 ​Digital signature enhancements ",
+        "Bibliography "
+      ],
+      "sampleEntries": [
+        "Foreword ",
+        "Introduction ",
+        "1 ​Scope ",
+        "2 ​Normative references ",
+        "3 ​Terms and definitions ",
+        "4 ​Extension schema details ",
+        "5 ​Digital signature enhancements ",
+        "5.1 ​Support for secure hash algorithm 3 (SHA-3) hash family ",
+        "5.1.1 ​General ",
+        "5.1.2 ​Addition to ISO 32000-2:2020, Table 237 — Entries in a signature field seed value dictionary ",
+        "5.1.3 ​Changes to ISO 32000-2:2020, Table 256 — Entries in a signature reference dictionary ",
+        "5.1.4 ​Changes to ISO 32000-2:2020, Table 260 — SubFilter value algorithm support ",
+        "Bibliography "
+      ],
+      "sectionNumberFormat": "other/title-only: 3, numeric (e.g., 7.3.4): 10"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Art",
+        "Document",
+        "Root",
+        "Sect"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 724,
+      "sampleText": "ii  ISO/TS 32001:2022(E)  COPYRIGHT PROTECTED DOCUMENT  © ISO 2022  All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may  be reproduced or utilized otherwise in any form or by any means, electronic or mechanical, including"
+    },
+    "metadata": {
+      "title": "ISO/TS 32001:2022",
+      "author": "ISO",
+      "subject": null
+    }
+  },
+  {
+    "filename": "ISO_TS_32002-2022_sponsored.pdf",
+    "fileSize": "0.9 MB",
+    "pages": 13,
+    "outline": {
+      "exists": true,
+      "totalEntries": 15,
+      "maxDepth": 3,
+      "topLevelEntries": [
+        "Cover page",
+        "ISO front cover",
+        "Foreword ",
+        "Introduction ",
+        "1 ​Scope ",
+        "2 ​Normative references ",
+        "3 ​Terms and definitions ",
+        "4 ​Extension Schema Details ",
+        "5 ​Digital signature enhancements ",
+        "Bibliography "
+      ],
+      "sampleEntries": [
+        "Cover page",
+        "ISO front cover",
+        "Foreword ",
+        "Introduction ",
+        "1 ​Scope ",
+        "2 ​Normative references ",
+        "3 ​Terms and definitions ",
+        "4 ​Extension Schema Details ",
+        "5 ​Digital signature enhancements ",
+        "5.1 ​Elliptic curve cryptography ",
+        "5.1.1 ​Specification of allowed elliptic curve algorithms ",
+        "5.1.2 ​Proposed changes to ISO 32000-2:2020 Table 260 – SubFilter value algorithm support ",
+        "5.1.3 ​Specification of allowed elliptic curves ",
+        "5.1.4 ​Hash algorithm congruence for message digest and signed attribute digest ",
+        "Bibliography "
+      ],
+      "sectionNumberFormat": "other/title-only: 5, numeric (e.g., 7.3.4): 10"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Art",
+        "Document",
+        "Root",
+        "Sect"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 724,
+      "sampleText": "ii  ISO/TS 32002:2022(E)  COPYRIGHT PROTECTED DOCUMENT  © ISO 2022  All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may  be reproduced or utilized otherwise in any form or by any means, electronic or mechanical, including"
+    },
+    "metadata": {
+      "title": "ISO/TS 32002:2022",
+      "author": "ISO",
+      "subject": "Document management — Portable Document Format — Extensions to Digital Signatures in ISO 32000-2 (PDF 2.0)"
+    }
+  },
+  {
+    "filename": "ISO_TS_32003-2023_sponsored.pdf",
+    "fileSize": "0.9 MB",
+    "pages": 13,
+    "outline": {
+      "exists": true,
+      "totalEntries": 12,
+      "maxDepth": 2,
+      "topLevelEntries": [
+        "Cover page",
+        "ISO front cover",
+        "Foreword ",
+        "Introduction ",
+        "1 Scope ",
+        "2 Normative references ",
+        "3 Terms and definitions ",
+        "4 Extension schema details ",
+        "5 Proposed Changes ",
+        "Bibliography "
+      ],
+      "sampleEntries": [
+        "Cover page",
+        "ISO front cover",
+        "Foreword ",
+        "Introduction ",
+        "1 Scope ",
+        "2 Normative references ",
+        "3 Terms and definitions ",
+        "4 Extension schema details ",
+        "5 Proposed Changes ",
+        "5.1 Encrypt Dictionary ",
+        "5.2 Encryption of data using AES-GCM in PDF objects ",
+        "Bibliography "
+      ],
+      "sectionNumberFormat": "other/title-only: 5, numeric (e.g., 7.3.4): 7"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Art",
+        "Document",
+        "Root",
+        "Sect"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 724,
+      "sampleText": "ii  ISO/TS 32003:2023(E)  COPYRIGHT PROTECTED DOCUMENT  © ISO 2023  All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may  be reproduced or utilized otherwise in any form or by any means, electronic or mechanical, including"
+    },
+    "metadata": {
+      "title": "ISO/TS 32003:2023",
+      "author": "ISO",
+      "subject": "Document management — Portable Document Format — Adding support of AES-GCM in PDF 2.0 "
+    }
+  },
+  {
+    "filename": "PDF-Declarations.pdf",
+    "fileSize": "0.2 MB",
+    "pages": 10,
+    "outline": {
+      "exists": true,
+      "totalEntries": 28,
+      "maxDepth": 4,
+      "topLevelEntries": [
+        "PDF Declarations",
+        "PDF Declarations - A use of ISO 32000.pdf",
+        "PDF Declarations - A use of ISO 32000.pdf"
+      ],
+      "sampleEntries": [
+        "PDF Declarations",
+        "Foreword",
+        "Table of Contents",
+        "1 Introduction",
+        "2 Scope",
+        "3 Normative references",
+        "4 Terms and definitions",
+        "4.1",
+        "author",
+        "4.2",
+        "PDF Declaration",
+        "5 Relationship with PDF specifications and features",
+        "6 Established PDF Declarations",
+        "7 PDF Declaration syntax",
+        "7.1 Namespace information",
+        "7.2 PDF Declaration example",
+        "8 PDF Declaration requirements",
+        "8.1 PDF Declarations schema",
+        "8.2 PDF Declarations Property Value Types",
+        "8.2.1 Declaration"
+      ],
+      "sectionNumberFormat": "other/title-only: 7, numeric (e.g., 7.3.4): 13"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "H2",
+        "P",
+        "Root"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 1056,
+      "sampleText": "Foreword  PDF is a digital format for representing documents. PDF files may be created natively in PDF form, converted from other electronic formats, or digitized from paper. Businesses, governments, libraries, archives, and other institutions and individuals around the world use PDF to represent co"
+    },
+    "metadata": {
+      "title": "PDF Declarations",
+      "author": "PDF Association",
+      "subject": "PDF Declarations"
+    }
+  },
+  {
+    "filename": "PDF20_AN001-BPC.pdf",
+    "fileSize": "0.2 MB",
+    "pages": 5,
+    "outline": {
+      "exists": true,
+      "totalEntries": 14,
+      "maxDepth": 3,
+      "topLevelEntries": [
+        "Preface",
+        "References",
+        "What is Black Point Compensation?",
+        "PDF 2.0 Application Note 001- Black Point Compensation.pdf",
+        "PDF 2.0 Application Note 001- Black Point Compensation.pdf"
+      ],
+      "sampleEntries": [
+        "Preface",
+        "References",
+        "What is Black Point Compensation?",
+        "​General",
+        "​Circumstances and use cases",
+        "​What does the new flag do?",
+        "​Why might you want to use it?",
+        "​What risks are associated with using UseBlackPtComp?",
+        "PDF 2.0 Application Note 001- Black Point Compensation.pdf",
+        "Application Note",
+        "PDF 2.0 Application Note 001:  \n Black Point Compensation",
+        "PDF 2.0 Application Note 001- Black Point Compensation.pdf",
+        "Application Note",
+        "PDF 2.0 Application Note 001:  \n Black Point Compensation"
+      ],
+      "sectionNumberFormat": "other/title-only: 14"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "H1",
+        "Link",
+        "P",
+        "Root",
+        "TOC",
+        "TOCI"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 2010,
+      "sampleText": "PDF Association PDF 2.0 Application Note 001: Usage of Black Point Compensation  2018-September-17   PDF Association   Page 2  Table of Contents  Preface .......................................................................................................................................... 2  Refe"
+    },
+    "metadata": {
+      "title": "PDF 2.0 Application Note 001: Usage of Black Point Compensation",
+      "author": "PDF Association",
+      "subject": null
+    }
+  },
+  {
+    "filename": "PDF20_AN002-AF.pdf",
+    "fileSize": "0.1 MB",
+    "pages": 14,
+    "outline": {
+      "exists": true,
+      "totalEntries": 37,
+      "maxDepth": 3,
+      "topLevelEntries": [
+        "Foreword",
+        "1 Introduction",
+        "2 What are Associated Files?",
+        "3 Requirements",
+        "4 Use cases",
+        "5 Risks of Associated Files",
+        "6 Guidance for software",
+        "7 Bibliography",
+        "PDF 2.0 Application Note 002- Associated Files.pdf",
+        "PDF 2.0 Application Note 002- Associated Files.pdf"
+      ],
+      "sampleEntries": [
+        "Foreword",
+        "1 Introduction",
+        "1.1 The history of attachments in PDF",
+        "1.2 Purpose of this document",
+        "1.3 Terms of art",
+        "2 What are Associated Files?",
+        "3 Requirements",
+        "3.1 General",
+        "3.2 PDF/A-3’s restrictions",
+        "4 Use cases",
+        "4.1 AF entry in the catalog",
+        "4.1.1 Embedding the source file",
+        "4.1.2 Associating machine readable data",
+        "4.1.3 Creating packaged documents",
+        "4.1.4 Archiving emails",
+        "4.1.5 Encrypted payloads",
+        "4.2 AF entry not in the catalog",
+        "4.2.1 General",
+        "4.2.2 Equations",
+        "4.2.3 Graphs and charts"
+      ],
+      "sectionNumberFormat": "other/title-only: 1, numeric (e.g., 7.3.4): 19"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "H1",
+        "P",
+        "Root",
+        "Sect"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 576,
+      "sampleText": "PDF Association – Application Note 0002 – Associated Files  © 2018 PDF Association   ii  Foreword  This Application Note was produced by the PDF Association’s PDF Technical Working Group (TWG) to explain the use of the Associated Files feature defined in ISO 32000-2 (PDF 2.0).  This document provide"
+    },
+    "metadata": {
+      "title": "PDF 2.0 Application Note 002: Associated Files",
+      "author": "PDF Association",
+      "subject": null
+    }
+  },
+  {
+    "filename": "PDF20_AN003-ObjectMetadataLocations.pdf",
+    "fileSize": "0.7 MB",
+    "pages": 10,
+    "outline": {
+      "exists": true,
+      "totalEntries": 28,
+      "maxDepth": 3,
+      "topLevelEntries": [
+        "Table of Contents",
+        "Preface",
+        "Explicit mention of Metadata streams in PDF 2.0",
+        "Implicit mention of Metadata in PDF 2.0",
+        "Other potential uses of Metadata streams",
+        "PDF 2.0 Application Note 003.pdf",
+        "PDF 2.0 Application Note 003.pdf"
+      ],
+      "sampleEntries": [
+        "Table of Contents",
+        "Preface",
+        "Scope",
+        "References",
+        "Explicit mention of Metadata streams in PDF 2.0",
+        "Notes on metadata locations",
+        "Document level metadata",
+        "Image XObjects",
+        "Document Parts and Document Parts Metadata",
+        "Implicit mention of Metadata in PDF 2.0",
+        "Embedded fonts",
+        "Tiling patterns (Type 1 pattern dictionaries)",
+        "Shading patterns (Type 2 pattern dictionaries)",
+        "Marked content",
+        "Structure elements",
+        "Other potential uses of Metadata streams",
+        "Embedded files",
+        "Type 3 fonts",
+        "Annotations",
+        "Optional content"
+      ],
+      "sectionNumberFormat": "other/title-only: 20"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "H1",
+        "Root",
+        "TOC",
+        "TOCI"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 2815,
+      "sampleText": "Table of Contents  Preface   .......................................................................................................................................   1  Scope   .........................................................................................................................."
+    },
+    "metadata": {
+      "title": "PDF 2.0 Application Note 003:  Clarification on locations for object metadata streams",
+      "author": "PDF Association",
+      "subject": null
+    }
+  },
+  {
+    "filename": "PDF32000_2008.pdf",
+    "fileSize": "21.4 MB",
+    "pages": 756,
+    "outline": {
+      "exists": true,
+      "totalEntries": 823,
+      "maxDepth": 5,
+      "topLevelEntries": [
+        "Document management — Portable document format — Part 1: PDF 1.7",
+        "Contents Page",
+        "Foreword",
+        "Introduction",
+        "1 Scope",
+        "2 Conformance",
+        "3 Normative references",
+        "4 Terms and definitions",
+        "5 Notation",
+        "6 Version Designations",
+        "7 Syntax",
+        "8 Graphics",
+        "9 Text",
+        "10 Rendering",
+        "11 Transparency"
+      ],
+      "sampleEntries": [
+        "Document management — Portable document format — Part 1: PDF 1.7",
+        "Contents Page",
+        "Foreword",
+        "Introduction",
+        "1 Scope",
+        "2 Conformance",
+        "2.1 General",
+        "2.2 Conforming readers",
+        "2.3 Conforming writers",
+        "2.4 Conforming products",
+        "3 Normative references",
+        "4 Terms and definitions",
+        "5 Notation",
+        "6 Version Designations",
+        "7 Syntax",
+        "7.1 General",
+        "7.2 Lexical Conventions",
+        "7.2.1 General",
+        "7.2.2 Character Set",
+        "7.2.3 Comments"
+      ],
+      "sectionNumberFormat": "other/title-only: 4, numeric (e.g., 7.3.4): 16"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Art",
+        "Document",
+        "Part",
+        "Root"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 7852,
+      "sampleText": "©   Adobe Systems Incorporated 2008 – All rights reserved   iii  PDF 32000-1:2008  Contents   Page  Foreword. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . vi  Introduction . . . . . . . . . ."
+    },
+    "metadata": {
+      "title": "PDF32000.book",
+      "author": "Jim King",
+      "subject": null
+    }
+  },
+  {
+    "filename": "Tagged-PDF-Best-Practice-Guide.pdf",
+    "fileSize": "0.9 MB",
+    "pages": 72,
+    "outline": {
+      "exists": true,
+      "totalEntries": 193,
+      "maxDepth": 5,
+      "topLevelEntries": [
+        "Table of Contents ",
+        "1 Background ",
+        "2 Introduction ",
+        "3 General provisions ",
+        "4 Guidance for the standard structure types ",
+        "5 Attributes and properties ",
+        "6 Text characteristics ",
+        "7 Other features of PDF ",
+        "8 Editing tagged PDF files ",
+        "Annex A: The PDF/UA flag ",
+        "Annex B: PDF 2.0 ",
+        "Bibliography ",
+        "Tagged PDF Best Practice Guide- Syntax.pdf",
+        "Tagged PDF Best Practice Guide- Syntax.pdf",
+        "Tagged PDF Best Practice Guide- Syntax.pdf"
+      ],
+      "sampleEntries": [
+        "Table of Contents ",
+        "1 Background ",
+        "1.1 Use of the term “tagged PDF” ",
+        "1.2 Document history ",
+        "2 Introduction ",
+        "2.1 About PDF/UA (Universal Accessibility) ",
+        "2.2 Accessibility vs. reuse ",
+        "2.3 What this Guide is not ",
+        "2.4 Syntax guidance vs. tagging guidance ",
+        "2.5 Looking towards PDF 2.0 and PDF/UA-2 ",
+        "2.6 Use of normative language ",
+        "2.7 Notation ",
+        "3 General provisions ",
+        "3.1 Scope ",
+        "3.2 Fundamentals ",
+        "3.2.1 Semantic appropriateness ",
+        "3.2.2 Reading order ",
+        "3.2.3 Mapping text to Unicode ",
+        "3.3 Document level attributes ",
+        "3.4 Content that spans pages "
+      ],
+      "sectionNumberFormat": "other/title-only: 1, numeric (e.g., 7.3.4): 19"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "H1",
+        "Root",
+        "TOC",
+        "TOCI"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 4242,
+      "sampleText": "© 20 23   PDF Association   2  Tagged PDF Best Practice Guide:   Syntax  Table of Contents  1   Background ................................ ................................ ................................ ................................ ......   4  1.1   Use of the term “tagged PDF”   ............"
+    },
+    "metadata": {
+      "title": "Tagged PDF Best Practice Guide: Syntax 1.0.1",
+      "author": "PDF Association, PDF/UA TWG",
+      "subject": null
+    }
+  },
+  {
+    "filename": "Well-Tagged-PDF-WTPDF-1.0.pdf",
+    "fileSize": "0.6 MB",
+    "pages": 57,
+    "outline": {
+      "exists": true,
+      "totalEntries": 186,
+      "maxDepth": 5,
+      "topLevelEntries": [
+        "Table of Contents",
+        "1. Introduction",
+        "2. Scope",
+        "3. Normative references",
+        "4. Terms and definitions",
+        "5. Notation & Terminology",
+        "6.  Conformance",
+        "7. Reusable PDF",
+        "8. File format requirements",
+        "Appendix A: Example PDF Declaration for an external standard (informative)",
+        "Appendix B: Examples of attribute usage (informative)",
+        "Appendix C: Declaring conformance with PDF/UA-2 (Normative)",
+        "Bibliography",
+        "Well-Tagged PDF (WTPDF).pdf"
+      ],
+      "sampleEntries": [
+        "Table of Contents",
+        "1. Introduction",
+        "2. Scope",
+        "3. Normative references",
+        "4. Terms and definitions",
+        "4.1 artifact marked content sequence",
+        "4.2 assistive technology",
+        "4.3 AT",
+        "4.4 PDF 1.7 namespace",
+        "4.5 PDF 2.0 namespace",
+        "4.6 real content",
+        "4.7 structure attribute",
+        "4.8 unique PDF 1.7 element",
+        "5. Notation & Terminology",
+        "5.1 Notation",
+        "5.2 Terminology",
+        "6.  Conformance",
+        "6.1 Conformance levels",
+        "6.1.1 General",
+        "6.1.2 Conformance level for reuse"
+      ],
+      "sectionNumberFormat": "other/title-only: 7, numeric (e.g., 7.3.4): 13"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Document",
+        "H2",
+        "Root",
+        "TOC",
+        "TOCI"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 1442,
+      "sampleText": "i  Table of Contents  1. Introduction   1  2. Scope   2  3. Normative references   3  4. Terms and definitions   4  4.1 artifact marked content sequence   4  4.2 assistive technology   4  4.3 AT   4  4.4 PDF 1.7 namespace   4  4.5 PDF 2.0 namespace   4  4.6 real content   4  4.7 structure attribute "
+    },
+    "metadata": {
+      "title": "Well-Tagged PDF (WTPDF) Using Tagged PDF for Accessibility and Reuse in PDF 2.0 ",
+      "author": "PDF Association",
+      "subject": "Well-Tagged PDF (WTPDF) Using Tagged PDF for Accessibility and Reuse in PDF 2.0 "
+    }
+  },
+  {
+    "filename": "pdfreference1.7old.pdf",
+    "fileSize": "30.9 MB",
+    "pages": 1310,
+    "outline": {
+      "exists": true,
+      "totalEntries": 794,
+      "maxDepth": 5,
+      "topLevelEntries": [
+        "Contents",
+        "Figures",
+        "Tables",
+        "Preface",
+        "1 Introduction",
+        "2 Overview",
+        "3 Syntax",
+        "4 Graphics",
+        "5 Text",
+        "6 Rendering",
+        "7 Transparency",
+        "8 Interactive Features",
+        "9 Multimedia Features",
+        "10 Document Interchange",
+        "A Operator Summary"
+      ],
+      "sampleEntries": [
+        "Contents",
+        "Figures",
+        "Tables",
+        "Preface",
+        "1 Introduction",
+        "1.1 About This Book",
+        "1.2 Introduction to PDF 1.7 Features",
+        "1.2.1 Presentation of 3D Artwork",
+        "1.2.2 Interactive Features",
+        "Interactive Features That Aid Technical Communication",
+        "Interactive Feature for Use in a Legal Setting",
+        "1.2.3 Accessibility Related Features",
+        "1.2.4 Document Navigation Feature",
+        "1.2.5 Security-Related Features",
+        "1.2.6 General Features",
+        "1.2.7 PDF Reference Changes",
+        "1.3 Related Publications",
+        "1.4 Intellectual Property",
+        "2 Overview",
+        "2.1 Imaging Model"
+      ],
+      "sectionNumberFormat": "other/title-only: 6, numeric (e.g., 7.3.4): 14"
+    },
+    "structTree": {
+      "exists": true,
+      "samplePageChecked": 3,
+      "rootRole": "Root",
+      "childRoles": [
+        "Art",
+        "Document",
+        "Part",
+        "Root"
+      ],
+      "hasTableRole": false
+    },
+    "textExtraction": {
+      "works": true,
+      "samplePageChecked": 3,
+      "charCount": 764,
+      "sampleText": "RANTY OF ANY KIND (EXPRESS, IMPLIED, OR STATUTORY) WITH RESPECT TO THIS PUBLICATION, AND EXPRESSLY DISCLAIMS ANY AND ALL WARRANTIES OF MER -  CHANTABILITY, FITNESS FOR PARTICULAR PURPOSES, AND NONINFRINGEMENT OF THIRD-PARTY RIGHTS.  Adobe Systems Incorporated and its subsidiaries own a number of pat"
+    },
+    "metadata": {
+      "title": "PDF Reference, version 1.7",
+      "author": "Adobe Systems Incorporated",
+      "subject": "Adobe Portable Document Format (PDF)"
+    }
+  }
+]
