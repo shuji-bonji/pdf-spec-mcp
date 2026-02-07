@@ -34,7 +34,12 @@ export async function extractSectionContent(
 ): Promise<ContentElement[]> {
   const elements: ContentElement[] = [];
 
-  for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+  // Clamp page range to valid bounds (defensive against outline/PagesMapper issues)
+  const totalPages = doc.numPages || endPage;
+  const safeStart = Math.max(1, Math.min(startPage, totalPages));
+  const safeEnd = Math.max(1, Math.min(endPage, totalPages));
+
+  for (let pageNum = safeStart; pageNum <= safeEnd; pageNum++) {
     const pageElements = await extractPageContent(doc, pageNum);
     elements.push(...pageElements);
   }

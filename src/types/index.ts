@@ -3,6 +3,70 @@
  */
 
 // ========================================
+// Document Registry
+// ========================================
+
+/** Spec identifier (used as `spec` parameter in tools) */
+export type SpecId = string;
+
+/** Category of PDF document */
+export type SpecCategory = 'standard' | 'ts' | 'pdfua' | 'guide' | 'appnote';
+
+/** Registered PDF document metadata */
+export interface SpecInfo {
+  id: SpecId;
+  title: string;
+  filename: string;
+  pages: number | null; // null until PDF is first opened
+  category: SpecCategory;
+  outlineEntries: number | null; // null until section index is built
+  description: string;
+}
+
+/** list_specs result */
+export interface ListSpecsResult {
+  totalSpecs: number;
+  specs: SpecInfo[];
+}
+
+export interface ListSpecsArgs {
+  category?: string;
+}
+
+// ========================================
+// Version Comparison
+// ========================================
+
+/** A matched section pair between two spec versions */
+export interface SectionMapping {
+  section17: string;
+  section20: string;
+  title: string;
+  status: 'same' | 'moved' | 'renamed';
+}
+
+/** A section present in only one version */
+export interface UnmatchedSection {
+  section: string;
+  title: string;
+  version: 'pdf17' | 'pdf20';
+}
+
+/** compare_versions result */
+export interface CompareVersionsResult {
+  totalMatched: number;
+  totalAdded: number; // PDF 2.0 にのみ存在
+  totalRemoved: number; // PDF 1.7 にのみ存在
+  matched: SectionMapping[];
+  added: UnmatchedSection[];
+  removed: UnmatchedSection[];
+}
+
+export interface CompareVersionsArgs {
+  section?: string; // 特定セクションに絞る（省略時は全体比較）
+}
+
+// ========================================
 // PDF Document Structure
 // ========================================
 
@@ -115,14 +179,17 @@ export interface SearchResult {
 // ========================================
 
 export interface GetStructureArgs {
+  spec?: string;
   max_depth?: number;
 }
 
 export interface GetSectionArgs {
+  spec?: string;
   section: string;
 }
 
 export interface SearchSpecArgs {
+  spec?: string;
   query: string;
   max_results?: number;
 }
@@ -151,6 +218,7 @@ export interface RequirementsResult {
 }
 
 export interface GetRequirementsArgs {
+  spec?: string;
   section?: string;
   level?: string;
 }
@@ -175,6 +243,7 @@ export interface DefinitionsResult {
 }
 
 export interface GetDefinitionsArgs {
+  spec?: string;
   term?: string;
 }
 
@@ -198,6 +267,7 @@ export interface TablesResult {
 }
 
 export interface GetTablesArgs {
+  spec?: string;
   section: string;
   table_index?: number;
 }

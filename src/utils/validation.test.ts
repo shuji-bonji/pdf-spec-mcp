@@ -1,3 +1,8 @@
+/**
+ * validation.ts unit tests
+ * Phase 1-2 validators + Phase 3 additions (validateSpecId, validateCompareSection)
+ */
+
 import { describe, it, expect } from 'vitest';
 import {
   validateSectionId,
@@ -7,7 +12,13 @@ import {
   validateRequirementLevel,
   validateTermQuery,
   validateTableIndex,
+  validateSpecId,
+  validateCompareSection,
 } from './validation.js';
+
+// ========================================
+// Phase 1-2: Existing validators
+// ========================================
 
 describe('validateSectionId', () => {
   it('accepts valid section strings', () => {
@@ -183,5 +194,67 @@ describe('validateTableIndex', () => {
 
   it('rejects non-number types', () => {
     expect(() => validateTableIndex('0')).toThrow('non-negative integer');
+  });
+});
+
+// ========================================
+// Phase 3: validateSpecId
+// ========================================
+
+describe('validateSpecId', () => {
+  it('returns undefined for undefined input', () => {
+    expect(validateSpecId(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for null input', () => {
+    expect(validateSpecId(null)).toBeUndefined();
+  });
+
+  it('accepts valid spec ID: "iso32000-2"', () => {
+    expect(validateSpecId('iso32000-2')).toBe('iso32000-2');
+  });
+
+  it('accepts valid spec ID: "ts32002"', () => {
+    expect(validateSpecId('ts32002')).toBe('ts32002');
+  });
+
+  it('rejects empty string', () => {
+    expect(() => validateSpecId('')).toThrow('spec must be a non-empty string');
+  });
+
+  it('rejects non-string types', () => {
+    expect(() => validateSpecId(123)).toThrow('spec must be a non-empty string');
+  });
+
+  it('rejects strings exceeding 50 characters', () => {
+    const long = 'a'.repeat(51);
+    expect(() => validateSpecId(long)).toThrow('spec must be 50 characters or less');
+  });
+
+  it('accepts strings of exactly 50 characters', () => {
+    const exact = 'a'.repeat(50);
+    expect(validateSpecId(exact)).toBe(exact);
+  });
+});
+
+// ========================================
+// Phase 3: validateCompareSection
+// ========================================
+
+describe('validateCompareSection', () => {
+  it('returns undefined for undefined input', () => {
+    expect(validateCompareSection(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for null input', () => {
+    expect(validateCompareSection(null)).toBeUndefined();
+  });
+
+  it('accepts valid section "12.8"', () => {
+    expect(validateCompareSection('12.8')).toBe('12.8');
+  });
+
+  it('delegates to validateSectionId — rejects empty string', () => {
+    expect(() => validateCompareSection('')).toThrow('Section must not be empty');
   });
 });

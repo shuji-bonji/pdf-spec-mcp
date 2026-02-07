@@ -84,3 +84,28 @@ export function validateTableIndex(index: unknown): number | undefined {
   }
   return index;
 }
+
+/**
+ * Validate spec ID parameter.
+ * Returns undefined if not provided (caller should use DEFAULT_SPEC_ID via resolveSpecId).
+ */
+export function validateSpecId(specId: unknown): string | undefined {
+  if (specId === undefined || specId === null) return undefined;
+  if (typeof specId !== 'string' || specId.length === 0) {
+    throw new Error('spec must be a non-empty string');
+  }
+  if (specId.length > 50) {
+    throw new Error('spec must be 50 characters or less');
+  }
+  return specId;
+}
+
+/**
+ * Validate section parameter for compare_versions.
+ * Returns undefined if not provided (compare all sections).
+ */
+export function validateCompareSection(section: unknown): string | undefined {
+  if (section === undefined || section === null) return undefined;
+  validateSectionId(section);
+  return section as string;
+}

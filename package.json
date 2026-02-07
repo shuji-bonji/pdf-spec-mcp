@@ -1,6 +1,6 @@
 {
   "name": "@shuji-bonji/pdf-spec-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for structured understanding of ISO 32000 (PDF) specifications",
   "keywords": [
     "mcp",

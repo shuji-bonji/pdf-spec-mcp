@@ -1,19 +1,21 @@
 /**
  * PDF Service
- * Orchestration layer with caching for all PDF operations
+ * Orchestration layer with per-spec caching for all PDF operations.
+ *
+ * All public functions accept an optional `specId` parameter.
+ * When omitted, the default spec (iso32000-2) is used via resolveSpecId().
  */
 
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { PDF_CONFIG, CACHE_CONFIG } from '../config.js';
+import { CACHE_CONFIG } from '../config.js';
 import { LRUCache } from '../utils/cache.js';
 import { logger } from '../utils/logger.js';
-import { loadDocument, getOutlineWithPages } from './pdf-loader.js';
+import { loadDocument, reloadDocument, getOutlineWithPages } from './pdf-loader.js';
 import { buildSectionIndex, findSection } from './outline-resolver.js';
 import { extractSectionContent } from './content-extractor.js';
 import { buildSearchIndex, searchTextIndex } from './search-index.js';
 import { extractRequirementsFromContent } from './requirement-extractor.js';
 import { extractAllDefinitions } from './definition-extractor.js';
+import { getSpecPath, resolveSpecId, enrichSpecInfo } from './pdf-registry.js';
 import type {
   SectionIndex,
   TextIndex,
@@ -29,67 +31,71 @@ import type {
   TableInfo,
 } from '../types/index.js';
 
-// Cached state (singleton per server lifetime)
-let sectionIndexPromise: Promise<SectionIndex> | null = null;
-let searchIndexPromise: Promise<TextIndex> | null = null;
-let requirementsIndexPromise: Promise<Requirement[]> | null = null;
-let definitionsPromise: Promise<Definition[]> | null = null;
+// ========================================
+// Per-spec caches (Map<SpecId, Promise<T>>)
+// ========================================
 
-// Section content cache
+const sectionIndexMap = new Map<string, Promise<SectionIndex>>();
+const searchIndexMap = new Map<string, Promise<TextIndex>>();
+const requirementsIndexMap = new Map<string, Promise<Requirement[]>>();
+const definitionsMap = new Map<string, Promise<Definition[]>>();
+
+// Section content cache (shared across specs, keyed with specId prefix)
 const sectionContentCache = new LRUCache<string, ContentElement[]>(CACHE_CONFIG.sectionContent);
 
-/**
- * Resolve PDF path from environment variable
- */
-function getPdfPath(): string {
-  const dir = process.env[PDF_CONFIG.envVar];
-  if (!dir) {
-    throw new Error(
-      `Environment variable ${PDF_CONFIG.envVar} is not set. ` +
-        `Set it to the directory containing PDF specification files.`
-    );
-  }
-  const pdfPath = join(dir, PDF_CONFIG.primaryPdf);
-  if (!existsSync(pdfPath)) {
-    throw new Error(
-      `PDF file not found: ${pdfPath}. ` +
-        `Download it from https://pdfa.org/resource/iso-32000-pdf/`
-    );
-  }
-  return pdfPath;
-}
+// Definition extraction is only supported for specs with compatible Section 3 structure
+const DEFINITIONS_SUPPORTED_SPECS = new Set(['iso32000-2', 'iso32000-2-2020', 'pdf17']);
+
+// ========================================
+// Section Index
+// ========================================
 
 /**
- * Get section index (lazy initialization, cached)
+ * Get section index (lazy initialization, cached per spec)
  */
-export async function getSectionIndex(): Promise<SectionIndex> {
-  if (!sectionIndexPromise) {
-    sectionIndexPromise = initSectionIndex();
+export async function getSectionIndex(specId?: string): Promise<SectionIndex> {
+  const id = resolveSpecId(specId);
+  if (!sectionIndexMap.has(id)) {
+    sectionIndexMap.set(id, initSectionIndex(id));
   }
-  return sectionIndexPromise;
+  return sectionIndexMap.get(id)!;
 }
 
-async function initSectionIndex(): Promise<SectionIndex> {
-  const pdfPath = getPdfPath();
+async function initSectionIndex(specId: string): Promise<SectionIndex> {
+  const pdfPath = getSpecPath(specId);
   const doc = await loadDocument(pdfPath);
   const outline = await getOutlineWithPages(doc);
   const index = buildSectionIndex(outline, doc.numPages);
+
+  // Enrich registry with runtime metadata
+  enrichSpecInfo(specId, {
+    pages: doc.numPages,
+    outlineEntries: index.sections.size,
+  });
+
   logger.info(
     'PDFService',
-    `Section index built: ${index.sections.size} sections, ${doc.numPages} pages`
+    `[${specId}] Section index built: ${index.sections.size} sections, ${doc.numPages} pages`
   );
   return index;
 }
 
+// ========================================
+// Section Content
+// ========================================
+
 /**
  * Get section content by section identifier
  */
-export async function getSectionContent(sectionId: string): Promise<SectionResult> {
-  const index = await getSectionIndex();
+export async function getSectionContent(
+  sectionId: string,
+  specId?: string
+): Promise<SectionResult> {
+  const id = resolveSpecId(specId);
+  const index = await getSectionIndex(id);
   const section = findSection(index, sectionId);
 
   if (!section) {
-    // Provide suggestions for close matches
     const suggestions = findSimilarSections(index, sectionId);
     const msg =
       suggestions.length > 0
@@ -98,8 +104,8 @@ export async function getSectionContent(sectionId: string): Promise<SectionResul
     throw new Error(msg);
   }
 
-  // Check content cache
-  const cacheKey = `${section.sectionNumber}:${section.page}-${section.endPage}`;
+  // Check content cache (keyed with specId prefix)
+  const cacheKey = `${id}:${section.sectionNumber}:${section.page}-${section.endPage}`;
   const cached = sectionContentCache.get(cacheKey);
   if (cached) {
     return {
@@ -110,7 +116,7 @@ export async function getSectionContent(sectionId: string): Promise<SectionResul
     };
   }
 
-  const pdfPath = getPdfPath();
+  const pdfPath = getSpecPath(id);
   const doc = await loadDocument(pdfPath);
   const content = await extractSectionContent(
     doc,
@@ -129,22 +135,37 @@ export async function getSectionContent(sectionId: string): Promise<SectionResul
   };
 }
 
+// ========================================
+// Search
+// ========================================
+
 /**
  * Search the specification
  */
-export async function searchSpec(query: string, maxResults: number): Promise<SearchHit[]> {
-  const index = await getSectionIndex();
+export async function searchSpec(
+  query: string,
+  maxResults: number,
+  specId?: string
+): Promise<SearchHit[]> {
+  const id = resolveSpecId(specId);
+  const index = await getSectionIndex(id);
 
-  if (!searchIndexPromise) {
-    const pdfPath = getPdfPath();
-    const doc = await loadDocument(pdfPath);
-    logger.info('PDFService', 'Building search index (this may take a few seconds)...');
-    searchIndexPromise = buildSearchIndex(doc, index);
+  if (!searchIndexMap.has(id)) {
+    const pdfPath = getSpecPath(id);
+    // Force-reload to reset pdfjs-dist PagesMapper singleton state.
+    // Without this, getPage() fails for pages beyond the LAST-loaded document's numPages.
+    const doc = await reloadDocument(pdfPath);
+    logger.info('PDFService', `[${id}] Building search index (this may take a few seconds)...`);
+    searchIndexMap.set(id, buildSearchIndex(doc, index));
   }
 
-  const searchIdx = await searchIndexPromise;
+  const searchIdx = await searchIndexMap.get(id)!;
   return searchTextIndex(searchIdx, query, maxResults, index);
 }
+
+// ========================================
+// Requirements
+// ========================================
 
 /**
  * Get requirements, optionally filtered by section and/or level.
@@ -153,13 +174,15 @@ export async function searchSpec(query: string, maxResults: number): Promise<Sea
  */
 export async function getRequirements(
   section?: string,
-  level?: ISORequirementLevel
+  level?: ISORequirementLevel,
+  specId?: string
 ): Promise<RequirementsResult> {
+  const id = resolveSpecId(specId);
   let allRequirements: Requirement[];
 
   if (section) {
     // Fast path: extract from specific section + subsections
-    const index = await getSectionIndex();
+    const index = await getSectionIndex(id);
     const matchingSections = index.flatOrder.filter(
       (s) => s.sectionNumber === section || s.sectionNumber.startsWith(section + '.')
     );
@@ -170,8 +193,7 @@ export async function getRequirements(
       );
     }
 
-    // Only extract from leaf sections (no children in the matching set)
-    // to avoid duplicates from parent sections including child content
+    // Only extract from leaf sections to avoid duplicates
     const matchingNumbers = new Set(matchingSections.map((s) => s.sectionNumber));
     const leafSections = matchingSections.filter(
       (s) => !s.children.some((child) => matchingNumbers.has(child))
@@ -179,17 +201,17 @@ export async function getRequirements(
 
     allRequirements = [];
     for (const sec of leafSections) {
-      const result = await getSectionContent(sec.sectionNumber);
+      const result = await getSectionContent(sec.sectionNumber, id);
       const reqs = extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
       allRequirements.push(...reqs);
     }
   } else {
     // Full scan: build or reuse cached index
-    if (!requirementsIndexPromise) {
-      logger.info('PDFService', 'Building requirements index (this may take a while)...');
-      requirementsIndexPromise = buildRequirementsIndex();
+    if (!requirementsIndexMap.has(id)) {
+      logger.info('PDFService', `[${id}] Building requirements index (this may take a while)...`);
+      requirementsIndexMap.set(id, buildRequirementsIndex(id));
     }
-    allRequirements = await requirementsIndexPromise;
+    allRequirements = await requirementsIndexMap.get(id)!;
   }
 
   // Apply level filter
@@ -209,13 +231,13 @@ export async function getRequirements(
   };
 }
 
-async function buildRequirementsIndex(): Promise<Requirement[]> {
-  const index = await getSectionIndex();
+async function buildRequirementsIndex(specId: string): Promise<Requirement[]> {
+  const index = await getSectionIndex(specId);
   const allRequirements: Requirement[] = [];
 
   for (const sec of index.flatOrder) {
     try {
-      const result = await getSectionContent(sec.sectionNumber);
+      const result = await getSectionContent(sec.sectionNumber, specId);
       const reqs = extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
       allRequirements.push(...reqs);
     } catch {
@@ -224,20 +246,44 @@ async function buildRequirementsIndex(): Promise<Requirement[]> {
     }
   }
 
-  logger.info('PDFService', `Requirements index built: ${allRequirements.length} requirements`);
+  logger.info(
+    'PDFService',
+    `[${specId}] Requirements index built: ${allRequirements.length} requirements`
+  );
   return allRequirements;
 }
 
+// ========================================
+// Definitions
+// ========================================
+
 /**
  * Get definitions, optionally filtered by term keyword.
+ * Only supported for ISO 32000-2, ISO 32000-2-2020, and PDF 1.7.
  */
-export async function getDefinitions(term?: string): Promise<DefinitionsResult> {
-  if (!definitionsPromise) {
-    logger.info('PDFService', 'Extracting definitions from Section 3...');
-    definitionsPromise = extractAllDefinitions(getSectionContent);
+export async function getDefinitions(
+  term?: string,
+  specId?: string
+): Promise<DefinitionsResult> {
+  const id = resolveSpecId(specId);
+
+  // Guard: definition extraction requires compatible Section 3 structure
+  if (!DEFINITIONS_SUPPORTED_SPECS.has(id)) {
+    throw new Error(
+      `get_definitions is only supported for ISO 32000-2 and PDF 1.7. ` +
+        `For "${id}", use get_section with section "3" instead.`
+    );
   }
 
-  let definitions = await definitionsPromise;
+  if (!definitionsMap.has(id)) {
+    logger.info('PDFService', `[${id}] Extracting definitions from Section 3...`);
+    definitionsMap.set(
+      id,
+      extractAllDefinitions((sectionId) => getSectionContent(sectionId, id))
+    );
+  }
+
+  let definitions = await definitionsMap.get(id)!;
 
   if (term) {
     const searchTerm = term.toLowerCase();
@@ -254,12 +300,21 @@ export async function getDefinitions(term?: string): Promise<DefinitionsResult> 
   };
 }
 
+// ========================================
+// Tables
+// ========================================
+
 /**
  * Get tables from a specific section.
  * First tries StructTree-based extraction, then falls back to text-based detection.
  */
-export async function getTables(sectionId: string, tableIndex?: number): Promise<TablesResult> {
-  const result = await getSectionContent(sectionId);
+export async function getTables(
+  sectionId: string,
+  tableIndex?: number,
+  specId?: string
+): Promise<TablesResult> {
+  const id = resolveSpecId(specId);
+  const result = await getSectionContent(sectionId, id);
 
   // Collect tables from StructTree (type: 'table')
   let tables: TableInfo[] = collectStructTreeTables(result.content);
@@ -291,6 +346,10 @@ export async function getTables(sectionId: string, tableIndex?: number): Promise
   };
 }
 
+// ========================================
+// Private helpers
+// ========================================
+
 /**
  * Collect tables from StructTree-extracted content (type: 'table').
  */
@@ -317,7 +376,6 @@ function collectStructTreeTables(content: ContentElement[]): TableInfo[] {
       element.headers.length > 0 &&
       arraysEqual(tables[tables.length - 1].headers, element.headers)
     ) {
-      // Continuation of previous table across a page boundary
       tables[tables.length - 1].rows.push(...element.rows);
       continue;
     }
@@ -343,8 +401,6 @@ function arraysEqual(a: string[], b: string[]): boolean {
 
 /**
  * Text-based fallback: detect tables from paragraph patterns.
- * Looks for "Table N — Title" captions and extracts subsequent lines as table data.
- * Used when the PDF's StructTree lacks proper Table elements.
  */
 function detectTablesFromText(content: ContentElement[]): TableInfo[] {
   const tables: TableInfo[] = [];
@@ -359,8 +415,6 @@ function detectTablesFromText(content: ContentElement[]): TableInfo[] {
 
     const caption = el.text;
 
-    // Collect subsequent paragraphs as table rows
-    // Table data typically has consistent column patterns (tab or multi-space separated)
     const rows: string[][] = [];
     let headers: string[] = [];
     let j = i + 1;
@@ -368,12 +422,9 @@ function detectTablesFromText(content: ContentElement[]): TableInfo[] {
     while (j < content.length) {
       const next = content[j];
       if (next.type !== 'paragraph') break;
-
-      // Stop at next table caption or very long text (paragraph, not table row)
       if (TABLE_CAPTION_RE.test(next.text)) break;
       if (next.text.length > 300 && !next.text.includes('\t')) break;
 
-      // Try to split by tabs first, then by 2+ spaces
       let cells: string[];
       if (next.text.includes('\t')) {
         cells = next.text
@@ -387,7 +438,6 @@ function detectTablesFromText(content: ContentElement[]): TableInfo[] {
           .filter(Boolean);
       }
 
-      // Only treat as a table row if it has 2+ cells
       if (cells.length >= 2) {
         if (headers.length === 0) {
           headers = cells;
@@ -395,7 +445,6 @@ function detectTablesFromText(content: ContentElement[]): TableInfo[] {
           rows.push(cells);
         }
       } else {
-        // Single cell or no split — end of table
         break;
       }
       j++;
@@ -423,7 +472,6 @@ function findSimilarSections(index: SectionIndex, query: string): string[] {
 
   for (const info of index.flatOrder) {
     const key = info.sectionNumber.toLowerCase();
-    // Prefix match or substring match
     if (key.startsWith(lower) || lower.startsWith(key)) {
       suggestions.push(info.sectionNumber);
       if (suggestions.length >= 5) break;

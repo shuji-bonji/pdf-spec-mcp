@@ -10,6 +10,24 @@ vi.mock('../services/pdf-service.js', () => ({
   getTables: vi.fn(),
 }));
 
+// Mock pdf-registry before importing handlers
+vi.mock('../services/pdf-registry.js', () => ({
+  ensureRegistryInitialized: vi.fn().mockResolvedValue(undefined),
+  listSpecs: vi.fn().mockReturnValue([]),
+  isSpecAvailable: vi.fn().mockReturnValue(true),
+  getSpecInfo: vi.fn().mockReturnValue({
+    id: 'iso32000-2',
+    title: 'ISO 32000-2:2020 (PDF 2.0) with Errata Collection 2',
+    category: 'standard',
+  }),
+  resolveSpecId: vi.fn((id?: string) => id || 'iso32000-2'),
+}));
+
+// Mock compare-service before importing handlers
+vi.mock('../services/compare-service.js', () => ({
+  compareVersions: vi.fn(),
+}));
+
 import { toolHandlers } from './handlers.js';
 import {
   getSectionIndex,
@@ -19,6 +37,8 @@ import {
   getDefinitions,
   getTables,
 } from '../services/pdf-service.js';
+import { listSpecs, isSpecAvailable } from '../services/pdf-registry.js';
+import { compareVersions } from '../services/compare-service.js';
 import type {
   SectionIndex,
   SectionResult,
@@ -26,6 +46,8 @@ import type {
   RequirementsResult,
   DefinitionsResult,
   TablesResult,
+  CompareVersionsResult,
+  SpecInfo,
 } from '../types/index.js';
 
 const mockGetSectionIndex = vi.mocked(getSectionIndex);
@@ -34,20 +56,31 @@ const mockSearchSpec = vi.mocked(searchSpec);
 const mockGetRequirements = vi.mocked(getRequirements);
 const mockGetDefinitions = vi.mocked(getDefinitions);
 const mockGetTables = vi.mocked(getTables);
+const mockListSpecs = vi.mocked(listSpecs);
+const mockIsSpecAvailable = vi.mocked(isSpecAvailable);
+const mockCompareVersions = vi.mocked(compareVersions);
 
 describe('toolHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Restore default mock behavior
+    mockIsSpecAvailable.mockReturnValue(true);
   });
 
-  it('has handlers for all six tools', () => {
+  it('has handlers for all eight tools', () => {
     expect(toolHandlers).toHaveProperty('get_structure');
     expect(toolHandlers).toHaveProperty('get_section');
     expect(toolHandlers).toHaveProperty('search_spec');
     expect(toolHandlers).toHaveProperty('get_requirements');
     expect(toolHandlers).toHaveProperty('get_definitions');
     expect(toolHandlers).toHaveProperty('get_tables');
+    expect(toolHandlers).toHaveProperty('list_specs');
+    expect(toolHandlers).toHaveProperty('compare_versions');
   });
+
+  // ========================================
+  // get_structure
+  // ========================================
 
   describe('get_structure', () => {
     const mockIndex: SectionIndex = {
@@ -88,7 +121,6 @@ describe('toolHandlers', () => {
       const result = (await toolHandlers.get_structure({ max_depth: 1 })) as {
         sections: Array<{ children: unknown[] }>;
       };
-      // max_depth=1: top-level only, no children
       for (const section of result.sections) {
         expect(section.children).toEqual([]);
       }
@@ -98,7 +130,21 @@ describe('toolHandlers', () => {
       await expect(toolHandlers.get_structure({ max_depth: 0 })).rejects.toThrow();
       await expect(toolHandlers.get_structure({ max_depth: 11 })).rejects.toThrow();
     });
+
+    it('passes spec parameter to getSectionIndex', async () => {
+      await toolHandlers.get_structure({ spec: 'ts32002' });
+      expect(mockGetSectionIndex).toHaveBeenCalledWith('ts32002');
+    });
+
+    it('works without spec param (backward compatible)', async () => {
+      await toolHandlers.get_structure({});
+      expect(mockGetSectionIndex).toHaveBeenCalledWith(undefined);
+    });
   });
+
+  // ========================================
+  // get_section
+  // ========================================
 
   describe('get_section', () => {
     it('returns section content', async () => {
@@ -112,7 +158,18 @@ describe('toolHandlers', () => {
 
       const result = await toolHandlers.get_section({ section: '7.3.4' });
       expect(result).toEqual(mockResult);
-      expect(mockGetSectionContent).toHaveBeenCalledWith('7.3.4');
+      expect(mockGetSectionContent).toHaveBeenCalledWith('7.3.4', undefined);
+    });
+
+    it('passes spec parameter', async () => {
+      mockGetSectionContent.mockResolvedValue({
+        sectionNumber: '5',
+        title: 'Test',
+        pageRange: { start: 1, end: 2 },
+        content: [],
+      });
+      await toolHandlers.get_section({ section: '5', spec: 'ts32002' });
+      expect(mockGetSectionContent).toHaveBeenCalledWith('5', 'ts32002');
     });
 
     it('rejects missing section parameter', async () => {
@@ -123,6 +180,10 @@ describe('toolHandlers', () => {
       await expect(toolHandlers.get_section({ section: '' })).rejects.toThrow('must not be empty');
     });
   });
+
+  // ========================================
+  // search_spec
+  // ========================================
 
   describe('search_spec', () => {
     it('returns search results', async () => {
@@ -144,13 +205,19 @@ describe('toolHandlers', () => {
     it('uses default max_results of 10', async () => {
       mockSearchSpec.mockResolvedValue([]);
       await toolHandlers.search_spec({ query: 'test' });
-      expect(mockSearchSpec).toHaveBeenCalledWith('test', 10);
+      expect(mockSearchSpec).toHaveBeenCalledWith('test', 10, undefined);
     });
 
     it('passes custom max_results', async () => {
       mockSearchSpec.mockResolvedValue([]);
       await toolHandlers.search_spec({ query: 'test', max_results: 5 });
-      expect(mockSearchSpec).toHaveBeenCalledWith('test', 5);
+      expect(mockSearchSpec).toHaveBeenCalledWith('test', 5, undefined);
+    });
+
+    it('passes spec parameter', async () => {
+      mockSearchSpec.mockResolvedValue([]);
+      await toolHandlers.search_spec({ query: 'test', spec: 'pdf17' });
+      expect(mockSearchSpec).toHaveBeenCalledWith('test', 10, 'pdf17');
     });
 
     it('rejects missing query', async () => {
@@ -161,6 +228,10 @@ describe('toolHandlers', () => {
       await expect(toolHandlers.search_spec({ query: '' })).rejects.toThrow('must not be empty');
     });
   });
+
+  // ========================================
+  // get_requirements
+  // ========================================
 
   describe('get_requirements', () => {
     const mockResult: RequirementsResult = {
@@ -189,19 +260,25 @@ describe('toolHandlers', () => {
       mockGetRequirements.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_requirements({ section: '7.3' });
       expect(result).toEqual(mockResult);
-      expect(mockGetRequirements).toHaveBeenCalledWith('7.3', undefined);
+      expect(mockGetRequirements).toHaveBeenCalledWith('7.3', undefined, undefined);
     });
 
     it('passes level filter', async () => {
       mockGetRequirements.mockResolvedValue({ ...mockResult, totalRequirements: 1 });
       await toolHandlers.get_requirements({ section: '7.3', level: 'shall' });
-      expect(mockGetRequirements).toHaveBeenCalledWith('7.3', 'shall');
+      expect(mockGetRequirements).toHaveBeenCalledWith('7.3', 'shall', undefined);
     });
 
     it('works without any filters', async () => {
       mockGetRequirements.mockResolvedValue(mockResult);
       await toolHandlers.get_requirements({});
-      expect(mockGetRequirements).toHaveBeenCalledWith(undefined, undefined);
+      expect(mockGetRequirements).toHaveBeenCalledWith(undefined, undefined, undefined);
+    });
+
+    it('passes spec parameter', async () => {
+      mockGetRequirements.mockResolvedValue(mockResult);
+      await toolHandlers.get_requirements({ spec: 'pdf17' });
+      expect(mockGetRequirements).toHaveBeenCalledWith(undefined, undefined, 'pdf17');
     });
 
     it('rejects invalid level', async () => {
@@ -217,6 +294,10 @@ describe('toolHandlers', () => {
     });
   });
 
+  // ========================================
+  // get_definitions
+  // ========================================
+
   describe('get_definitions', () => {
     const mockResult: DefinitionsResult = {
       totalDefinitions: 2,
@@ -230,19 +311,29 @@ describe('toolHandlers', () => {
       mockGetDefinitions.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_definitions({});
       expect(result).toEqual(mockResult);
-      expect(mockGetDefinitions).toHaveBeenCalledWith(undefined);
+      expect(mockGetDefinitions).toHaveBeenCalledWith(undefined, undefined);
     });
 
     it('passes term filter', async () => {
       mockGetDefinitions.mockResolvedValue({ ...mockResult, totalDefinitions: 1 });
       await toolHandlers.get_definitions({ term: 'font' });
-      expect(mockGetDefinitions).toHaveBeenCalledWith('font');
+      expect(mockGetDefinitions).toHaveBeenCalledWith('font', undefined);
+    });
+
+    it('passes spec parameter', async () => {
+      mockGetDefinitions.mockResolvedValue(mockResult);
+      await toolHandlers.get_definitions({ spec: 'pdf17' });
+      expect(mockGetDefinitions).toHaveBeenCalledWith(undefined, 'pdf17');
     });
 
     it('rejects empty term string', async () => {
       await expect(toolHandlers.get_definitions({ term: '' })).rejects.toThrow('must not be empty');
     });
   });
+
+  // ========================================
+  // get_tables
+  // ========================================
 
   describe('get_tables', () => {
     const mockResult: TablesResult = {
@@ -263,13 +354,19 @@ describe('toolHandlers', () => {
       mockGetTables.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_tables({ section: '7.2.3' });
       expect(result).toEqual(mockResult);
-      expect(mockGetTables).toHaveBeenCalledWith('7.2.3', undefined);
+      expect(mockGetTables).toHaveBeenCalledWith('7.2.3', undefined, undefined);
     });
 
     it('passes table_index', async () => {
       mockGetTables.mockResolvedValue(mockResult);
       await toolHandlers.get_tables({ section: '7.2.3', table_index: 0 });
-      expect(mockGetTables).toHaveBeenCalledWith('7.2.3', 0);
+      expect(mockGetTables).toHaveBeenCalledWith('7.2.3', 0, undefined);
+    });
+
+    it('passes spec parameter', async () => {
+      mockGetTables.mockResolvedValue(mockResult);
+      await toolHandlers.get_tables({ section: '7.2.3', spec: 'pdf17' });
+      expect(mockGetTables).toHaveBeenCalledWith('7.2.3', undefined, 'pdf17');
     });
 
     it('rejects missing section parameter', async () => {
@@ -283,6 +380,87 @@ describe('toolHandlers', () => {
     it('rejects negative table_index', async () => {
       await expect(toolHandlers.get_tables({ section: '7.2.3', table_index: -1 })).rejects.toThrow(
         'non-negative integer'
+      );
+    });
+  });
+
+  // ========================================
+  // list_specs
+  // ========================================
+
+  describe('list_specs', () => {
+    const mockSpecs: SpecInfo[] = [
+      {
+        id: 'iso32000-2',
+        title: 'ISO 32000-2:2020',
+        filename: 'ISO_32000-2_sponsored-ec2.pdf',
+        pages: 1020,
+        category: 'standard',
+        outlineEntries: 824,
+        description: 'PDF 2.0',
+      },
+      {
+        id: 'ts32002',
+        title: 'ISO/TS 32002',
+        filename: 'ISO_TS_32002.pdf',
+        pages: 13,
+        category: 'ts',
+        outlineEntries: 15,
+        description: 'ECC/PAdES',
+      },
+    ];
+
+    it('returns all specs when no category', async () => {
+      mockListSpecs.mockReturnValue(mockSpecs);
+      const result = (await toolHandlers.list_specs({})) as { totalSpecs: number };
+      expect(result.totalSpecs).toBe(2);
+    });
+
+    it('passes category filter', async () => {
+      mockListSpecs.mockReturnValue([mockSpecs[1]]);
+      const result = (await toolHandlers.list_specs({ category: 'ts' })) as { totalSpecs: number };
+      expect(result.totalSpecs).toBe(1);
+      expect(mockListSpecs).toHaveBeenCalledWith('ts');
+    });
+  });
+
+  // ========================================
+  // compare_versions
+  // ========================================
+
+  describe('compare_versions', () => {
+    const mockCompareResult: CompareVersionsResult = {
+      totalMatched: 100,
+      totalAdded: 20,
+      totalRemoved: 10,
+      matched: [],
+      added: [],
+      removed: [],
+    };
+
+    it('returns comparison result when both specs available', async () => {
+      mockCompareVersions.mockResolvedValue(mockCompareResult);
+      const result = await toolHandlers.compare_versions({});
+      expect(result).toEqual(mockCompareResult);
+    });
+
+    it('passes section filter', async () => {
+      mockCompareVersions.mockResolvedValue(mockCompareResult);
+      await toolHandlers.compare_versions({ section: '12.8' });
+      expect(mockCompareVersions).toHaveBeenCalledWith('12.8');
+    });
+
+    it('throws if pdf17 is not available', async () => {
+      mockIsSpecAvailable.mockImplementation((id: string) => id !== 'pdf17');
+      await expect(toolHandlers.compare_versions({})).rejects.toThrow(
+        'compare_versions requires PDF32000_2008.pdf'
+      );
+    });
+
+    it('throws if iso32000-2 is not available', async () => {
+      mockIsSpecAvailable.mockImplementation((id: string) => id !== 'iso32000-2');
+      await expect(toolHandlers.compare_versions({})).rejects.toThrow(
+        'compare_versions requires ISO_32000-2_sponsored-ec2.pdf'
       );
     });
   });

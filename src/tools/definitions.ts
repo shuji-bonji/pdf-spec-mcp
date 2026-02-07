@@ -4,7 +4,39 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
+/** Common spec parameter description shared by all spec-aware tools */
+const SPEC_PARAM = {
+  type: 'string' as const,
+  description:
+    'Specification ID (e.g., "iso32000-2", "ts32002", "pdfua2"). ' +
+    'Use list_specs to see available specs. Default: "iso32000-2" (PDF 2.0).',
+};
+
 export const tools: Tool[] = [
+  // ========================================
+  // Discovery
+  // ========================================
+  {
+    name: 'list_specs',
+    description:
+      'List all available PDF specification documents. ' +
+      'Returns document IDs, titles, page counts, and categories. ' +
+      'Use the returned IDs as the `spec` parameter in other tools.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Filter by document category.',
+          enum: ['standard', 'ts', 'pdfua', 'guide', 'appnote'],
+        },
+      },
+    },
+  },
+
+  // ========================================
+  // Structure & Content
+  // ========================================
   {
     name: 'get_structure',
     description:
@@ -13,6 +45,7 @@ export const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        spec: SPEC_PARAM,
         max_depth: {
           type: 'number',
           description:
@@ -30,6 +63,7 @@ export const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        spec: SPEC_PARAM,
         section: {
           type: 'string',
           description: 'Section identifier (e.g., "7.3.4", "12.8", "Annex A", "Foreword")',
@@ -38,6 +72,10 @@ export const tools: Tool[] = [
       required: ['section'],
     },
   },
+
+  // ========================================
+  // Search
+  // ========================================
   {
     name: 'search_spec',
     description:
@@ -47,6 +85,7 @@ export const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        spec: SPEC_PARAM,
         query: {
           type: 'string',
           description: 'Search query (keyword or phrase)',
@@ -59,6 +98,10 @@ export const tools: Tool[] = [
       required: ['query'],
     },
   },
+
+  // ========================================
+  // Analysis
+  // ========================================
   {
     name: 'get_requirements',
     description:
@@ -67,6 +110,7 @@ export const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        spec: SPEC_PARAM,
         section: {
           type: 'string',
           description:
@@ -89,6 +133,7 @@ export const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        spec: SPEC_PARAM,
         term: {
           type: 'string',
           description:
@@ -106,6 +151,7 @@ export const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        spec: SPEC_PARAM,
         section: {
           type: 'string',
           description: 'Section identifier (e.g., "7.3.4", "12.8", "Annex A")',
@@ -118,6 +164,28 @@ export const tools: Tool[] = [
         },
       },
       required: ['section'],
+    },
+  },
+
+  // ========================================
+  // Version Comparison
+  // ========================================
+  {
+    name: 'compare_versions',
+    description:
+      'Compare sections between PDF 1.7 (ISO 32000-1) and PDF 2.0 (ISO 32000-2). ' +
+      'Returns matched sections (same or moved), added sections (new in 2.0), ' +
+      'and removed sections (absent in 2.0). Uses title-based automatic matching.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        section: {
+          type: 'string',
+          description:
+            'Compare a specific section and its subsections (e.g., "12.8" for Digital Signatures). ' +
+            'Uses PDF 2.0 section numbering. If omitted, compares all top-level sections.',
+        },
+      },
     },
   },
 ];
