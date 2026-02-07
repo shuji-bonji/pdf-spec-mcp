@@ -5,25 +5,48 @@ vi.mock('../services/pdf-service.js', () => ({
   getSectionIndex: vi.fn(),
   getSectionContent: vi.fn(),
   searchSpec: vi.fn(),
+  getRequirements: vi.fn(),
+  getDefinitions: vi.fn(),
+  getTables: vi.fn(),
 }));
 
 import { toolHandlers } from './handlers.js';
-import { getSectionIndex, getSectionContent, searchSpec } from '../services/pdf-service.js';
-import type { SectionIndex, SectionResult, SearchHit } from '../types/index.js';
+import {
+  getSectionIndex,
+  getSectionContent,
+  searchSpec,
+  getRequirements,
+  getDefinitions,
+  getTables,
+} from '../services/pdf-service.js';
+import type {
+  SectionIndex,
+  SectionResult,
+  SearchHit,
+  RequirementsResult,
+  DefinitionsResult,
+  TablesResult,
+} from '../types/index.js';
 
 const mockGetSectionIndex = vi.mocked(getSectionIndex);
 const mockGetSectionContent = vi.mocked(getSectionContent);
 const mockSearchSpec = vi.mocked(searchSpec);
+const mockGetRequirements = vi.mocked(getRequirements);
+const mockGetDefinitions = vi.mocked(getDefinitions);
+const mockGetTables = vi.mocked(getTables);
 
 describe('toolHandlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('has handlers for all three tools', () => {
+  it('has handlers for all six tools', () => {
     expect(toolHandlers).toHaveProperty('get_structure');
     expect(toolHandlers).toHaveProperty('get_section');
     expect(toolHandlers).toHaveProperty('search_spec');
+    expect(toolHandlers).toHaveProperty('get_requirements');
+    expect(toolHandlers).toHaveProperty('get_definitions');
+    expect(toolHandlers).toHaveProperty('get_tables');
   });
 
   describe('get_structure', () => {
@@ -136,6 +159,131 @@ describe('toolHandlers', () => {
 
     it('rejects empty query', async () => {
       await expect(toolHandlers.search_spec({ query: '' })).rejects.toThrow('must not be empty');
+    });
+  });
+
+  describe('get_requirements', () => {
+    const mockResult: RequirementsResult = {
+      filter: { section: '7.3', level: 'all' },
+      totalRequirements: 2,
+      statistics: { shall: 1, may: 1 },
+      requirements: [
+        {
+          id: 'R-7.3-1',
+          level: 'shall',
+          text: 'The value shall be positive.',
+          section: '7.3',
+          sectionTitle: 'Objects',
+        },
+        {
+          id: 'R-7.3-2',
+          level: 'may',
+          text: 'The reader may cache.',
+          section: '7.3',
+          sectionTitle: 'Objects',
+        },
+      ],
+    };
+
+    it('returns requirements with section filter', async () => {
+      mockGetRequirements.mockResolvedValue(mockResult);
+      const result = await toolHandlers.get_requirements({ section: '7.3' });
+      expect(result).toEqual(mockResult);
+      expect(mockGetRequirements).toHaveBeenCalledWith('7.3', undefined);
+    });
+
+    it('passes level filter', async () => {
+      mockGetRequirements.mockResolvedValue({ ...mockResult, totalRequirements: 1 });
+      await toolHandlers.get_requirements({ section: '7.3', level: 'shall' });
+      expect(mockGetRequirements).toHaveBeenCalledWith('7.3', 'shall');
+    });
+
+    it('works without any filters', async () => {
+      mockGetRequirements.mockResolvedValue(mockResult);
+      await toolHandlers.get_requirements({});
+      expect(mockGetRequirements).toHaveBeenCalledWith(undefined, undefined);
+    });
+
+    it('rejects invalid level', async () => {
+      await expect(toolHandlers.get_requirements({ level: 'invalid' })).rejects.toThrow(
+        'Invalid requirement level'
+      );
+    });
+
+    it('rejects empty section string', async () => {
+      await expect(toolHandlers.get_requirements({ section: '' })).rejects.toThrow(
+        'must not be empty'
+      );
+    });
+  });
+
+  describe('get_definitions', () => {
+    const mockResult: DefinitionsResult = {
+      totalDefinitions: 2,
+      definitions: [
+        { term: 'font', definition: 'A collection of glyphs.', section: '3.5' },
+        { term: 'glyph', definition: 'A graphical shape.', section: '3.10' },
+      ],
+    };
+
+    it('returns all definitions without term filter', async () => {
+      mockGetDefinitions.mockResolvedValue(mockResult);
+      const result = await toolHandlers.get_definitions({});
+      expect(result).toEqual(mockResult);
+      expect(mockGetDefinitions).toHaveBeenCalledWith(undefined);
+    });
+
+    it('passes term filter', async () => {
+      mockGetDefinitions.mockResolvedValue({ ...mockResult, totalDefinitions: 1 });
+      await toolHandlers.get_definitions({ term: 'font' });
+      expect(mockGetDefinitions).toHaveBeenCalledWith('font');
+    });
+
+    it('rejects empty term string', async () => {
+      await expect(toolHandlers.get_definitions({ term: '' })).rejects.toThrow('must not be empty');
+    });
+  });
+
+  describe('get_tables', () => {
+    const mockResult: TablesResult = {
+      section: '7.2.3',
+      sectionTitle: 'White-space characters',
+      totalTables: 1,
+      tables: [
+        {
+          index: 0,
+          caption: 'Table 1 — White-space characters',
+          headers: ['Code', 'Name'],
+          rows: [['0x09', 'TAB']],
+        },
+      ],
+    };
+
+    it('returns all tables in a section', async () => {
+      mockGetTables.mockResolvedValue(mockResult);
+      const result = await toolHandlers.get_tables({ section: '7.2.3' });
+      expect(result).toEqual(mockResult);
+      expect(mockGetTables).toHaveBeenCalledWith('7.2.3', undefined);
+    });
+
+    it('passes table_index', async () => {
+      mockGetTables.mockResolvedValue(mockResult);
+      await toolHandlers.get_tables({ section: '7.2.3', table_index: 0 });
+      expect(mockGetTables).toHaveBeenCalledWith('7.2.3', 0);
+    });
+
+    it('rejects missing section parameter', async () => {
+      await expect(toolHandlers.get_tables({})).rejects.toThrow();
+    });
+
+    it('rejects empty section string', async () => {
+      await expect(toolHandlers.get_tables({ section: '' })).rejects.toThrow('must not be empty');
+    });
+
+    it('rejects negative table_index', async () => {
+      await expect(toolHandlers.get_tables({ section: '7.2.3', table_index: -1 })).rejects.toThrow(
+        'non-negative integer'
+      );
     });
   });
 });

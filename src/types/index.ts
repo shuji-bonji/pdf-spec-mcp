@@ -128,6 +128,81 @@ export interface SearchSpecArgs {
 }
 
 // ========================================
+// Requirements (ISO normative keywords)
+// ========================================
+
+/** ISO normative requirement levels (lowercase per ISO/IEC Directives Part 2) */
+export type ISORequirementLevel = 'shall' | 'shall not' | 'should' | 'should not' | 'may';
+
+/** A single extracted normative requirement */
+export interface Requirement {
+  id: string;
+  level: ISORequirementLevel;
+  text: string;
+  section: string;
+  sectionTitle: string;
+}
+
+export interface RequirementsResult {
+  filter: { section: string; level: string };
+  totalRequirements: number;
+  statistics: Record<string, number>;
+  requirements: Requirement[];
+}
+
+export interface GetRequirementsArgs {
+  section?: string;
+  level?: string;
+}
+
+// ========================================
+// Definitions (Section 3)
+// ========================================
+
+/** A term definition from Section 3 */
+export interface Definition {
+  term: string;
+  definition: string;
+  section: string;
+  notes?: string[];
+  source?: string;
+}
+
+export interface DefinitionsResult {
+  totalDefinitions: number;
+  searchTerm?: string;
+  definitions: Definition[];
+}
+
+export interface GetDefinitionsArgs {
+  term?: string;
+}
+
+// ========================================
+// Tables
+// ========================================
+
+/** A table extracted from a section with optional caption */
+export interface TableInfo {
+  index: number;
+  caption: string | null;
+  headers: string[];
+  rows: string[][];
+}
+
+export interface TablesResult {
+  section: string;
+  sectionTitle: string;
+  totalTables: number;
+  tables: TableInfo[];
+}
+
+export interface GetTablesArgs {
+  section: string;
+  table_index?: number;
+}
+
+// ========================================
 // Search Index
 // ========================================
 

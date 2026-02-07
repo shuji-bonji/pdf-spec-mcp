@@ -12,17 +12,28 @@ import { loadDocument, getOutlineWithPages } from './pdf-loader.js';
 import { buildSectionIndex, findSection } from './outline-resolver.js';
 import { extractSectionContent } from './content-extractor.js';
 import { buildSearchIndex, searchTextIndex } from './search-index.js';
+import { extractRequirementsFromContent } from './requirement-extractor.js';
+import { extractAllDefinitions } from './definition-extractor.js';
 import type {
   SectionIndex,
   TextIndex,
   SectionResult,
   SearchHit,
   ContentElement,
+  Requirement,
+  RequirementsResult,
+  ISORequirementLevel,
+  Definition,
+  DefinitionsResult,
+  TablesResult,
+  TableInfo,
 } from '../types/index.js';
 
 // Cached state (singleton per server lifetime)
 let sectionIndexPromise: Promise<SectionIndex> | null = null;
 let searchIndexPromise: Promise<TextIndex> | null = null;
+let requirementsIndexPromise: Promise<Requirement[]> | null = null;
+let definitionsPromise: Promise<Definition[]> | null = null;
 
 // Section content cache
 const sectionContentCache = new LRUCache<string, ContentElement[]>(CACHE_CONFIG.sectionContent);
@@ -133,6 +144,161 @@ export async function searchSpec(query: string, maxResults: number): Promise<Sea
 
   const searchIdx = await searchIndexPromise;
   return searchTextIndex(searchIdx, query, maxResults, index);
+}
+
+/**
+ * Get requirements, optionally filtered by section and/or level.
+ * With section filter: extracts from that section + subsections (fast).
+ * Without section filter: builds full requirements index lazily (slow on first call).
+ */
+export async function getRequirements(
+  section?: string,
+  level?: ISORequirementLevel
+): Promise<RequirementsResult> {
+  let allRequirements: Requirement[];
+
+  if (section) {
+    // Fast path: extract from specific section + subsections
+    const index = await getSectionIndex();
+    const matchingSections = index.flatOrder.filter(
+      (s) => s.sectionNumber === section || s.sectionNumber.startsWith(section + '.')
+    );
+
+    if (matchingSections.length === 0) {
+      throw new Error(
+        `Section "${section}" not found. Use get_structure to see available sections.`
+      );
+    }
+
+    allRequirements = [];
+    for (const sec of matchingSections) {
+      const result = await getSectionContent(sec.sectionNumber);
+      const reqs = extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
+      allRequirements.push(...reqs);
+    }
+  } else {
+    // Full scan: build or reuse cached index
+    if (!requirementsIndexPromise) {
+      logger.info('PDFService', 'Building requirements index (this may take a while)...');
+      requirementsIndexPromise = buildRequirementsIndex();
+    }
+    allRequirements = await requirementsIndexPromise;
+  }
+
+  // Apply level filter
+  const filtered = level ? allRequirements.filter((r) => r.level === level) : allRequirements;
+
+  // Build statistics
+  const statistics: Record<string, number> = {};
+  for (const req of filtered) {
+    statistics[req.level] = (statistics[req.level] || 0) + 1;
+  }
+
+  return {
+    filter: { section: section || 'all', level: level || 'all' },
+    totalRequirements: filtered.length,
+    statistics,
+    requirements: filtered,
+  };
+}
+
+async function buildRequirementsIndex(): Promise<Requirement[]> {
+  const index = await getSectionIndex();
+  const allRequirements: Requirement[] = [];
+
+  for (const sec of index.flatOrder) {
+    try {
+      const result = await getSectionContent(sec.sectionNumber);
+      const reqs = extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
+      allRequirements.push(...reqs);
+    } catch {
+      // Skip sections that fail to extract
+      continue;
+    }
+  }
+
+  logger.info('PDFService', `Requirements index built: ${allRequirements.length} requirements`);
+  return allRequirements;
+}
+
+/**
+ * Get definitions, optionally filtered by term keyword.
+ */
+export async function getDefinitions(term?: string): Promise<DefinitionsResult> {
+  if (!definitionsPromise) {
+    logger.info('PDFService', 'Extracting definitions from Section 3...');
+    const index = await getSectionIndex();
+    definitionsPromise = extractAllDefinitions(index, getSectionContent);
+  }
+
+  let definitions = await definitionsPromise;
+
+  if (term) {
+    const searchTerm = term.toLowerCase();
+    definitions = definitions.filter(
+      (d) =>
+        d.term.toLowerCase().includes(searchTerm) || d.definition.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  return {
+    totalDefinitions: definitions.length,
+    searchTerm: term,
+    definitions,
+  };
+}
+
+/**
+ * Get tables from a specific section.
+ */
+export async function getTables(sectionId: string, tableIndex?: number): Promise<TablesResult> {
+  const result = await getSectionContent(sectionId);
+
+  // Collect tables with captions
+  const tables: TableInfo[] = [];
+  let idx = 0;
+
+  for (let i = 0; i < result.content.length; i++) {
+    const element = result.content[i];
+    if (element.type !== 'table') continue;
+
+    // Try to detect caption from preceding paragraph
+    let caption: string | null = null;
+    if (i > 0) {
+      const prev = result.content[i - 1];
+      if (prev.type === 'paragraph' && /^Table\s+\d+/.test(prev.text)) {
+        caption = prev.text;
+      }
+    }
+
+    tables.push({
+      index: idx++,
+      caption,
+      headers: element.headers,
+      rows: element.rows,
+    });
+  }
+
+  if (tableIndex !== undefined) {
+    if (tableIndex >= tables.length) {
+      throw new Error(
+        `table_index ${tableIndex} out of range. Section "${sectionId}" has ${tables.length} table(s).`
+      );
+    }
+    return {
+      section: result.sectionNumber,
+      sectionTitle: result.title,
+      totalTables: 1,
+      tables: [tables[tableIndex]],
+    };
+  }
+
+  return {
+    section: result.sectionNumber,
+    sectionTitle: result.title,
+    totalTables: tables.length,
+    tables,
+  };
 }
 
 /**

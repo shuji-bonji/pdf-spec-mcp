@@ -4,6 +4,9 @@ import {
   validateSearchQuery,
   validateMaxDepth,
   validateMaxResults,
+  validateRequirementLevel,
+  validateTermQuery,
+  validateTableIndex,
 } from './validation.js';
 
 describe('validateSectionId', () => {
@@ -101,5 +104,84 @@ describe('validateMaxResults', () => {
 
   it('rejects non-integer numbers', () => {
     expect(() => validateMaxResults(2.5)).toThrow();
+  });
+});
+
+describe('validateRequirementLevel', () => {
+  it('returns undefined for null/undefined', () => {
+    expect(validateRequirementLevel(undefined)).toBeUndefined();
+    expect(validateRequirementLevel(null)).toBeUndefined();
+  });
+
+  it('accepts valid lowercase levels', () => {
+    expect(validateRequirementLevel('shall')).toBe('shall');
+    expect(validateRequirementLevel('shall not')).toBe('shall not');
+    expect(validateRequirementLevel('should')).toBe('should');
+    expect(validateRequirementLevel('should not')).toBe('should not');
+    expect(validateRequirementLevel('may')).toBe('may');
+  });
+
+  it('normalizes uppercase to lowercase', () => {
+    expect(validateRequirementLevel('SHALL')).toBe('shall');
+    expect(validateRequirementLevel('SHALL NOT')).toBe('shall not');
+    expect(validateRequirementLevel('May')).toBe('may');
+  });
+
+  it('rejects invalid levels', () => {
+    expect(() => validateRequirementLevel('must')).toThrow('Invalid requirement level');
+    expect(() => validateRequirementLevel('invalid')).toThrow('Invalid requirement level');
+  });
+
+  it('rejects non-string types', () => {
+    expect(() => validateRequirementLevel(123)).toThrow('level must be a string');
+  });
+});
+
+describe('validateTermQuery', () => {
+  it('returns undefined for null/undefined', () => {
+    expect(validateTermQuery(undefined)).toBeUndefined();
+    expect(validateTermQuery(null)).toBeUndefined();
+  });
+
+  it('accepts valid term strings', () => {
+    expect(validateTermQuery('font')).toBe('font');
+    expect(validateTermQuery('  glyph  ')).toBe('glyph');
+  });
+
+  it('rejects empty strings', () => {
+    expect(() => validateTermQuery('')).toThrow('must not be empty');
+    expect(() => validateTermQuery('   ')).toThrow('must not be empty');
+  });
+
+  it('rejects terms exceeding 200 characters', () => {
+    expect(() => validateTermQuery('a'.repeat(201))).toThrow('too long');
+  });
+
+  it('rejects non-string types', () => {
+    expect(() => validateTermQuery(42)).toThrow('term must be a string');
+  });
+});
+
+describe('validateTableIndex', () => {
+  it('returns undefined for null/undefined', () => {
+    expect(validateTableIndex(undefined)).toBeUndefined();
+    expect(validateTableIndex(null)).toBeUndefined();
+  });
+
+  it('accepts valid non-negative integers', () => {
+    expect(validateTableIndex(0)).toBe(0);
+    expect(validateTableIndex(5)).toBe(5);
+  });
+
+  it('rejects negative numbers', () => {
+    expect(() => validateTableIndex(-1)).toThrow('non-negative integer');
+  });
+
+  it('rejects non-integer numbers', () => {
+    expect(() => validateTableIndex(1.5)).toThrow('non-negative integer');
+  });
+
+  it('rejects non-number types', () => {
+    expect(() => validateTableIndex('0')).toThrow('non-negative integer');
   });
 });

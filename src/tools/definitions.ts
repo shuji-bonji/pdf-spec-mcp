@@ -59,4 +59,65 @@ export const tools: Tool[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'get_requirements',
+    description:
+      'Extract normative requirements (shall/must/may) from the PDF specification (ISO 32000-2). ' +
+      'Returns structured requirements with the sentence context, section, and requirement level.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        section: {
+          type: 'string',
+          description:
+            'Filter by section number (e.g., "7.3.4", "12.8"). ' +
+            'Includes subsections. If omitted, scans all sections (slower on first call).',
+        },
+        level: {
+          type: 'string',
+          description: 'Filter by requirement level.',
+          enum: ['shall', 'shall not', 'should', 'should not', 'may'],
+        },
+      },
+    },
+  },
+  {
+    name: 'get_definitions',
+    description:
+      'Get term definitions from Section 3 of the PDF specification (ISO 32000-2). ' +
+      'Returns structured definitions with term, definition text, notes, and sources.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        term: {
+          type: 'string',
+          description:
+            'Search for a specific term by keyword (case-insensitive substring match). ' +
+            'If omitted, returns all definitions.',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_tables',
+    description:
+      'Extract table structures from a specified section of the PDF specification (ISO 32000-2). ' +
+      'Returns tables with headers, rows, and optional captions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        section: {
+          type: 'string',
+          description: 'Section identifier (e.g., "7.3.4", "12.8", "Annex A")',
+        },
+        table_index: {
+          type: 'number',
+          description:
+            'Optional 0-based index to retrieve a specific table. ' +
+            'If omitted, returns all tables in the section.',
+        },
+      },
+      required: ['section'],
+    },
+  },
 ];

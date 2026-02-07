@@ -2,17 +2,30 @@
  * MCP Tool Handlers
  */
 
-import { getSectionIndex, getSectionContent, searchSpec } from '../services/pdf-service.js';
+import {
+  getSectionIndex,
+  getSectionContent,
+  searchSpec,
+  getRequirements,
+  getDefinitions,
+  getTables,
+} from '../services/pdf-service.js';
 import {
   validateSectionId,
   validateSearchQuery,
   validateMaxDepth,
   validateMaxResults,
+  validateRequirementLevel,
+  validateTermQuery,
+  validateTableIndex,
 } from '../utils/validation.js';
 import type {
   GetStructureArgs,
   GetSectionArgs,
   SearchSpecArgs,
+  GetRequirementsArgs,
+  GetDefinitionsArgs,
+  GetTablesArgs,
   OutlineEntry,
   StructureResult,
 } from '../types/index.js';
@@ -68,6 +81,34 @@ function pruneTree(entries: OutlineEntry[], depth: number, maxDepth: number): Ou
 }
 
 /**
+ * get_requirements handler
+ */
+async function handleGetRequirements(args: GetRequirementsArgs) {
+  if (args.section !== undefined) {
+    validateSectionId(args.section);
+  }
+  const level = validateRequirementLevel(args.level);
+  return getRequirements(args.section, level);
+}
+
+/**
+ * get_definitions handler
+ */
+async function handleGetDefinitions(args: GetDefinitionsArgs) {
+  const term = validateTermQuery(args.term);
+  return getDefinitions(term);
+}
+
+/**
+ * get_tables handler
+ */
+async function handleGetTables(args: GetTablesArgs) {
+  validateSectionId(args.section);
+  const tableIndex = validateTableIndex(args.table_index);
+  return getTables(args.section, tableIndex);
+}
+
+/**
  * Tool handler registry
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,4 +116,7 @@ export const toolHandlers: Record<string, (args: any) => Promise<unknown>> = {
   get_structure: handleGetStructure,
   get_section: handleGetSection,
   search_spec: handleSearchSpec,
+  get_requirements: handleGetRequirements,
+  get_definitions: handleGetDefinitions,
+  get_tables: handleGetTables,
 };
