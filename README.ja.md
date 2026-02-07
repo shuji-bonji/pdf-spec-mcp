@@ -1,5 +1,8 @@
 # PDF SPEC MCP Server
 
+[![CI](https://github.com/shuji-bonji/pdf-spec-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/shuji-bonji/pdf-spec-mcp/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@shuji-bonji/pdf-spec-mcp)](https://www.npmjs.com/package/@shuji-bonji/pdf-spec-mcp)
+
 [English README](README.md)
 
 ISO 32000（PDF）仕様書への構造化アクセスを提供する MCP（Model Context Protocol）サーバーです。LLM が PDF 仕様書をナビゲート・検索・分析するためのツールを提供します。

@@ -1,5 +1,8 @@
 # PDF SPEC MCP Server
 
+[![CI](https://github.com/shuji-bonji/pdf-spec-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/shuji-bonji/pdf-spec-mcp/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@shuji-bonji/pdf-spec-mcp)](https://www.npmjs.com/package/@shuji-bonji/pdf-spec-mcp)
+
 [日本語版 README はこちら](README.ja.md)
 
 An MCP (Model Context Protocol) server that provides structured access to ISO 32000 (PDF) specification documents. Enables LLMs to navigate, search, and analyze PDF specifications through well-defined tools.
