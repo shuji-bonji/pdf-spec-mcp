@@ -101,7 +101,12 @@ export async function getSectionContent(sectionId: string): Promise<SectionResul
 
   const pdfPath = getPdfPath();
   const doc = await loadDocument(pdfPath);
-  const content = await extractSectionContent(doc, section.page, section.endPage);
+  const content = await extractSectionContent(
+    doc,
+    section.page,
+    section.endPage,
+    section.sectionNumber
+  );
 
   sectionContentCache.set(cacheKey, content);
 

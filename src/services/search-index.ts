@@ -48,7 +48,18 @@ export async function buildSearchIndex(
 }
 
 /**
+ * Normalize text for search: collapse spaces around hyphens, normalize whitespace
+ * Handles PDF text extraction artifacts like "cross- reference" or "cross -reference"
+ */
+function normalizeForSearch(text: string): string {
+  return text
+    .replace(/\s*-\s*/g, '-') // collapse spaces around hyphens
+    .replace(/\s+/g, ' '); // normalize whitespace
+}
+
+/**
  * Search the index for a query string
+ * Supports multi-word AND queries (all words must be present)
  */
 export function searchTextIndex(
   index: TextIndex,
@@ -56,25 +67,48 @@ export function searchTextIndex(
   maxResults: number,
   sectionIndex: SectionIndex
 ): SearchHit[] {
-  const normalizedQuery = query.toLowerCase();
+  const normalizedQuery = normalizeForSearch(query.toLowerCase());
+  const queryWords = normalizedQuery.split(/\s+/).filter((w) => w.length > 0);
   const hits: SearchHit[] = [];
 
   for (const pageText of index.pages) {
-    const lowerText = pageText.text.toLowerCase();
-    const idx = lowerText.indexOf(normalizedQuery);
-    if (idx === -1) continue;
+    const normalizedText = normalizeForSearch(pageText.text.toLowerCase());
 
-    // Count occurrences for scoring
-    let count = 0;
-    let searchIdx = 0;
-    while ((searchIdx = lowerText.indexOf(normalizedQuery, searchIdx)) !== -1) {
-      count++;
-      searchIdx += normalizedQuery.length;
+    // Try exact phrase match first
+    let idx = normalizedText.indexOf(normalizedQuery);
+    let score = 0;
+
+    if (idx !== -1) {
+      // Count exact phrase occurrences
+      let searchIdx = 0;
+      while ((searchIdx = normalizedText.indexOf(normalizedQuery, searchIdx)) !== -1) {
+        score += 3; // exact phrase match scores higher than AND
+        searchIdx += normalizedQuery.length;
+      }
+    } else if (queryWords.length > 1) {
+      // Fallback: AND search — all words must be present
+      const allPresent = queryWords.every((word) => normalizedText.includes(word));
+      if (!allPresent) continue;
+
+      // Score = sum of individual word occurrences
+      for (const word of queryWords) {
+        let searchIdx = 0;
+        while ((searchIdx = normalizedText.indexOf(word, searchIdx)) !== -1) {
+          score++;
+          searchIdx += word.length;
+        }
+      }
+
+      // Find best snippet position (first occurrence of any query word)
+      idx = Math.min(...queryWords.map((w) => normalizedText.indexOf(w)).filter((i) => i !== -1));
+    } else {
+      continue;
     }
 
-    // Generate snippet
-    const snippetStart = Math.max(0, idx - 75);
-    const snippetEnd = Math.min(pageText.text.length, idx + query.length + 75);
+    // Generate snippet from original text (find approximate position)
+    const snippetIdx = findOriginalPosition(pageText.text, idx, normalizedText);
+    const snippetStart = Math.max(0, snippetIdx - 75);
+    const snippetEnd = Math.min(pageText.text.length, snippetIdx + query.length + 75);
     const snippet =
       (snippetStart > 0 ? '...' : '') +
       pageText.text.substring(snippetStart, snippetEnd) +
@@ -88,7 +122,7 @@ export function searchTextIndex(
       title: sectionInfo?.title || '',
       page: pageText.page,
       snippet: snippet.trim(),
-      score: count,
+      score,
     });
   }
 
@@ -107,6 +141,20 @@ export function searchTextIndex(
   }
 
   return deduped;
+}
+
+/**
+ * Map a position in normalized text back to approximate position in original text
+ */
+function findOriginalPosition(
+  original: string,
+  normalizedIdx: number,
+  _normalized: string
+): number {
+  // Simple heuristic: the position ratio is roughly preserved
+  if (normalizedIdx <= 0) return 0;
+  const ratio = normalizedIdx / _normalized.length;
+  return Math.min(Math.floor(ratio * original.length), original.length - 1);
 }
 
 /**

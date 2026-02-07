@@ -112,4 +112,42 @@ describe('searchTextIndex', () => {
     expect(sections).toContain('7.3');
     expect(sections).toContain('12.8');
   });
+
+  it('matches hyphenated words with spaces around hyphens (BUG-3)', () => {
+    const indexWithHyphens: TextIndex = {
+      pages: [
+        {
+          page: 100,
+          section: '7.5',
+          text: 'The cross- reference table contains entries.',
+        },
+        {
+          page: 200,
+          section: '8.1',
+          text: 'A CIE -based colour space is defined.',
+        },
+      ],
+      buildTime: 0,
+    };
+    const results1 = searchTextIndex(indexWithHyphens, 'cross-reference', 10, sectionIndex);
+    expect(results1.length).toBeGreaterThan(0);
+
+    const results2 = searchTextIndex(indexWithHyphens, 'CIE-based', 10, sectionIndex);
+    expect(results2.length).toBeGreaterThan(0);
+  });
+
+  it('supports multi-word AND queries (BUG-2)', () => {
+    // "digital authentication" doesn't exist as exact phrase
+    // but "digital" and "authentication" both exist on page 590
+    const results = searchTextIndex(textIndex, 'digital authentication', 10, sectionIndex);
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].section).toBe('12.8');
+  });
+
+  it('exact phrase scores higher than AND match', () => {
+    const results = searchTextIndex(textIndex, 'digital signature', 10, sectionIndex);
+    const andResults = searchTextIndex(textIndex, 'digital authentication', 10, sectionIndex);
+    // Exact phrase match should score higher
+    expect(results[0].score).toBeGreaterThan(andResults[0].score);
+  });
 });

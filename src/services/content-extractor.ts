@@ -24,17 +24,47 @@ type TextContentItem = TextItem | TextMarkedContent;
 
 /**
  * Extract structured content from a range of pages
+ * @param sectionNumber - If provided, skip content before this section's heading on the first page
  */
 export async function extractSectionContent(
   doc: PDFDocumentProxy,
   startPage: number,
-  endPage: number
+  endPage: number,
+  sectionNumber?: string
 ): Promise<ContentElement[]> {
   const elements: ContentElement[] = [];
 
   for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
     const pageElements = await extractPageContent(doc, pageNum);
     elements.push(...pageElements);
+  }
+
+  // Skip content from previous sections on the first page
+  if (sectionNumber) {
+    return trimToSectionStart(elements, sectionNumber);
+  }
+
+  return elements;
+}
+
+/**
+ * Remove content elements that precede the target section heading
+ */
+function trimToSectionStart(elements: ContentElement[], sectionNumber: string): ContentElement[] {
+  const headingIdx = elements.findIndex(
+    (el) => el.type === 'heading' && el.text.startsWith(sectionNumber + ' ')
+  );
+
+  // Also try matching "Annex X" format
+  if (headingIdx === -1 && sectionNumber.startsWith('Annex ')) {
+    const annexIdx = elements.findIndex(
+      (el) => el.type === 'heading' && el.text.startsWith(sectionNumber)
+    );
+    if (annexIdx > 0) return elements.slice(annexIdx);
+  }
+
+  if (headingIdx > 0) {
+    return elements.slice(headingIdx);
   }
 
   return elements;
