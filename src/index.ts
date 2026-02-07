@@ -10,7 +10,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { tools } from './tools/definitions.js';
-import { toolHandlers } from './tools/handlers.js';
+import { toolHandlers, type ToolName } from './tools/handlers.js';
 import { PACKAGE_INFO } from './config.js';
 
 const server = new Server(
@@ -35,12 +35,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    const handler = toolHandlers[name];
-    if (!handler) {
+    if (!(name in toolHandlers)) {
       throw new Error(`Unknown tool: ${name}`);
     }
 
-    const result = await handler(args);
+    // Type boundary: MCP SDK provides args as Record<string, unknown>.
+    // After validating the tool name, we cast args to match the handler's
+    // expected input — each handler validates its own arguments at runtime.
+    const handler = toolHandlers[name as ToolName];
+    const result = await (handler as (a: Record<string, unknown>) => Promise<unknown>)(args ?? {});
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

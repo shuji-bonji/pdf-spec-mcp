@@ -183,8 +183,14 @@ async function handleCompareVersions(args: CompareVersionsArgs) {
 // Tool handler registry
 // ========================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const toolHandlers: Record<string, (args: any) => Promise<unknown>> = {
+/**
+ * Type-safe mapping from tool name to its handler.
+ * Each handler retains its specific argument and return types.
+ *
+ * The dynamic dispatch boundary (string → handler lookup) is handled
+ * in index.ts where MCP SDK provides `args: Record<string, unknown>`.
+ */
+export const toolHandlers = {
   list_specs: handleListSpecs,
   get_structure: handleGetStructure,
   get_section: handleGetSection,
@@ -193,4 +199,7 @@ export const toolHandlers: Record<string, (args: any) => Promise<unknown>> = {
   get_definitions: handleGetDefinitions,
   get_tables: handleGetTables,
   compare_versions: handleCompareVersions,
-};
+} as const;
+
+/** Tool names recognized by this server */
+export type ToolName = keyof typeof toolHandlers;
