@@ -3,7 +3,12 @@
  */
 
 import { getSectionIndex, getSectionContent, searchSpec } from '../services/pdf-service.js';
-import { validateSectionId, validateSearchQuery, validateMaxDepth, validateMaxResults } from '../utils/validation.js';
+import {
+  validateSectionId,
+  validateSearchQuery,
+  validateMaxDepth,
+  validateMaxResults,
+} from '../utils/validation.js';
 import type {
   GetStructureArgs,
   GetSectionArgs,

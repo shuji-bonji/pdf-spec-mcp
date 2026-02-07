@@ -12,7 +12,7 @@ import { logger } from '../utils/logger.js';
  */
 export async function buildSearchIndex(
   doc: PDFDocumentProxy,
-  sectionIndex: SectionIndex,
+  sectionIndex: SectionIndex
 ): Promise<TextIndex> {
   const start = Date.now();
   const pages: PageText[] = [];
@@ -54,7 +54,7 @@ export function searchTextIndex(
   index: TextIndex,
   query: string,
   maxResults: number,
-  sectionIndex: SectionIndex,
+  sectionIndex: SectionIndex
 ): SearchHit[] {
   const normalizedQuery = query.toLowerCase();
   const hits: SearchHit[] = [];
@@ -81,9 +81,7 @@ export function searchTextIndex(
       (snippetEnd < pageText.text.length ? '...' : '');
 
     // Resolve section title
-    const sectionInfo = pageText.section
-      ? sectionIndex.sections.get(pageText.section)
-      : undefined;
+    const sectionInfo = pageText.section ? sectionIndex.sections.get(pageText.section) : undefined;
 
     hits.push({
       section: pageText.section,
@@ -116,7 +114,7 @@ export function searchTextIndex(
  */
 function findSectionForPage(
   sectionIndex: SectionIndex,
-  page: number,
+  page: number
 ): { sectionNumber: string } | undefined {
   // Binary search on flatOrder (sorted by page)
   const flat = sectionIndex.flatOrder;

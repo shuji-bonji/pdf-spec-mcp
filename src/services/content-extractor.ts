@@ -13,7 +13,6 @@ import type {
 } from '../types/index.js';
 import type {
   PDFDocumentProxy,
-  PDFPageProxy,
   StructTreeNode,
   StructTreeContent,
   TextItem,
@@ -29,7 +28,7 @@ type TextContentItem = TextItem | TextMarkedContent;
 export async function extractSectionContent(
   doc: PDFDocumentProxy,
   startPage: number,
-  endPage: number,
+  endPage: number
 ): Promise<ContentElement[]> {
   const elements: ContentElement[] = [];
 
@@ -46,7 +45,7 @@ export async function extractSectionContent(
  */
 async function extractPageContent(
   doc: PDFDocumentProxy,
-  pageNum: number,
+  pageNum: number
 ): Promise<ContentElement[]> {
   const page = await doc.getPage(pageNum);
 
@@ -115,7 +114,7 @@ function buildTextMap(items: TextContentItem[]): Map<string, string> {
 function walkStructTree(
   node: StructTreeNode,
   textMap: Map<string, string>,
-  styles: TextContent['styles'],
+  styles: TextContent['styles']
 ): ContentElement[] {
   const elements: ContentElement[] = [];
 
@@ -263,10 +262,7 @@ function collectListItemBody(li: StructTreeNode, textMap: Map<string, string>): 
 /**
  * Collect table structure from Table element
  */
-function collectTable(
-  node: StructTreeNode,
-  textMap: Map<string, string>,
-): TableElement | null {
+function collectTable(node: StructTreeNode, textMap: Map<string, string>): TableElement | null {
   const headers: string[] = [];
   const rows: string[][] = [];
   let isFirstRow = true;
@@ -330,8 +326,6 @@ function isMarkedContent(item: TextContentItem): item is TextMarkedContent {
   return 'type' in item;
 }
 
-function isStructContent(
-  child: StructTreeNode | StructTreeContent,
-): child is StructTreeContent {
+function isStructContent(child: StructTreeNode | StructTreeContent): child is StructTreeContent {
   return 'type' in child && (child as StructTreeContent).type === 'content';
 }

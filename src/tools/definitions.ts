@@ -32,8 +32,7 @@ export const tools: Tool[] = [
       properties: {
         section: {
           type: 'string',
-          description:
-            'Section identifier (e.g., "7.3.4", "12.8", "Annex A", "Foreword")',
+          description: 'Section identifier (e.g., "7.3.4", "12.8", "Annex A", "Foreword")',
         },
       },
       required: ['section'],

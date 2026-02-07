@@ -26,9 +26,7 @@ export function buildSectionIndex(outline: OutlineEntry[], totalPages: number): 
         endPage: -1, // calculated below
         depth,
         parent,
-        children: entry.children
-          .filter((c) => c.page >= 1)
-          .map((c) => c.sectionNumber || c.title),
+        children: entry.children.filter((c) => c.page >= 1).map((c) => c.sectionNumber || c.title),
       };
 
       sections.set(key, info);
@@ -78,10 +76,7 @@ function extractTitle(fullTitle: string, sectionNumber: string | null): string {
 /**
  * Find a section by flexible matching
  */
-export function findSection(
-  index: SectionIndex,
-  query: string,
-): SectionInfo | undefined {
+export function findSection(index: SectionIndex, query: string): SectionInfo | undefined {
   // Exact match
   const exact = index.sections.get(query);
   if (exact) return exact;

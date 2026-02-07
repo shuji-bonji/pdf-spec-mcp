@@ -3,7 +3,6 @@
  * Wraps pdfjs-dist for PDF loading, outline resolution, and page access
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { readFile } from 'fs/promises';
 import { logger } from '../utils/logger.js';
@@ -65,7 +64,7 @@ export async function getOutlineWithPages(doc: PDFDocumentProxy): Promise<Outlin
 
 async function resolveOutlineNodes(
   doc: PDFDocumentProxy,
-  nodes: OutlineNode[],
+  nodes: OutlineNode[]
 ): Promise<OutlineEntry[]> {
   const entries: OutlineEntry[] = [];
 
@@ -87,7 +86,7 @@ async function resolveOutlineNodes(
 
 async function resolveDestToPage(
   doc: PDFDocumentProxy,
-  dest: string | unknown[] | null,
+  dest: string | unknown[] | null
 ): Promise<number> {
   if (!dest) return -1;
 

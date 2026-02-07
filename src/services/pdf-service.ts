@@ -35,14 +35,14 @@ function getPdfPath(): string {
   if (!dir) {
     throw new Error(
       `Environment variable ${PDF_CONFIG.envVar} is not set. ` +
-        `Set it to the directory containing PDF specification files.`,
+        `Set it to the directory containing PDF specification files.`
     );
   }
   const pdfPath = join(dir, PDF_CONFIG.primaryPdf);
   if (!existsSync(pdfPath)) {
     throw new Error(
       `PDF file not found: ${pdfPath}. ` +
-        `Download it from https://pdfa.org/resource/iso-32000-pdf/`,
+        `Download it from https://pdfa.org/resource/iso-32000-pdf/`
     );
   }
   return pdfPath;
@@ -63,7 +63,10 @@ async function initSectionIndex(): Promise<SectionIndex> {
   const doc = await loadDocument(pdfPath);
   const outline = await getOutlineWithPages(doc);
   const index = buildSectionIndex(outline, doc.numPages);
-  logger.info('PDFService', `Section index built: ${index.sections.size} sections, ${doc.numPages} pages`);
+  logger.info(
+    'PDFService',
+    `Section index built: ${index.sections.size} sections, ${doc.numPages} pages`
+  );
   return index;
 }
 
@@ -77,9 +80,10 @@ export async function getSectionContent(sectionId: string): Promise<SectionResul
   if (!section) {
     // Provide suggestions for close matches
     const suggestions = findSimilarSections(index, sectionId);
-    const msg = suggestions.length > 0
-      ? `Section "${sectionId}" not found. Did you mean: ${suggestions.join(', ')}?`
-      : `Section "${sectionId}" not found. Use get_structure to see available sections.`;
+    const msg =
+      suggestions.length > 0
+        ? `Section "${sectionId}" not found. Did you mean: ${suggestions.join(', ')}?`
+        : `Section "${sectionId}" not found. Use get_structure to see available sections.`;
     throw new Error(msg);
   }
 
