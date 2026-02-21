@@ -3,58 +3,58 @@
   "entries": [
     {
       "operation": "registry-init-cold",
-      "durationMs": 1,
-      "timestamp": "2026-02-07T10:15:39.712Z"
+      "durationMs": 2,
+      "timestamp": "2026-02-21T00:16:44.538Z"
     },
     {
       "operation": "get_structure-cold",
-      "durationMs": 360,
-      "timestamp": "2026-02-07T10:15:40.073Z"
+      "durationMs": 399,
+      "timestamp": "2026-02-21T00:16:44.938Z"
     },
     {
       "operation": "get_structure-cached",
       "durationMs": 0,
-      "timestamp": "2026-02-07T10:15:40.073Z"
+      "timestamp": "2026-02-21T00:16:44.939Z"
     },
     {
       "operation": "get_section-cold",
-      "durationMs": 493,
-      "timestamp": "2026-02-07T10:15:40.566Z"
+      "durationMs": 576,
+      "timestamp": "2026-02-21T00:16:45.516Z"
     },
     {
       "operation": "get_section-cached",
       "durationMs": 0,
-      "timestamp": "2026-02-07T10:15:40.566Z"
+      "timestamp": "2026-02-21T00:16:45.516Z"
     },
     {
       "operation": "search_spec-cold",
-      "durationMs": 5363,
-      "timestamp": "2026-02-07T10:15:45.930Z"
+      "durationMs": 5182,
+      "timestamp": "2026-02-21T00:16:50.698Z"
     },
     {
       "operation": "search_spec-cached",
-      "durationMs": 56,
-      "timestamp": "2026-02-07T10:15:45.987Z"
+      "durationMs": 58,
+      "timestamp": "2026-02-21T00:16:50.756Z"
     },
     {
       "operation": "get_requirements-section",
-      "durationMs": 433,
-      "timestamp": "2026-02-07T10:15:46.420Z"
+      "durationMs": 443,
+      "timestamp": "2026-02-21T00:16:51.199Z"
     },
     {
       "operation": "get_definitions-cold",
-      "durationMs": 67,
-      "timestamp": "2026-02-07T10:15:46.487Z"
+      "durationMs": 75,
+      "timestamp": "2026-02-21T00:16:51.275Z"
     },
     {
       "operation": "compare_versions-cold",
-      "durationMs": 109,
-      "timestamp": "2026-02-07T10:15:46.597Z"
+      "durationMs": 123,
+      "timestamp": "2026-02-21T00:16:51.398Z"
     },
     {
       "operation": "get_structure-all-17",
-      "durationMs": 383,
-      "timestamp": "2026-02-07T10:15:46.980Z"
+      "durationMs": 339,
+      "timestamp": "2026-02-21T00:16:51.738Z"
     }
   ]
 }
