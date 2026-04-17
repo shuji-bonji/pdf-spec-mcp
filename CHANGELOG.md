@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-04-18
+
+### Changed
+
+- **Release pipeline: npm Trusted Publisher (OIDC) adoption**
+  - `.github/workflows/publish.yml` now authenticates via OIDC (`id-token: write`) instead of `NPM_TOKEN`
+  - Published packages now include signed provenance (`npm publish --provenance --access public`)
+  - `NPM_TOKEN` secret is no longer used by this workflow (can be removed from repository secrets after Trusted Publisher is configured on npmjs.com)
+  - Added a version-consistency check: the job fails if `package.json` version does not match the pushed `v*` tag
+  - Enabled npm cache (`cache: 'npm'`) on `setup-node`
+
+### Documentation
+
+- **README**: Clarified installation — users normally don't need `npm install`; the MCP client launches `npx -y @shuji-bonji/pdf-spec-mcp` directly. Added a global-install option for reference
+- **README**: Added `src/types/` to the directory structure
+- Same updates applied to `README.ja.md`
+
 ## [0.2.2] - 2026-02-08
 
 ### Improved
@@ -59,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic section extraction, search, requirements, and definitions
 - Unit tests
 
+[0.2.3]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.1.0...v0.2.0

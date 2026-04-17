@@ -1,5 +1,10 @@
 name: Publish to npm
 
+# Trusted Publisher (OIDC) ベースで npm へ publish する。
+# 事前に npmjs.com 側でこのリポジトリ（shuji-bonji/pdf-spec-mcp）と
+# workflow ファイル名 (publish.yml) を Trusted Publisher として登録しておくこと。
+# → https://docs.npmjs.com/trusted-publishers
+
 on:
   push:
     tags:
@@ -7,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # OIDC で npm に対し署名済み provenance を発行するために必須
 
 jobs:
   publish:
@@ -20,6 +26,7 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -30,7 +37,22 @@ jobs:
       - name: Build
         run: npm run build
 
+      # package.json の version と push された tag (v*) が一致するかを検証。
+      # tag だけ先行で打って package.json を上げ忘れる事故を防ぐ。
+      - name: Verify version matches tag
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: package.json version ($PACKAGE_VERSION) does not match tag version ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "Version verified: $PACKAGE_VERSION"
+
+      # Trusted Publisher + provenance つき publish。
+      # Node 同梱の npm 10.x は OIDC 連携が不完全で 404 になるため、
+      # npx で最新の npm（11.x 以降）を明示的に使う。
+      # id-token: write 権限があり、かつ npmjs.com 側で Trusted Publisher が
+      # 設定されていれば NPM_TOKEN は不要。
       - name: Publish to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx npm@latest publish --provenance --access public

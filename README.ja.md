@@ -156,14 +156,20 @@ pdf-specs/
 
 ### 2. インストール
 
+このパッケージは MCP クライアントから起動される CLI バイナリ（`pdf-spec-mcp`）を提供します。
+**通常は手動でインストールする必要はありません** — 次のステップのように MCP クライアント側で `npx @shuji-bonji/pdf-spec-mcp` を指定してください。
+
+シェルから直接動作確認したい場合（デバッグ用途など）:
+
 ```bash
-npm install @shuji-bonji/pdf-spec-mcp
+PDF_SPEC_DIR=/path/to/pdf-specs npx -y @shuji-bonji/pdf-spec-mcp
 ```
 
-npx での直接実行も可能です：
+グローバルインストールしたい場合（任意）:
 
 ```bash
-PDF_SPEC_DIR=/path/to/pdf-specs npx @shuji-bonji/pdf-spec-mcp
+npm install -g @shuji-bonji/pdf-spec-mcp
+PDF_SPEC_DIR=/path/to/pdf-specs pdf-spec-mcp
 ```
 
 ### 3. MCP クライアント設定
@@ -389,6 +395,8 @@ src/
 ├── tools/
 │   ├── definitions.ts    # MCP ツールスキーマ
 │   └── handlers.ts       # ツール実装
+├── types/
+│   └── index.ts          # 共有型定義
 └── utils/
     ├── concurrency.ts    # mapConcurrent（制限付き並行 Promise.all）
     ├── text.ts           # テキスト正規化
