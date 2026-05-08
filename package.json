@@ -1,6 +1,6 @@
 {
   "name": "@shuji-bonji/pdf-spec-mcp",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "MCP server for structured understanding of ISO 32000 (PDF) specifications",
   "keywords": [
     "mcp",
@@ -25,7 +25,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/index.js",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "test": "vitest run",
