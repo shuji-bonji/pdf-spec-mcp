@@ -127,14 +127,14 @@ graph  LR
 pdf-specs/
 │
 │ ── 標準 ──────────────────────────────────
-├── ISO_32000-2_sponsored-ec2.pdf          # iso32000-2  : PDF 2.0 EC2（推奨・主対象）
+├── ISO_32000-2_sponsored_EC3.pdf          # iso32000-2  : PDF 2.0 EC3（推奨・主対象。EC2にもフォールバック）
 ├── ISO_32000-2-2020_sponsored.pdf         # iso32000-2-2020 : PDF 2.0 原版
 ├── PDF32000_2008.pdf                      # pdf17       : PDF 1.7（バージョン比較用）
 ├── pdfreference1.7old.pdf                 # pdf17old    : Adobe PDF Reference 1.7
 │
 │ ── 技術仕様（TS）──────────────────────────
-├── ISO_TS_32001-2022_sponsored.pdf        # ts32001     : ハッシュ拡張 (SHA-3)
-├── ISO_TS_32002-2022_sponsored.pdf        # ts32002     : 電子署名拡張 (ECC/PAdES)
+├── ISO_TS_32001-2022_sponsored_EC3.pdf    # ts32001     : ハッシュ拡張 (SHA-3)
+├── ISO_TS_32002-2022_sponsored_EC3.pdf    # ts32002     : 電子署名拡張 (ECC/PAdES)
 ├── ISO_TS_32003-2023_sponsored.pdf        # ts32003     : AES-GCM 暗号化
 ├── ISO-TS-32004-2024_sponsored.pdf        # ts32004     : 整合性保護
 ├── ISO-TS-32005-2023-sponsored.pdf        # ts32005     : 名前空間マッピング

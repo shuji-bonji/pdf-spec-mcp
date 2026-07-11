@@ -61,14 +61,23 @@ export class RegistryService {
     const pdfFiles = files.filter((f) => f.toLowerCase().endsWith('.pdf'));
     let matched = 0;
 
-    for (const filename of pdfFiles) {
-      const pattern = SPEC_PATTERNS.find((p) => p.pattern.test(filename));
+    // Process files in SPEC_PATTERNS priority order (not readdir order),
+    // so that for duplicate IDs the earlier pattern wins (e.g. EC3 over EC2).
+    const prioritized = pdfFiles
+      .map((filename) => ({
+        filename,
+        patternIndex: SPEC_PATTERNS.findIndex((p) => p.pattern.test(filename)),
+      }))
+      .sort((a, b) => a.patternIndex - b.patternIndex);
+
+    for (const { filename, patternIndex } of prioritized) {
+      const pattern = patternIndex >= 0 ? SPEC_PATTERNS[patternIndex] : undefined;
       if (!pattern) {
         logger.debug('PDFRegistry', `Skipping unrecognized PDF: ${filename}`);
         continue;
       }
 
-      // Skip if this ID is already registered (first match wins)
+      // Skip if this ID is already registered (higher-priority pattern wins)
       if (this.registry.has(pattern.id)) {
         logger.debug('PDFRegistry', `Duplicate pattern match for "${pattern.id}", keeping first`);
         continue;

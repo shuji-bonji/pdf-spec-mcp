@@ -127,14 +127,14 @@ All 17 files below are supported. You do not need all of them — place only the
 pdf-specs/
 │
 │ ── Standards ─────────────────────────────
-├── ISO_32000-2_sponsored-ec2.pdf          # iso32000-2  : PDF 2.0 EC2 (recommended)
+├── ISO_32000-2_sponsored_EC3.pdf          # iso32000-2  : PDF 2.0 EC3 (recommended; falls back to -ec2.pdf)
 ├── ISO_32000-2-2020_sponsored.pdf         # iso32000-2-2020 : PDF 2.0 original
 ├── PDF32000_2008.pdf                      # pdf17       : PDF 1.7 (for version comparison)
 ├── pdfreference1.7old.pdf                 # pdf17old    : Adobe PDF Reference 1.7
 │
 │ ── Technical Specifications (TS) ─────────
-├── ISO_TS_32001-2022_sponsored.pdf        # ts32001     : Hash extensions (SHA-3)
-├── ISO_TS_32002-2022_sponsored.pdf        # ts32002     : Digital signature extensions (ECC/PAdES)
+├── ISO_TS_32001-2022_sponsored_EC3.pdf    # ts32001     : Hash extensions (SHA-3)
+├── ISO_TS_32002-2022_sponsored_EC3.pdf    # ts32002     : Digital signature extensions (ECC/PAdES)
 ├── ISO_TS_32003-2023_sponsored.pdf        # ts32003     : AES-GCM encryption
 ├── ISO-TS-32004-2024_sponsored.pdf        # ts32004     : Integrity protection
 ├── ISO-TS-32005-2023-sponsored.pdf        # ts32005     : Namespace mapping

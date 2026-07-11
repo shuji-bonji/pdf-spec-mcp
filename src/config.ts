@@ -15,7 +15,7 @@ export const PACKAGE_INFO = {
 
 export const PDF_CONFIG = {
   envVar: 'PDF_SPEC_DIR',
-  primaryPdf: 'ISO_32000-2_sponsored-ec2.pdf',
+  primaryPdf: 'ISO_32000-2_sponsored_EC3.pdf',
 } as const;
 
 export const CACHE_CONFIG = {
@@ -59,13 +59,22 @@ export interface SpecPattern {
 
 /**
  * Ordered list of filename patterns for auto-discovery.
- * The first match wins when scanning PDF_SPEC_DIR.
+ * Array order = priority: when multiple files map to the same spec ID,
+ * the file matching the earlier pattern wins (see discoverSpecs).
  * Primary spec (default) must be first.
  */
 export const SPEC_PATTERNS: SpecPattern[] = [
-  // Primary: ISO 32000-2 EC2 (must be first — default spec)
+  // Primary: ISO 32000-2 EC3 (must be first — default spec)
   {
-    pattern: /ISO_32000-2_sponsored-ec2\.pdf$/i,
+    pattern: /ISO_32000-2_sponsored[-_]ec3\.pdf$/i,
+    id: 'iso32000-2',
+    title: 'ISO 32000-2:2020 (PDF 2.0) with Errata Collection 3',
+    category: 'standard',
+    description: 'The current PDF 2.0 specification with errata corrections',
+  },
+  // Fallback: ISO 32000-2 EC2 (same ID — used only when no EC3 file exists)
+  {
+    pattern: /ISO_32000-2_sponsored[-_]ec2\.pdf$/i,
     id: 'iso32000-2',
     title: 'ISO 32000-2:2020 (PDF 2.0) with Errata Collection 2',
     category: 'standard',

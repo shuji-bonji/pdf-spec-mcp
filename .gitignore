@@ -4,6 +4,7 @@ dist/
 
 # PDF spec files (copyrighted, user must download separately)
 pdf-spec/
+pdf-spec-archive/
 
 .claude/
 

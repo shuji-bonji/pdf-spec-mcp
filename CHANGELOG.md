@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-12
+
+### Added
+
+- **PDF 2.0 Errata Collection 3 (EC3) support**: `ISO_32000-2_sponsored_EC3.pdf` is now the primary spec (`iso32000-2`). EC3 (June 1, 2026) is a complete replacement for EC2 — 356 errata corrections (766 edits), 20 appended errata pages (1,020 → 1,023 pages). Updated ISO/TS 32001 and 32002 EC3 filenames (`*_sponsored_EC3.pdf`) are matched by the existing TS patterns
+- **EC2 fallback pattern**: environments with only `ISO_32000-2_sponsored-ec2.pdf` still register `iso32000-2` with the correct "Errata Collection 2" title
+
+### Changed
+
+- **Pattern-priority spec discovery**: `discoverSpecs()` now processes files in `SPEC_PATTERNS` order instead of `readdir` order. When multiple files map to the same spec ID (e.g. EC3 and EC2 side by side), the earlier pattern wins — previously the winner silently depended on alphabetical filename order
+
+### Documentation
+
+- **README / README.ja**: updated file listing to EC3 filenames
+
 ## [0.2.4] - 2026-05-09
 
 ### Build
