@@ -7,6 +7,14 @@
 
 ISO 32000（PDF）仕様書への構造化アクセスを提供する MCP（Model Context Protocol）サーバーです。LLM が PDF 仕様書をナビゲート・検索・分析するためのツールを提供します。
 
+### PDF family
+
+| サーバー | 役割 |
+|---------|------|
+| **pdf-spec-mcp**（本サーバー） | PDF 仕様知識（ISO 32000・PDF/A・PDF/UA） |
+| [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) | PDF 内部構造の読取・検査 — 「何があるか」 |
+| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | 真正性検証 — 「それが本物か」: 電子署名の暗号学的検証・改ざん検知・PAdES レベル判定・PDF/A 検証・暗号化PDF復号 |
+
 > [!IMPORTANT]
 > **PDF 仕様書ファイルは同梱されていません。**
 > このサーバーを利用するには、PDF 仕様書を別途入手し、ローカルディレクトリに配置する必要があります。

@@ -102,12 +102,7 @@ export interface SectionIndex {
 // ========================================
 
 export type ContentElement =
-  | HeadingElement
-  | ParagraphElement
-  | ListElement
-  | TableElement
-  | NoteElement
-  | CodeElement;
+  HeadingElement | ParagraphElement | ListElement | TableElement | NoteElement | CodeElement;
 
 export interface HeadingElement {
   type: 'heading';
