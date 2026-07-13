@@ -1,0 +1,34 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/.claude-plugin/plugin.schema.json",
+  "name": "pdf-spec-mcp",
+  "version": "0.3.1",
+  "description": "ISO 32000 (PDF 仕様) の構造化参照 MCP server。条項検索・要求事項 (MUST/SHOULD) 抽出・定義取得・版間比較を提供。ISO 仕様 PDF は利用者が用意し PDF_SPEC_DIR で指定する。",
+  "author": {
+    "name": "shuji-bonji",
+    "email": "bonji@mikuro.jp",
+    "url": "https://github.com/shuji-bonji"
+  },
+  "homepage": "https://github.com/shuji-bonji/pdf-spec-mcp",
+  "repository": "https://github.com/shuji-bonji/pdf-spec-mcp",
+  "license": "MIT",
+  "keywords": [
+    "pdf",
+    "iso-32000",
+    "specification",
+    "mcp",
+    "mcp-server",
+    "requirements"
+  ],
+  "mcpServers": {
+    "pdf-spec": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shuji-bonji/pdf-spec-mcp@latest"
+      ],
+      "env": {
+        "PDF_SPEC_DIR": "${PDF_SPEC_DIR}"
+      }
+    }
+  }
+}

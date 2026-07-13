@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-14
+
+### Added
+
+- **Claude Code plugin 対応**: `.claude-plugin/plugin.json` を追加。Claude Code のプラグインとしてインストールすると `pdf-spec` MCP server (`npx -y @shuji-bonji/pdf-spec-mcp@latest`) が登録される。ISO 仕様 PDF の場所は従来どおり `PDF_SPEC_DIR` で指定する
+
+### Documentation
+
+- README / README.ja に PDF family (pdf-spec-mcp / [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) / [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp)) の役割分担表を追加
+
 ## [0.3.0] - 2026-07-12
 
 ### Added
@@ -97,6 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic section extraction, search, requirements, and definitions
 - Unit tests
 
+[0.3.1]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/shuji-bonji/pdf-spec-mcp/compare/v0.2.0...v0.2.1

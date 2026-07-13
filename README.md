@@ -7,6 +7,14 @@
 
 An MCP (Model Context Protocol) server that provides structured access to ISO 32000 (PDF) specification documents. Enables LLMs to navigate, search, and analyze PDF specifications through well-defined tools.
 
+### PDF family
+
+| Server | Role |
+|--------|------|
+| **pdf-spec-mcp** (this) | PDF specification knowledge (ISO 32000, PDF/A, PDF/UA) |
+| [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) | Read and inspect PDF internal structure — *what is in* a PDF |
+| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | Authenticity verification — *whether it is genuine*: cryptographic signature verification, tamper detection, PAdES level, PDF/A validation, encrypted-PDF decryption |
+
 > [!IMPORTANT]
 > **PDF specification files are NOT included in this package.**
 > You must obtain the PDF specification documents separately and place them in a local directory.
