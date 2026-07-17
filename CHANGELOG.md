@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **表の中の要件を抽出する**（S-7）。`extractRequirementsFromContent` は paragraph / list / note
+  しか走査しておらず、**表のセルを完全に無視していた**。ISO の表は要件語の宝庫であり
+  （「(Required) The type of annotation ... shall be Highlight ...」）、実測で
+  **2739 件・333 セクション分**が `get_requirements` から見えていなかった。
+  全体インデックスは **5927 → 8666 件（+46%）**。本文由来の 5927 件は不変（退行なし）。
+  表は `collectStructTreeTables` で再構成してから走査するので、キャプションの帰属は
+  `get_tables` と一致し、ページを跨いで分割された表も 1 つの表として扱われる。
+  text 由来の表（`detectTablesFromText`）は走査しない — あれは paragraph から組み立てられており、
+  本文の走査が既に読んでいるため二重計上になる
+- `Requirement` に **`source` / `table` / `key`** を追加（既存フィールドは不変・非破壊）。
+  表から切り出した文は、それ単体では「どのキーの制約か」が失われるため
+  （「... shall be Highlight, Underline, ...」だけでは Table 182 の `Subtype` の話だと分からない）。
+  `text` は引用できるよう原文のままとし、文脈を別フィールドで持つ。
+  実測では **31 の重複グループのうち 24 が「文が同一でキーが異なる別々の要件」**だった
+  （例: Table 51 の「A PDF reader shall implicitly reset this parameter」は `soft mask` と
+  `alpha constant` の両方に掛かる）。`key` が無ければ片方が失われていた
+
 ### Fixed
 
 - **セクション境界の「帯」で内容が失われる問題を修正**（S-5・B-S1 の一般化）。

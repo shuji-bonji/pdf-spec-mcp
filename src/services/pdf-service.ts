@@ -7,7 +7,7 @@
  */
 
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api.js';
-import { CACHE_CONFIG, CONCURRENCY, TABLE_CAPTION_START_RE } from '../config.js';
+import { CACHE_CONFIG, CONCURRENCY } from '../config.js';
 import { ContentError } from '../errors.js';
 import type {
   ContentElement,
@@ -35,6 +35,7 @@ import { getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.
 import { enrichSpecInfo, getSpecPath, resolveSpecId } from './pdf-registry.js';
 import { extractRequirementsFromContent } from './requirement-extractor.js';
 import { buildSearchIndex, searchTextIndex } from './search-index.js';
+import { collectStructTreeTables } from './table-collector.js';
 
 // ========================================
 // PDFSpecService Class
@@ -430,58 +431,6 @@ class PDFSpecService {
 // ========================================
 // Module-level helper functions (stateless)
 // ========================================
-
-/**
- * Collect tables from StructTree-extracted content (type: 'table').
- */
-function collectStructTreeTables(content: ContentElement[]): TableInfo[] {
-  const tables: TableInfo[] = [];
-
-  for (let i = 0; i < content.length; i++) {
-    const element = content[i];
-    if (element.type !== 'table') continue;
-
-    // Check for caption in preceding paragraph
-    let caption: string | null = null;
-    if (i > 0) {
-      const prev = content[i - 1];
-      if (prev.type === 'paragraph' && TABLE_CAPTION_START_RE.test(prev.text)) {
-        caption = prev.text;
-      }
-    }
-
-    // Merge with previous table if this is a continuation (same headers, no caption)
-    if (
-      !caption &&
-      tables.length > 0 &&
-      element.headers.length > 0 &&
-      arraysEqual(tables[tables.length - 1].headers, element.headers)
-    ) {
-      tables[tables.length - 1].rows.push(...element.rows);
-      continue;
-    }
-
-    tables.push({
-      index: tables.length,
-      caption,
-      headers: element.headers,
-      rows: element.rows,
-    });
-  }
-
-  return tables;
-}
-
-/**
- * Check if two string arrays are equal
- */
-function arraysEqual(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
-}
 
 /**
  * Text-based fallback: detect tables from paragraph patterns.

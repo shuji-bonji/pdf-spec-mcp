@@ -5,6 +5,7 @@
  */
 
 import type { ContentElement, ISORequirementLevel, Requirement } from '../types/index.js';
+import { collectStructTreeTables } from './table-collector.js';
 
 /**
  * ISO requirement keywords ordered longest-first for greedy regex matching.
@@ -75,6 +76,9 @@ export function extractSentence(text: string, position: number): string {
   return text.substring(start, end).trim();
 }
 
+/** Where a sentence came from, carried onto every requirement found in it. */
+type RequirementContext = Pick<Requirement, 'source' | 'table' | 'key'>;
+
 /**
  * Extract requirements from a single text string.
  */
@@ -83,6 +87,7 @@ function extractFromText(
   sectionNumber: string,
   sectionTitle: string,
   idCounter: { value: number },
+  context?: RequirementContext,
 ): Requirement[] {
   const requirements: Requirement[] = [];
   const regex = createISORequirementRegex();
@@ -104,6 +109,7 @@ function extractFromText(
       text: sentence,
       section: sectionNumber,
       sectionTitle,
+      ...context,
     });
   }
 
@@ -112,7 +118,7 @@ function extractFromText(
 
 /**
  * Extract all normative requirements from ContentElement[].
- * Scans paragraphs, list items, and notes for ISO keywords.
+ * Scans paragraphs, list items, notes, and table cells for ISO keywords.
  */
 export function extractRequirementsFromContent(
   content: ContentElement[],
@@ -135,6 +141,51 @@ export function extractRequirementsFromContent(
       case 'note':
         requirements.push(...extractFromText(element.text, sectionNumber, sectionTitle, idCounter));
         break;
+    }
+  }
+
+  requirements.push(...extractFromTables(content, sectionNumber, sectionTitle, idCounter));
+
+  return requirements;
+}
+
+/**
+ * Requirements stated inside tables.
+ *
+ * ISO puts a great deal of normative text in table cells — "(Required) The type of
+ * annotation ... shall be Highlight, Underline, ..." — and scanning only prose misses all
+ * of it: 1540 cells across 333 sections of ISO 32000-2, roughly 3000 keyword occurrences.
+ *
+ * Tables are re-assembled with collectStructTreeTables rather than read element by element,
+ * so that a caption is attributed the same way get_tables attributes it, and a table split
+ * across pages yields one set of requirements rather than several headless fragments.
+ *
+ * Only StructTree tables are considered. Text-detected tables (detectTablesFromText) are
+ * made of `paragraph` elements that the prose loop above already scanned; taking those too
+ * would count every sentence twice.
+ */
+function extractFromTables(
+  content: ContentElement[],
+  sectionNumber: string,
+  sectionTitle: string,
+  idCounter: { value: number },
+): Requirement[] {
+  const requirements: Requirement[] = [];
+
+  for (const table of collectStructTreeTables(content)) {
+    for (const row of table.rows) {
+      // Row label ("Subtype", "Length", the bit number ...). Without it a lifted sentence
+      // cannot be traced back to what it constrains.
+      const key = row[0];
+      for (const cell of row) {
+        requirements.push(
+          ...extractFromText(cell, sectionNumber, sectionTitle, idCounter, {
+            source: 'table',
+            ...(table.caption ? { table: table.caption } : {}),
+            ...(key ? { key } : {}),
+          }),
+        );
+      }
     }
   }
 

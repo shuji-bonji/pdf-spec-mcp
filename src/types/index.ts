@@ -208,6 +208,17 @@ export interface Requirement {
   text: string;
   section: string;
   sectionTitle: string;
+  /** Where the sentence was found. Absent means prose (paragraph / list / note). */
+  source?: 'table';
+  /**
+   * Context for a requirement lifted out of a table, which its sentence alone loses.
+   *
+   * "The type of annotation ... shall be Highlight, Underline, ..." is unusable without
+   * knowing it constrains Table 182's `Subtype` entry. `text` stays verbatim so it can be
+   * quoted; the context rides alongside.
+   */
+  table?: string;
+  key?: string;
 }
 
 export interface RequirementsResult {
