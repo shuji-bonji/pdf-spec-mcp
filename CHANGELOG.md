@@ -7,80 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **表の中の要件を抽出する**（S-7）。`extractRequirementsFromContent` は paragraph / list / note
-  しか走査しておらず、**表のセルを完全に無視していた**。ISO の表は要件語の宝庫であり
-  （「(Required) The type of annotation ... shall be Highlight ...」）、実測で
-  **2739 件・333 セクション分**が `get_requirements` から見えていなかった。
-  全体インデックスは **5927 → 8666 件（+46%）**。本文由来の 5927 件は不変（退行なし）。
-  表は `collectStructTreeTables` で再構成してから走査するので、キャプションの帰属は
-  `get_tables` と一致し、ページを跨いで分割された表も 1 つの表として扱われる。
-  text 由来の表（`detectTablesFromText`）は走査しない — あれは paragraph から組み立てられており、
-  本文の走査が既に読んでいるため二重計上になる
-- `Requirement` に **`source` / `table` / `key`** を追加（既存フィールドは不変・非破壊）。
-  表から切り出した文は、それ単体では「どのキーの制約か」が失われるため
-  （「... shall be Highlight, Underline, ...」だけでは Table 182 の `Subtype` の話だと分からない）。
-  `text` は引用できるよう原文のままとし、文脈を別フィールドで持つ。
-  実測では **31 の重複グループのうち 24 が「文が同一でキーが異なる別々の要件」**だった
-  （例: Table 51 の「A PDF reader shall implicitly reset this parameter」は `soft mask` と
-  `alpha constant` の両方に掛かる）。`key` が無ければ片方が失われていた
+抽出の正確性に関する大きな修正を含む。`get_section` / `get_requirements` / `get_tables` の
+出力が広範に変わる（いずれも**取りこぼしていた内容の回復**であり、失われるものは無い）。
 
 ### Fixed
 
-- **セクション境界の「帯」で内容が失われる問題を修正**（S-5・B-S1 の一般化）。
-  B-S1 は表だけを救ったが、取り残されるのは表に限らなかった。ISO 32000-2 では
-  **412 セクション**が内容を落としており（段落 2055・note 248・表 174・リスト 112）、
-  うち **271 が要件文（shall 等）を含んでいた**。`getSectionContent` が帯を回収するようにし、
-  `get_section` / `get_requirements` / `get_tables` を一度に是正した。
-  **要件は 364 セクションで計 2974 件増え、減少は 0 件。**
-  採用規則は `trimToSectionStart` の正確な裏返し（同じ `findSectionHeadingIndex` で判定）とし、
-  二重計上を構造的に不可能にした。次セクションの見出しが検出できない 69 セクションでは、
-  次セクション側が帯を保持しているため**あえて採用しない**。
-- **B-S1 の過剰包含・二重計上を是正**（S-5 に伴う）。B-S1 の前方走査は最大 5 ページ先まで
-  セクション境界を無視して読んでいたため、
-  - 表の先頭ページに触れているだけの節が、他セクションのページから行を集めていた（40 件）。
-    例: Table 147 は 12 / 12.1 / 12.2 の全てが 18 行を報告していたが、本来の持ち主は 12.2 のみ
-  - **同じ行を 2 つのセクションに二重計上していた**。例: D.3 の 256 行の末尾 13 行（ó〜ÿ）は
-    D.4 が持つ表と同一だった（S-5 で D.3 は正しい 243 行に戻る）
-  B-S1 以前と比べた正味の成果は**行が増えた表 92 件・減った表 0 件**（B-S1 の「148 件」のうち
-  56 件は過剰包含と二重計上だった）。Table 182 の `QuadPoints`、Table 166 の `CA`/`BM`/`Lang`
-  といった B-S1 の本来の成果は帯経由で維持されている
-- **ページを跨ぐ表の行が失われる問題を修正**（B-S1・正典としての本丸）。
+- **セクション境界の「帯」で内容が失われる問題を修正**（正典としての本丸）。
   セクションのページ範囲は outline から `[page, 次セクションの page - 1]` として決まるため、
-  表が最終ページを越えて続く場合、残りの行は「次セクションの先頭ページの、見出しより上」に取り残される。
-  この帯はどのセクションにも属していなかった（このセクションのページ範囲外であり、かつ
-  `trimToSectionStart` が次セクションの内容から捨てる）ため、**行が丸ごと消えていた**。
-  ISO 32000-2 全 988 セクションを走査した結果、**148 個の表**が行を取りこぼしていた。例:
-  - Table 182（12.5.6.10）… `QuadPoints` 行（p.508 へ脱落）— Issue #8 の発端となった実害
-  - Table 166（12.5.2）… `CA` / `BM` / `Lang`（16 → 19 行）
-  - Table 171（12.5.6）… 注釈型が 7 → 28 行（全型が揃った）
-  - Annex A の演算子一覧 … 11 → 73 行
-  セクション**内**の継続は従来どおり `collectStructTreeTables` が連結しており、修正は境界のみ。
-  検証: 旧実装との全セクション差分で、**行を失った表 0 件 / 表の個数が変わった表 0 件**。
-  既知の限界として、ヘッダ行を持たない表（例: 8.7.4.5.5）は連結対象外（下記の理由）
+  最終ページを越えて溢れた内容は「次セクションの先頭ページの、見出しより上」に取り残される。
+  この帯は**どのセクションにも属していなかった** — 自分のページ範囲外であり、かつ
+  `trimToSectionStart` が次セクションの内容から捨てるため、丸ごと消えていた。
+
+  ISO 32000-2 の実測: **412 セクション**が内容を落としており（段落 2055・note 248・表 174・
+  リスト 112）、うち **271 が要件文（shall 等）を含んでいた**。表では Table 182 の
+  `QuadPoints` 行、Table 166 の `CA`/`BM`/`Lang`、Table 171 の注釈型（7 → 28 行）などが該当する。
+
+  `getSectionContent` が帯を回収することで `get_section` / `get_requirements` / `get_tables` が
+  一度に是正された。**行が増えた表 92 件・減った表 0 件、要件が増えたセクション 364・減少 0。**
+
+  採用規則は `trimToSectionStart` の正確な裏返し（同じ `findSectionHeadingIndex` で判定）とし、
+  二重計上を構造的に不可能にしている。次セクションの見出しが検出できない 69 セクションでは、
+  次セクション側が帯を保持しているためあえて採用しない。
+
+  既知の限界: ヘッダ行を持たない表は連結条件（`headers.length > 0`）を満たさないため、
+  帯として採用されても分裂する（5 セクション。8.7.4.5.5 は 2 → 4 表）。内容は
+  `get_section` から見える。
+
 - **stdout ガードを追加**（[#8](https://github.com/shuji-bonji/pdf-spec-mcp/issues/8) 項目 1・family 規約 §2.4）。
-  MCP は stdout で JSON-RPC を喋るが、本リポジトリが依存する pdfjs-dist の `warn()` は
-  `console.log`（= stdout）を使うため、JSON-RPC ストリームが壊れうる（reader で実証済みの事故）。
-  `src/utils/stdout-guard.ts` を追加し `console.log` / `console.warn` を stderr へリダイレクトする。
-  ESM の import 巻き上げにより、ガードは `index.ts` の**最初の import** である必要がある。
-  なお pdfjs-dist v5 の実際の経路を確認したところ、`warn()` は `console.warn`（= stderr）で
-  **stdout は汚さない**。stdout に出るのは `info()`（`console.info`）と `deprecated()`（`console.log`）で、
-  Node では `console.log` と `console.info` が stdout に出る。よって本リポジトリのガードは
-  **`console.info` も塞いでいる**（family の writer / verify は log と warn のみで info が素通り。要追随）
+  MCP は stdout で JSON-RPC を喋るため、依存ライブラリが stdout へ書くとストリームが壊れる。
+  Node では **`console.log` と `console.info` が stdout**、`warn` / `error` は stderr。
+  pdfjs-dist v5 の実際の経路は `warn()` → `console.warn`（stderr・**stdout は汚さない**）、
+  `info()` → `console.info`（stdout）、`deprecated()` → `console.log`（stdout）であり、
+  `src/utils/stdout-guard.ts` は log / info / warn を stderr へ転送する。
+  ESM の import 巻き上げにより、`index.ts` の**最初の import** である必要がある。
+
+### Added
+
+- **表の中の要件を抽出する**。`extractRequirementsFromContent` は paragraph / list / note
+  しか走査しておらず、**表のセルを完全に無視していた**。ISO の表は要件語の宝庫であり
+  （「(Required) The type of annotation ... shall be Highlight ...」）、実測で
+  **2739 件・333 セクション分**が `get_requirements` から見えていなかった。
+  全体インデックスは **5927 → 8666 件（+46%）**。本文由来の 5927 件は不変。
+
+  表は `collectStructTreeTables` で再構成してから走査するため、キャプションの帰属は
+  `get_tables` と一致し、ページを跨いで分割された表も 1 つの表として扱われる。
+  text 由来の表（`detectTablesFromText`）は走査しない — あれは paragraph から組み立てられており、
+  本文の走査が既に読んでいるため二重計上になる。
+
+- `Requirement` に **`source` / `table` / `key`** を追加（既存フィールドは不変・非破壊）。
+  表から切り出した文は単体では「どのキーの制約か」が失われるため
+  （「... shall be Highlight, Underline, ...」だけでは Table 182 の `Subtype` の話だと分からない）。
+  `text` は引用できるよう原文のままとし、文脈を別フィールドで持つ。
+  実測では**重複 31 グループのうち 24 が「文が同一でキーが異なる別々の要件」**だった
+  （Table 51 の「A PDF reader shall implicitly reset this parameter」は `soft mask` と
+  `alpha constant` の両方に掛かる）。`key` が無ければ片方が失われていた。
 
 ### Changed
 
 - **Biome 2.5.4 へ移行**（[#8](https://github.com/shuji-bonji/pdf-spec-mcp/issues/8) 項目 2）。ESLint + Prettier を廃止。
   family 標準に合わせ **2.5.4 完全固定**（キャレット禁止。整形結果が minor で変わるため）。
   CI / publish workflow に `npm run check` と `npm run typecheck` を組み込んだ
-- `noAssignInExpressions` 違反の 3 箇所（`requirement-extractor.ts` / `search-index.ts`）を
-  等価な形に書き換え（`text.matchAll()` / `indexOf` ループ）。外部挙動は不変
+- `collectStructTreeTables` を `services/table-collector.ts` へ切り出し、`get_tables` と
+  `get_requirements` が「表とは何か」の規則を共有するようにした
+- `DocumentLoaderService` が `DocumentSource` を注入できるようになった（既定は従来どおり）。
+  ファイル読みと pdfjs 起動を差し替えられるので、LRU キャッシュを単体で検証できる
 
 ### Removed
 
 - **未使用の `src/container.ts` を削除**（[#8](https://github.com/shuji-bonji/pdf-spec-mcp/issues/8) 項目 3）。
   `createServices()` はどこからも呼ばれておらず、実運用は `pdf-service.ts` のシングルトン（YAGNI）
+
+### Internal
+
+- ドキュメント LRU キャッシュ（エビクション順・`doc.destroy()`・アクセス順の更新）に
+  実質的なテストが存在しなかった。e2e の「LRU キャッシュ」テストは `get_structure` 経由で、
+  上位の section-index メモ（spec ごと・上限なし）しか測っておらず、LRU が完全に壊れていても
+  緑のままだった。`pdf-loader.test.ts` にユニットテストを追加し、e2e 側は実態に即して改名した
+- `npm run check:imports` を追加（biome を使わず import 順を検査する）
 
 ## [0.3.2] - 2026-07-14
 
