@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-07-18
 
 抽出の正確性に関する大きな修正を含む。`get_section` / `get_requirements` / `get_tables` の
 出力が広範に変わる（いずれも**取りこぼしていた内容の回復**であり、失われるものは無い）。
