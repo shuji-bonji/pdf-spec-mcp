@@ -76,7 +76,9 @@ export function saveBaseline(): void {
     version: '0.2.0',
     entries: performanceEntries,
   };
-  writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2), 'utf-8');
+  // 末尾改行は必須。baseline.json は biome の files.includes（tests/**）に入っているため、
+  // 改行なしで書くと `npm run test:e2e` のたびに `npm run check` が format エラーで落ちる。
+  writeFileSync(BASELINE_PATH, `${JSON.stringify(baseline, null, 2)}\n`, 'utf-8');
 }
 
 /**
