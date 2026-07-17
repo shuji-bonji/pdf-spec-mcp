@@ -5,7 +5,6 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
-  ensureRegistryInitialized,
   getSpecInfo,
   getSpecPath,
   isSpecAvailable,
