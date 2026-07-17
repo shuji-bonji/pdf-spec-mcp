@@ -8,7 +8,7 @@
 
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api.js';
 import { CACHE_CONFIG, CONCURRENCY } from '../config.js';
-import { ContentError } from '../errors.js';
+import { ContentError, NEXT_ACTIONS } from '../errors.js';
 import type {
   ContentElement,
   Definition,
@@ -144,7 +144,10 @@ class PDFSpecService {
         suggestions.length > 0
           ? `Section "${sectionId}" not found. Did you mean: ${suggestions.join(', ')}?`
           : `Section "${sectionId}" not found. Use get_structure to see available sections.`;
-      throw new ContentError(msg);
+      throw new ContentError(msg, {
+        next_actions: [NEXT_ACTIONS.getStructure()],
+        retryable: true,
+      });
     }
 
     // Check content cache (keyed with specId prefix)
@@ -256,6 +259,7 @@ class PDFSpecService {
       if (matchingSections.length === 0) {
         throw new ContentError(
           `Section "${section}" not found. Use get_structure to see available sections.`,
+          { next_actions: [NEXT_ACTIONS.getStructure()], retryable: true },
         );
       }
 
@@ -349,6 +353,16 @@ class PDFSpecService {
       throw new ContentError(
         `get_definitions is only supported for ISO 32000-2 and PDF 1.7. ` +
           `For "${id}", use get_section with section "3" instead.`,
+        {
+          hint: 'Other specs do not share the Section 3 "Terms and definitions" structure this parses.',
+          next_actions: [
+            {
+              action: 'call_get_section',
+              reason: `Call get_section with section "3" on "${id}" to read its terms verbatim.`,
+            },
+          ],
+          retryable: true,
+        },
       );
     }
 
@@ -409,6 +423,15 @@ class PDFSpecService {
       if (tableIndex >= tables.length) {
         throw new ContentError(
           `table_index ${tableIndex} out of range. Section "${sectionId}" has ${tables.length} table(s).`,
+          {
+            next_actions: [
+              {
+                action: 'omit_table_index',
+                reason: `Call get_tables without table_index to see all ${tables.length} table(s) in this section.`,
+              },
+            ],
+            retryable: true,
+          },
         );
       }
       return {

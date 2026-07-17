@@ -1,8 +1,17 @@
 /**
  * MCP Tool Handlers
+ *
+ * Adding a tool takes three edits:
+ *   1. a Zod shape + schema in utils/validation.ts
+ *   2. one entry in the definitions.ts registry
+ *   3. a handleXxx here, plus a line in toolHandlers
+ *
+ * Every handler parses its arguments with parseArgs before doing anything. The SDK also
+ * checks the published shape, but handlers are called directly in tests too, and parseArgs
+ * is what turns a bad argument into the family's structured VALIDATION_ERROR.
  */
 
-import { ToolPrerequisiteError } from '../errors.js';
+import { NEXT_ACTIONS, ToolPrerequisiteError } from '../errors.js';
 import { compareVersions } from '../services/compare-service.js';
 import {
   ensureRegistryInitialized,
@@ -19,36 +28,32 @@ import {
   searchSpec,
 } from '../services/pdf-service.js';
 import type {
-  CompareVersionsArgs,
-  GetDefinitionsArgs,
-  GetRequirementsArgs,
-  GetSectionArgs,
-  GetStructureArgs,
-  GetTablesArgs,
-  ListSpecsArgs,
   ListSpecsResult,
   OutlineEntry,
-  SearchSpecArgs,
   SpecCategory,
   StructureResult,
 } from '../types/index.js';
 import {
-  validateCompareSection,
-  validateMaxDepth,
-  validateMaxResults,
-  validateRequirementLevel,
-  validateSearchQuery,
-  validateSectionId,
-  validateSpecId,
-  validateTableIndex,
-  validateTermQuery,
+  CompareVersionsSchema,
+  GetDefinitionsSchema,
+  GetRequirementsSchema,
+  GetSectionSchema,
+  GetStructureSchema,
+  GetTablesSchema,
+  ListSpecsSchema,
+  SearchSpecSchema,
+  normalizeRequirementLevel,
+  normalizeTerm,
+  parseArgs,
+  resolveMaxResults,
 } from '../utils/validation.js';
 
 // ========================================
 // list_specs
 // ========================================
 
-async function handleListSpecs(args: ListSpecsArgs): Promise<ListSpecsResult> {
+async function handleListSpecs(rawArgs: unknown): Promise<ListSpecsResult> {
+  const args = parseArgs(ListSpecsSchema, rawArgs);
   await ensureRegistryInitialized();
   const specs = listSpecs(args.category as SpecCategory | undefined);
   return {
@@ -61,9 +66,8 @@ async function handleListSpecs(args: ListSpecsArgs): Promise<ListSpecsResult> {
 // get_structure
 // ========================================
 
-async function handleGetStructure(args: GetStructureArgs): Promise<StructureResult> {
-  const specId = validateSpecId(args.spec);
-  const maxDepth = validateMaxDepth(args.max_depth);
+async function handleGetStructure(rawArgs: unknown): Promise<StructureResult> {
+  const { spec: specId, max_depth: maxDepth } = parseArgs(GetStructureSchema, rawArgs);
   await ensureRegistryInitialized();
   const index = await getSectionIndex(specId);
 
@@ -83,23 +87,21 @@ async function handleGetStructure(args: GetStructureArgs): Promise<StructureResu
 // get_section
 // ========================================
 
-async function handleGetSection(args: GetSectionArgs) {
-  const specId = validateSpecId(args.spec);
-  validateSectionId(args.section);
+async function handleGetSection(rawArgs: unknown) {
+  const args = parseArgs(GetSectionSchema, rawArgs);
   await ensureRegistryInitialized();
-  return getSectionContent(args.section, specId);
+  return getSectionContent(args.section, args.spec);
 }
 
 // ========================================
 // search_spec
 // ========================================
 
-async function handleSearchSpec(args: SearchSpecArgs) {
-  const specId = validateSpecId(args.spec);
-  validateSearchQuery(args.query);
-  const maxResults = validateMaxResults(args.max_results);
+async function handleSearchSpec(rawArgs: unknown) {
+  const args = parseArgs(SearchSpecSchema, rawArgs);
+  const maxResults = resolveMaxResults(args.max_results);
   await ensureRegistryInitialized();
-  const hits = await searchSpec(args.query, maxResults, specId);
+  const hits = await searchSpec(args.query, maxResults, args.spec);
 
   return {
     query: args.query,
@@ -122,44 +124,39 @@ function pruneTree(entries: OutlineEntry[], depth: number, maxDepth: number): Ou
 // get_requirements
 // ========================================
 
-async function handleGetRequirements(args: GetRequirementsArgs) {
-  const specId = validateSpecId(args.spec);
-  if (args.section !== undefined) {
-    validateSectionId(args.section);
-  }
-  const level = validateRequirementLevel(args.level);
+async function handleGetRequirements(rawArgs: unknown) {
+  const args = parseArgs(GetRequirementsSchema, rawArgs);
+  const level = normalizeRequirementLevel(args.level);
   await ensureRegistryInitialized();
-  return getRequirements(args.section, level, specId);
+  return getRequirements(args.section, level, args.spec);
 }
 
 // ========================================
 // get_definitions
 // ========================================
 
-async function handleGetDefinitions(args: GetDefinitionsArgs) {
-  const specId = validateSpecId(args.spec);
-  const term = validateTermQuery(args.term);
+async function handleGetDefinitions(rawArgs: unknown) {
+  const args = parseArgs(GetDefinitionsSchema, rawArgs);
   await ensureRegistryInitialized();
-  return getDefinitions(term, specId);
+  return getDefinitions(normalizeTerm(args.term), args.spec);
 }
 
 // ========================================
 // get_tables
 // ========================================
 
-async function handleGetTables(args: GetTablesArgs) {
-  const specId = validateSpecId(args.spec);
-  validateSectionId(args.section);
-  const tableIndex = validateTableIndex(args.table_index);
+async function handleGetTables(rawArgs: unknown) {
+  const args = parseArgs(GetTablesSchema, rawArgs);
   await ensureRegistryInitialized();
-  return getTables(args.section, tableIndex, specId);
+  return getTables(args.section, args.table_index, args.spec);
 }
 
 // ========================================
 // compare_versions
 // ========================================
 
-async function handleCompareVersions(args: CompareVersionsArgs) {
+async function handleCompareVersions(rawArgs: unknown) {
+  const args = parseArgs(CompareVersionsSchema, rawArgs);
   await ensureRegistryInitialized();
 
   // Prerequisite: both pdf17 and iso32000-2 must be available
@@ -167,17 +164,34 @@ async function handleCompareVersions(args: CompareVersionsArgs) {
     throw new ToolPrerequisiteError(
       'compare_versions requires PDF32000_2008.pdf in PDF_SPEC_DIR. ' +
         'Download it from https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf',
+      {
+        hint: 'compare_versions diffs PDF 1.7 against PDF 2.0, so both PDFs must be present.',
+        next_actions: [
+          NEXT_ACTIONS.downloadSpec(
+            'PDF32000_2008.pdf',
+            'https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf',
+          ),
+        ],
+      },
     );
   }
   if (!isSpecAvailable('iso32000-2')) {
     throw new ToolPrerequisiteError(
       'compare_versions requires ISO_32000-2_sponsored-ec2.pdf in PDF_SPEC_DIR. ' +
         'Download it from https://pdfa.org/resource/iso-32000-pdf/',
+      {
+        hint: 'compare_versions diffs PDF 1.7 against PDF 2.0, so both PDFs must be present.',
+        next_actions: [
+          NEXT_ACTIONS.downloadSpec(
+            'ISO_32000-2_sponsored_EC3.pdf',
+            'https://pdfa.org/resource/iso-32000-pdf/',
+          ),
+        ],
+      },
     );
   }
 
-  const section = validateCompareSection(args.section);
-  return compareVersions(section);
+  return compareVersions(args.section);
 }
 
 // ========================================

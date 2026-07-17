@@ -10,7 +10,7 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_SPEC_ID, PDF_CONFIG, SPEC_PATTERNS } from '../config.js';
-import { RegistryError } from '../errors.js';
+import { NEXT_ACTIONS, RegistryError } from '../errors.js';
 import type { SpecCategory, SpecId, SpecInfo } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -48,6 +48,11 @@ export class RegistryService {
       throw new RegistryError(
         `Environment variable ${PDF_CONFIG.envVar} is not set. ` +
           `Set it to the directory containing PDF specification files.`,
+        {
+          hint: 'The server cannot locate any specification PDF without this.',
+          next_actions: [NEXT_ACTIONS.setSpecDir(PDF_CONFIG.envVar)],
+          retryable: false,
+        },
       );
     }
 
@@ -55,7 +60,11 @@ export class RegistryService {
     try {
       files = await readdir(dir);
     } catch (err) {
-      throw new RegistryError(`Cannot read PDF_SPEC_DIR "${dir}": ${err}`);
+      throw new RegistryError(`Cannot read PDF_SPEC_DIR "${dir}": ${err}`, {
+        hint: 'The directory is set but unreadable — check that it exists and is accessible.',
+        next_actions: [NEXT_ACTIONS.setSpecDir(PDF_CONFIG.envVar)],
+        retryable: false,
+      });
     }
 
     const pdfFiles = files.filter((f) => f.toLowerCase().endsWith('.pdf'));
@@ -115,6 +124,7 @@ export class RegistryService {
       const available = [...this.registry.keys()].join(', ');
       throw new RegistryError(
         `Specification "${specId}" not found. Available specs: ${available || '(none — run list_specs first)'}`,
+        { next_actions: [NEXT_ACTIONS.listSpecs()], retryable: true },
       );
     }
     return entry.path;
@@ -155,6 +165,7 @@ export class RegistryService {
       const available = [...this.registry.keys()].join(', ');
       throw new RegistryError(
         `Specification "${id}" not found. Available specs: ${available || '(none)'}`,
+        { next_actions: [NEXT_ACTIONS.listSpecs()], retryable: true },
       );
     }
     return id;

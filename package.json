@@ -44,7 +44,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "pdfjs-dist": "^5.4.624"
+    "pdfjs-dist": "^5.4.624",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.4",

@@ -1,68 +1,66 @@
 /**
- * MCP server construction.
+ * MCP server construction (A-4: McpServer + registerTool + Zod).
  *
  * Kept apart from index.ts so the server can be built without starting a stdio
  * transport — `registry.test.ts` drives it over an in-memory transport to pin the
  * external tool surface. index.ts is left as the entry point that wires it to stdio.
+ *
+ * Tools come from the definitions.ts registry rather than being registered by hand here,
+ * so "what this server exposes" is one list rather than a sequence of calls, and a tool
+ * defined without a handler fails loudly at startup instead of at first use.
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { PACKAGE_INFO } from './config.js';
-import { PDFSpecError } from './errors.js';
+import { toStructuredError } from './errors.js';
 import { tools } from './tools/definitions.js';
 import { type ToolName, toolHandlers } from './tools/handlers.js';
+import { logger } from './utils/logger.js';
 
 /**
  * Build the MCP server with all tools registered.
  * Does not connect a transport — the caller decides how it is driven.
  */
-export function buildServer(): Server {
-  const server = new Server(
-    {
-      name: PACKAGE_INFO.name,
-      version: PACKAGE_INFO.version,
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    },
-  );
-
-  // List tools
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools };
+export function buildServer(): McpServer {
+  const server = new McpServer({
+    name: PACKAGE_INFO.name,
+    version: PACKAGE_INFO.version,
   });
 
-  // Execute tool
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    try {
-      if (!(name in toolHandlers)) {
-        throw new Error(`Unknown tool: ${name}`);
-      }
-
-      // Type boundary: MCP SDK provides args as Record<string, unknown>.
-      // After validating the tool name, we cast args to match the handler's
-      // expected input — each handler validates its own arguments at runtime.
-      const handler = toolHandlers[name as ToolName];
-      const result = await (handler as (a: Record<string, unknown>) => Promise<unknown>)(
-        args ?? {},
-      );
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const code = error instanceof PDFSpecError ? error.code : 'INTERNAL_ERROR';
-      return {
-        content: [{ type: 'text', text: JSON.stringify({ error: message, code }, null, 2) }],
-        isError: true,
-      };
+  for (const tool of tools) {
+    const handler = toolHandlers[tool.name as ToolName];
+    if (!handler) {
+      throw new Error(`No handler registered for tool: ${tool.name}`);
     }
-  });
+
+    server.registerTool(
+      tool.name,
+      {
+        title: tool.title,
+        description: tool.description,
+        inputSchema: tool.shape,
+        annotations: tool.annotations,
+      },
+      async (args: unknown) => {
+        try {
+          const result = await handler(args);
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          };
+        } catch (error) {
+          // Report failures as an isError result rather than throwing: a thrown error
+          // reaches the client as an opaque protocol error, losing the code / hint /
+          // next_actions an agent needs to recover (規約 §2.3).
+          const structured = toStructuredError(error);
+          logger.error(tool.name, structured.error, error instanceof Error ? error : undefined);
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(structured, null, 2) }],
+            isError: true,
+          };
+        }
+      },
+    );
+  }
 
   return server;
 }

@@ -1,191 +1,141 @@
 /**
- * MCP Tool Definitions
+ * MCP Tool Definitions (A-4: the registry behind McpServer + registerTool)
+ *
+ * Input schemas are derived from the Zod shapes in utils/validation.ts — the published
+ * schema and the runtime check have one source. Implementations live in handlers.ts.
+ *
+ * annotations (規約 §2.1):
+ *   - readOnlyHint: true for every tool. This server only reads specification PDFs; nothing
+ *     it exposes can alter the corpus or any other state.
+ *   - destructiveHint / idempotentHint: reads are neither destructive nor
+ *     state-dependent — the same arguments always yield the same answer for a given corpus.
+ *   - openWorldHint: false. Answers come from PDFs on disk, not from the network.
  */
 
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { ZodRawShape } from 'zod';
+import {
+  compareVersionsShape,
+  getDefinitionsShape,
+  getRequirementsShape,
+  getSectionShape,
+  getStructureShape,
+  getTablesShape,
+  listSpecsShape,
+  searchSpecShape,
+} from '../utils/validation.js';
 
-/** Common spec parameter description shared by all spec-aware tools */
-const SPEC_PARAM = {
-  type: 'string' as const,
-  description:
-    'Specification ID (e.g., "iso32000-2", "ts32002", "pdfua2"). ' +
-    'Use list_specs to see available specs. Default: "iso32000-2" (PDF 2.0).',
+export interface ToolAnnotations {
+  readOnlyHint: boolean;
+  destructiveHint: boolean;
+  idempotentHint: boolean;
+  openWorldHint: boolean;
+}
+
+export interface ToolDefinition {
+  name: string;
+  title: string;
+  description: string;
+  shape: ZodRawShape;
+  annotations: ToolAnnotations;
+}
+
+/** Every tool in this server reads; none of them writes or reaches the network. */
+const READ_ONLY: ToolAnnotations = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
 };
 
-export const tools: Tool[] = [
+export const tools: ToolDefinition[] = [
   // ========================================
   // Discovery
   // ========================================
   {
     name: 'list_specs',
+    title: 'List available specifications',
     description:
       'List all available PDF specification documents. ' +
       'Returns document IDs, titles, page counts, and categories. ' +
       'Use the returned IDs as the `spec` parameter in other tools.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        category: {
-          type: 'string',
-          description: 'Filter by document category.',
-          enum: ['standard', 'ts', 'pdfua', 'guide', 'appnote'],
-        },
-      },
-    },
+    shape: listSpecsShape,
+    annotations: READ_ONLY,
   },
-
-  // ========================================
-  // Structure & Content
-  // ========================================
   {
     name: 'get_structure',
+    title: 'Get section hierarchy',
     description:
       'Get the section hierarchy of the PDF specification (ISO 32000-2). ' +
       'Returns the table of contents with section numbers, titles, and page numbers.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        spec: SPEC_PARAM,
-        max_depth: {
-          type: 'number',
-          description:
-            'Maximum depth of the hierarchy to return (default: all levels). ' +
-            '1 = top-level only, 2 = top + sub-sections, etc.',
-        },
-      },
-    },
-  },
-  {
-    name: 'get_section',
-    description:
-      'Get the content of a specific section from the PDF specification (ISO 32000-2). ' +
-      'Returns structured content including headings, paragraphs, lists, tables, and notes.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        spec: SPEC_PARAM,
-        section: {
-          type: 'string',
-          description: 'Section identifier (e.g., "7.3.4", "12.8", "Annex A", "Foreword")',
-        },
-      },
-      required: ['section'],
-    },
+    shape: getStructureShape,
+    annotations: READ_ONLY,
   },
 
   // ========================================
-  // Search
+  // Reading
   // ========================================
   {
+    name: 'get_section',
+    title: 'Get section content',
+    description:
+      'Get the content of a specific section from the PDF specification (ISO 32000-2). ' +
+      'Returns structured content including headings, paragraphs, lists, tables, and notes.',
+    shape: getSectionShape,
+    annotations: READ_ONLY,
+  },
+  {
     name: 'search_spec',
+    title: 'Search the specification',
     description:
       'Search the PDF specification (ISO 32000-2) for a keyword or phrase. ' +
       'Returns matching sections with context snippets. ' +
       'The first call may take a few seconds to build the search index.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        spec: SPEC_PARAM,
-        query: {
-          type: 'string',
-          description: 'Search query (keyword or phrase)',
-        },
-        max_results: {
-          type: 'number',
-          description: 'Maximum number of results to return (default: 10, max: 50)',
-        },
-      },
-      required: ['query'],
-    },
+    shape: searchSpecShape,
+    annotations: READ_ONLY,
   },
 
   // ========================================
-  // Analysis
+  // Structured extraction
   // ========================================
   {
     name: 'get_requirements',
+    title: 'Extract normative requirements',
     description:
       'Extract normative requirements (shall/must/may) from the PDF specification (ISO 32000-2). ' +
       'Returns structured requirements with the sentence context, section, and requirement level.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        spec: SPEC_PARAM,
-        section: {
-          type: 'string',
-          description:
-            'Filter by section number (e.g., "7.3.4", "12.8"). ' +
-            'Includes subsections. If omitted, scans all sections (slower on first call).',
-        },
-        level: {
-          type: 'string',
-          description: 'Filter by requirement level.',
-          enum: ['shall', 'shall not', 'should', 'should not', 'may'],
-        },
-      },
-    },
+    shape: getRequirementsShape,
+    annotations: READ_ONLY,
   },
   {
     name: 'get_definitions',
+    title: 'Get term definitions',
     description:
       'Get term definitions from Section 3 of the PDF specification (ISO 32000-2). ' +
       'Returns structured definitions with term, definition text, notes, and sources.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        spec: SPEC_PARAM,
-        term: {
-          type: 'string',
-          description:
-            'Search for a specific term by keyword (case-insensitive substring match). ' +
-            'If omitted, returns all definitions.',
-        },
-      },
-    },
+    shape: getDefinitionsShape,
+    annotations: READ_ONLY,
   },
   {
     name: 'get_tables',
+    title: 'Extract tables',
     description:
       'Extract table structures from a specified section of the PDF specification (ISO 32000-2). ' +
       'Returns tables with headers, rows, and optional captions.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        spec: SPEC_PARAM,
-        section: {
-          type: 'string',
-          description: 'Section identifier (e.g., "7.3.4", "12.8", "Annex A")',
-        },
-        table_index: {
-          type: 'number',
-          description:
-            'Optional 0-based index to retrieve a specific table. ' +
-            'If omitted, returns all tables in the section.',
-        },
-      },
-      required: ['section'],
-    },
+    shape: getTablesShape,
+    annotations: READ_ONLY,
   },
 
   // ========================================
-  // Version Comparison
+  // Comparison
   // ========================================
   {
     name: 'compare_versions',
+    title: 'Compare PDF 1.7 and PDF 2.0',
     description:
       'Compare sections between PDF 1.7 (ISO 32000-1) and PDF 2.0 (ISO 32000-2). ' +
       'Returns matched sections (same or moved), added sections (new in 2.0), ' +
       'and removed sections (absent in 2.0). Uses title-based automatic matching.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        section: {
-          type: 'string',
-          description:
-            'Compare a specific section and its subsections (e.g., "12.8" for Digital Signatures). ' +
-            'Uses PDF 2.0 section numbering. If omitted, compares all top-level sections.',
-        },
-      },
-    },
+    shape: compareVersionsShape,
+    annotations: READ_ONLY,
   },
 ];

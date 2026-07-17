@@ -29,10 +29,6 @@ export interface ListSpecsResult {
   specs: SpecInfo[];
 }
 
-export interface ListSpecsArgs {
-  category?: string;
-}
-
 // ========================================
 // Version Comparison
 // ========================================
@@ -60,10 +56,6 @@ export interface CompareVersionsResult {
   matched: SectionMapping[];
   added: UnmatchedSection[];
   removed: UnmatchedSection[];
-}
-
-export interface CompareVersionsArgs {
-  section?: string; // 特定セクションに絞る（省略時は全体比較）
 }
 
 // ========================================
@@ -174,25 +166,9 @@ export interface SearchResult {
   results: SearchHit[];
 }
 
-// ========================================
-// Tool Arguments
-// ========================================
-
-export interface GetStructureArgs {
-  spec?: string;
-  max_depth?: number;
-}
-
-export interface GetSectionArgs {
-  spec?: string;
-  section: string;
-}
-
-export interface SearchSpecArgs {
-  spec?: string;
-  query: string;
-  max_results?: number;
-}
+// Tool argument types are not declared here: since A-4 they are inferred from the Zod
+// schemas in utils/validation.ts, which is also what publishes them to MCP and enforces
+// them at runtime. One source, no drift.
 
 // ========================================
 // Requirements (ISO normative keywords)
@@ -228,12 +204,6 @@ export interface RequirementsResult {
   requirements: Requirement[];
 }
 
-export interface GetRequirementsArgs {
-  spec?: string;
-  section?: string;
-  level?: string;
-}
-
 // ========================================
 // Definitions (Section 3)
 // ========================================
@@ -253,11 +223,6 @@ export interface DefinitionsResult {
   definitions: Definition[];
 }
 
-export interface GetDefinitionsArgs {
-  spec?: string;
-  term?: string;
-}
-
 // ========================================
 // Tables
 // ========================================
@@ -275,12 +240,6 @@ export interface TablesResult {
   sectionTitle: string;
   totalTables: number;
   tables: TableInfo[];
-}
-
-export interface GetTablesArgs {
-  spec?: string;
-  section: string;
-  table_index?: number;
 }
 
 // ========================================
