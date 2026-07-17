@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **stdout ガードを追加**（[#8](https://github.com/shuji-bonji/pdf-spec-mcp/issues/8) 項目 1・family 規約 §2.4）。
+  MCP は stdout で JSON-RPC を喋るが、本リポジトリが依存する pdfjs-dist の `warn()` は
+  `console.log`（= stdout）を使うため、JSON-RPC ストリームが壊れうる（reader で実証済みの事故）。
+  `src/utils/stdout-guard.ts` を追加し `console.log` / `console.warn` を stderr へリダイレクトする。
+  ESM の import 巻き上げにより、ガードは `index.ts` の**最初の import** である必要がある
+
+### Changed
+
+- **Biome 2.5.4 へ移行**（[#8](https://github.com/shuji-bonji/pdf-spec-mcp/issues/8) 項目 2）。ESLint + Prettier を廃止。
+  family 標準に合わせ **2.5.4 完全固定**（キャレット禁止。整形結果が minor で変わるため）。
+  CI / publish workflow に `npm run check` と `npm run typecheck` を組み込んだ
+- `noAssignInExpressions` 違反の 3 箇所（`requirement-extractor.ts` / `search-index.ts`）を
+  等価な形に書き換え（`text.matchAll()` / `indexOf` ループ）。外部挙動は不変
+
+### Removed
+
+- **未使用の `src/container.ts` を削除**（[#8](https://github.com/shuji-bonji/pdf-spec-mcp/issues/8) 項目 3）。
+  `createServices()` はどこからも呼ばれておらず、実運用は `pdf-service.ts` のシングルトン（YAGNI）
+
 ## [0.3.2] - 2026-07-14
 
 ### Changed
