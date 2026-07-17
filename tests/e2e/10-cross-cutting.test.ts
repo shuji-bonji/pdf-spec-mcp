@@ -1,7 +1,7 @@
 /**
  * 10 - Cross-Cutting Concerns E2E Tests
  *
- * X-1 〜 X-12: LRU キャッシュ、PagesMapper 安定性、セクションキャッシュ、エラーハンドリング
+ * X-1 〜 X-15: 多 spec 横断、PagesMapper 安定性、セクションキャッシュ、冪等性、エラーハンドリング
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
@@ -138,6 +138,66 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
       // 同じかもしれないが、少なくとも両方存在する
       expect(r1.content.length).toBeGreaterThan(0);
       expect(r2.content.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ========================================
+  // 冪等性（annotations の宣言が本当か）
+  // ========================================
+
+  /**
+   * 全ツールは readOnlyHint / idempotentHint を宣言している。それが本当かを確かめる。
+   *
+   * 0.4.0 では嘘だった: collectStructTreeTables が返す TableInfo が
+   * セクション内容キャッシュの rows 配列を参照で共有したまま push していたため、
+   * 同じセクションを引くたびに表が膨らんでいた（Table 182 が 6 → 7 行、
+   * get_requirements が 6 → 15 件）。
+   *
+   * 見逃した理由は単純で、**ユニットテストも e2e も各ツールを 1 回ずつしか呼んでいなかった**。
+   * npx で公開版を叩いて初めて露見した。以後ここが恒久的な歯止めになる。
+   */
+  describe('冪等性', () => {
+    it('X-13: 各ツールは何度呼んでも同じ結果を返す', async () => {
+      const calls: Array<[string, () => Promise<unknown>]> = [
+        ['get_tables', () => toolHandlers.get_tables({ section: '12.5.6.10' })],
+        ['get_requirements', () => toolHandlers.get_requirements({ section: '12.5.6.10' })],
+        ['get_section', () => toolHandlers.get_section({ section: '12.5.6.10' })],
+        ['get_structure', () => toolHandlers.get_structure({ max_depth: 2 })],
+        ['get_definitions', () => toolHandlers.get_definitions({ term: 'annotation' })],
+        ['list_specs', () => toolHandlers.list_specs({})],
+      ];
+
+      for (const [name, fn] of calls) {
+        const first = JSON.stringify(await fn());
+        const second = JSON.stringify(await fn());
+        const third = JSON.stringify(await fn());
+        expect(second, name).toBe(first);
+        expect(third, name).toBe(first);
+      }
+    });
+
+    it('X-14: あるツールの呼び出しが別のツールの結果を変えない', async () => {
+      // 表を引くとセクション内容キャッシュが壊れ、要件が増えていた。
+      const before = JSON.stringify(await toolHandlers.get_requirements({ section: '12.5.2' }));
+
+      await toolHandlers.get_tables({ section: '12.5.2' });
+      await toolHandlers.get_section({ section: '12.5.2' });
+      await toolHandlers.get_tables({ section: '12.5.2' });
+
+      const after = JSON.stringify(await toolHandlers.get_requirements({ section: '12.5.2' }));
+      expect(after).toBe(before);
+    });
+
+    it('X-15: 呼び出し側が結果を変更してもキャッシュに届かない', async () => {
+      const result = await toolHandlers.get_tables({ section: '12.5.6.10' });
+      const rowCount = result.tables[0].rows.length;
+
+      result.tables[0].rows.push(['injected', 'row', 'here']);
+      result.tables[0].headers.push('injected');
+
+      const again = await toolHandlers.get_tables({ section: '12.5.6.10' });
+      expect(again.tables[0].rows).toHaveLength(rowCount);
+      expect(again.tables[0].headers).not.toContain('injected');
     });
   });
 

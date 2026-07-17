@@ -62,13 +62,28 @@ Biome は薄いラッパがプラットフォーム別バイナリを探す構�
 > さらに D.3 と D.4 に同じ 13 行を**二重計上**していた。S-5 で是正し正味 92 件。
 > **全数差分がなければ気づけなかった。**
 
-### 2. ヘッダなしの表は連結されない（S-4）
+### 2. キャッシュされた content を参照で外に出さない（0.4.0 の退行）
+
+`sectionContentCache` が保持する `ContentElement` の配列を、そのまま結果に載せてはいけない。
+`collectStructTreeTables` が `rows: element.rows` と参照で共有したまま、連結時に同じ配列へ
+`push` していたため、**キャッシュされたページ自体が書き換わり、引くたびに表が膨らんだ**
+（Table 182 が 6 → 7 行、`get_requirements` が 6 → 15 件）。
+全ツールは `readOnlyHint` / `idempotentHint` を宣言しているのに、**呼び出し順と回数で
+結果が変わっていた**。`content` を読む処理は、返す配列を必ずコピーすること。
+
+**見逃した理由**: ユニットテストも e2e も**各ツールを 1 回ずつしか呼んでいなかった**。
+純粋関数のつもりのものがキャッシュされた入力を破壊していても気づけない。
+npx で公開版を叩いて初めて露見した。
+歯止め: `table-collector.test.ts`（content を変更しない / 何度呼んでも同じ / 結果を汚しても
+届かない）と e2e の X-13〜X-15（全ツールの冪等性）。
+
+### 3. ヘッダなしの表は連結されない（S-4）
 
 `collectStructTreeTables` は `headers.length > 0` の表しか連結しない。帯として正しく採用しても
 **ヘッダなしの表は連結されずに分裂する**（5 セクション。8.7.4.5.5 は 2 → 4 表）。
 連結条件を変えるなら、ヘッダ一致では判定できないので列数や位置での同一性判定が要る。
 
-### 3. 要件は表の中にもある（S-7 / 2026-07-18 修正）
+### 4. 要件は表の中にもある（S-7 / 2026-07-18 修正）
 
 `extractRequirementsFromContent` は paragraph / list / note しか走査せず、**表のセルを無視していた**。
 ISO の表は要件語の宝庫で、全体インデックスは **5927 → 8666 件（+46%）**に増えた（表由来 2739 件）。
@@ -84,7 +99,7 @@ ISO の表は要件語の宝庫で、全体インデックスは **5927 → 8666
 > ⚠️「QuadPoints の shall が get_requirements から見えないのは帯（S-5）のせい」という見立ては
 > **誤り**だった。真因はこれ。原因の見立てを引き写さず、実際に経路を追うこと。
 
-### 4. 「LRU を検証している」テストは LRU に届いていなかった（2026-07-18 是正）
+### 5. 「LRU を検証している」テストは LRU に届いていなかった（2026-07-18 是正）
 
 `get_structure` は `getSectionIndex` のメモ（spec ごと・**上限なし・無期限**）を引くため、
 **2 回目以降は loader を一切呼ばない**。e2e の X-1〜X-3 はこれを通してドキュメント LRU を
@@ -95,7 +110,7 @@ ISO の表は要件語の宝庫で、全体インデックスは **5927 → 8666
 上位を通すテストは下位に届かない。ドキュメント LRU は `DocumentLoaderService` に
 `DocumentSource` を注入して直接検証する（`pdf-loader.test.ts`）。
 
-### 5. stdout を汚すのは `console.log` と `console.info`（`warn` ではない）
+### 6. stdout を汚すのは `console.log` と `console.info`（`warn` ではない）
 
 Node では **`console.log` / `console.info` が stdout**、`warn` / `error` は stderr。
 pdfjs-dist v5 の実際の経路は `warn()` → `console.warn`（stderr・**stdout は汚さない**）、
@@ -130,6 +145,11 @@ npm run check:imports    # import 順（biome なしで動く。サンドボッ�
 - 抽出ロジックを変えたら、**旧実装を `git worktree` で並べてビルドし、全セクションに
   `get_tables` 等を流して JSON 差分を取る**。「行を失った表 0 / 表の個数が変わった表 0」を
   機械的に示せる。8.7.4.5.5 の退行はこの全数差分でしか見つからなかった
+- **ツールは必ず複数回・順序を変えて呼ぶ**。1 回ずつしか呼ばないテストは、キャッシュ破壊も
+  順序依存も検知しない（0.4.0 がそれで出た）。リリース後は
+  **npx で公開版を隔離環境に落として叩く**（`npm init -y` した空ディレクトリで
+  `npm install @shuji-bonji/pdf-spec-mcp@latest`）。ホストの node_modules と混ざらず、
+  linux 版の `@napi-rs/canvas` が入るのでサンドボックスでも pdfjs が動く
 
 ## リリース
 
