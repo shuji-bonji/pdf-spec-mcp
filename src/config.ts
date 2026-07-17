@@ -51,6 +51,45 @@ export const CONCURRENCY = {
   contentExtraction: 10,
 } as const;
 
+/** A normative area this server cannot answer for. */
+export interface CoverageGap {
+  area: string;
+  standards: string[];
+  consequence: string;
+}
+
+/**
+ * Areas outside this server's corpus (S-2).
+ *
+ * family 規約 §2.0 routes implementation decisions through this server, which makes a
+ * silent gap dangerous: `search_spec("PDF/A conformance")` returns zero hits, and zero hits
+ * read exactly like "no such requirement". The most consequential answers this server gives
+ * are the ones it cannot give, so it has to say so.
+ *
+ * These are not "the file happens to be missing". There is no SPEC_PATTERNS entry for
+ * either standard, so the PDFs would not be indexed even if they were placed in
+ * PDF_SPEC_DIR. Closing a gap means adding a pattern here, not just a file — and then
+ * removing the entry below.
+ */
+export const COVERAGE_GAPS: CoverageGap[] = [
+  {
+    area: 'PDF/A — archival conformance',
+    standards: ['ISO 19005-1', 'ISO 19005-2', 'ISO 19005-3', 'ISO 19005-4'],
+    consequence:
+      'Requirements specific to PDF/A cannot be quoted or verified here. pdf-verify-mcp ' +
+      'validate_conformance with a "pdfa-*" flavour has no normative text to trace to in this ' +
+      'corpus. A search returning nothing is not evidence that no requirement exists.',
+  },
+  {
+    area: 'PAdES — signature profiles',
+    standards: ['ETSI EN 319 142-1', 'ETSI EN 319 142-2'],
+    consequence:
+      'Baseline signature levels (B-B / B-T / B-LT / B-LTA) are defined by ETSI, not by ' +
+      'ISO 32000-2. pdf-verify-mcp detect_pades_level cannot be checked against normative text ' +
+      'here. ISO 32000-2 §12.8 covers signatures in general and is available.',
+  },
+];
+
 /** Filename pattern → spec ID mapping rule */
 export interface SpecPattern {
   pattern: RegExp;

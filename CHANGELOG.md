@@ -43,6 +43,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`list_specs` が「答えられない領域」を宣言するようになった**（S-2）。
+  `search_spec("PDF/A conformance")` は 0 件を返すが、これは**「要件が無い」ではなく
+  「コーパスに無いので答えられない」**であり、区別する手段が無かった。family 規約 §2.0 は
+  writer / verify の実装判断をこのサーバの原文照合に通すと定めているため、この偽陰性が
+  そのまま設計判断に流れ込む。`list_specs` の応答に `coverage`（未収録領域・該当規格・
+  その帰結）を含めた。エージェントが最初に叩くツールなので、探索を始める前に限界が分かる。
+  対象: **PDF/A（ISO 19005-1〜-4）** と **PAdES（ETSI EN 319 142）**。
+  なおこれらは「ファイルが未配置」ではなく `SPEC_PATTERNS` にパターン自体が無いため、
+  PDF を置いても認識されない（塞ぐにはパターン追加が要る）。PDF/UA（ISO 14289）は
+  コーパスにあるので verify の該当規則は照合できる
 - **表の中の要件を抽出する**。`extractRequirementsFromContent` は paragraph / list / note
   しか走査しておらず、**表のセルを完全に無視していた**。ISO の表は要件語の宝庫であり
   （「(Required) The type of annotation ... shall be Highlight ...」）、実測で

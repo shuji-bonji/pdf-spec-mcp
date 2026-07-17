@@ -41,6 +41,7 @@ import {
 import type {
   CompareVersionsResult,
   DefinitionsResult,
+  ListSpecsResult,
   RequirementsResult,
   SearchHit,
   SectionIndex,
@@ -421,6 +422,47 @@ describe('toolHandlers', () => {
       const result = (await toolHandlers.list_specs({ category: 'ts' })) as { totalSpecs: number };
       expect(result.totalSpecs).toBe(1);
       expect(mockListSpecs).toHaveBeenCalledWith('ts');
+    });
+
+    // S-2: what the corpus cannot answer for.
+    //
+    // The danger this addresses is a false negative: search_spec("PDF/A conformance") returns
+    // zero hits, which reads as "no such requirement" when it means "not in this corpus".
+    // Since family 規約 §2.0 routes writer/verify design decisions through this server, that
+    // misreading propagates. list_specs is where an agent starts, so the limits go here.
+    it('declares the areas outside the corpus', async () => {
+      mockListSpecs.mockReturnValue(mockSpecs);
+
+      const result = (await toolHandlers.list_specs({})) as ListSpecsResult;
+
+      expect(result.coverage.gaps.length).toBeGreaterThan(0);
+      const areas = result.coverage.gaps.map((g) => g.area).join(' ');
+      expect(areas).toContain('PDF/A');
+      expect(areas).toContain('PAdES');
+    });
+
+    it('says what a gap means, not just that it exists', async () => {
+      mockListSpecs.mockReturnValue(mockSpecs);
+
+      const result = (await toolHandlers.list_specs({})) as ListSpecsResult;
+
+      // "no hits" must be spelled out as "cannot answer" — naming the standard is not enough
+      // to stop a caller concluding the requirement does not exist.
+      expect(result.coverage.note).toMatch(/no such requirement|cannot answer/i);
+      for (const gap of result.coverage.gaps) {
+        expect(gap.standards.length, gap.area).toBeGreaterThan(0);
+        expect(gap.consequence, gap.area).toBeTruthy();
+      }
+    });
+
+    it('reports gaps even when a category filter is applied', async () => {
+      // The gaps describe the corpus, not the query. A caller that filtered to "ts" is no
+      // less likely to misread an empty PDF/A search.
+      mockListSpecs.mockReturnValue([mockSpecs[1]]);
+
+      const result = (await toolHandlers.list_specs({ category: 'ts' })) as ListSpecsResult;
+
+      expect(result.coverage.gaps.length).toBeGreaterThan(0);
     });
   });
 

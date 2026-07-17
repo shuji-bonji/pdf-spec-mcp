@@ -11,6 +11,7 @@
  * is what turns a bad argument into the family's structured VALIDATION_ERROR.
  */
 
+import { COVERAGE_GAPS } from '../config.js';
 import { NEXT_ACTIONS, ToolPrerequisiteError } from '../errors.js';
 import { compareVersions } from '../services/compare-service.js';
 import {
@@ -59,6 +60,14 @@ async function handleListSpecs(rawArgs: unknown): Promise<ListSpecsResult> {
   return {
     totalSpecs: specs.length,
     specs,
+    // Reported unconditionally, including when a category filter is in play: the gaps are
+    // properties of the corpus, not of the current query.
+    coverage: {
+      note:
+        'These normative areas are outside this corpus. A search returning no hits for them ' +
+        'means "cannot answer", not "no such requirement".',
+      gaps: COVERAGE_GAPS,
+    },
   };
 }
 

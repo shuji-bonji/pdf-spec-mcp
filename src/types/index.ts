@@ -23,10 +23,28 @@ export interface SpecInfo {
   description: string;
 }
 
+/** A normative area the corpus does not cover (see config.ts COVERAGE_GAPS) */
+export interface CoverageGapInfo {
+  area: string;
+  standards: string[];
+  consequence: string;
+}
+
 /** list_specs result */
 export interface ListSpecsResult {
   totalSpecs: number;
   specs: SpecInfo[];
+  /**
+   * What this server cannot answer for.
+   *
+   * Reported alongside what it *can* answer, because a caller that only sees the corpus has
+   * no way to tell "no requirement" from "not in the corpus" — and list_specs is the tool
+   * an agent reaches for first.
+   */
+  coverage: {
+    note: string;
+    gaps: CoverageGapInfo[];
+  };
 }
 
 // ========================================
