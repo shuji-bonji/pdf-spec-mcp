@@ -60,26 +60,67 @@ export async function extractSectionContent(
 }
 
 /**
+ * Where a section's heading sits among a page's elements, or -1 if it is not there.
+ *
+ * Single source of truth for "this section starts here", so that trimToSectionStart and
+ * extractOrphanedStrip stay exact complements of each other — see extractOrphanedStrip.
+ */
+function findSectionHeadingIndex(elements: ContentElement[], sectionNumber: string): number {
+  const idx = elements.findIndex(
+    (el) => el.type === 'heading' && el.text.startsWith(`${sectionNumber} `),
+  );
+  if (idx !== -1) return idx;
+
+  // Also try matching "Annex X" format, where the heading may be exactly the section number
+  if (sectionNumber.startsWith('Annex ')) {
+    return elements.findIndex((el) => el.type === 'heading' && el.text.startsWith(sectionNumber));
+  }
+
+  return -1;
+}
+
+/**
  * Remove content elements that precede the target section heading
  */
 function trimToSectionStart(elements: ContentElement[], sectionNumber: string): ContentElement[] {
-  const headingIdx = elements.findIndex(
-    (el) => el.type === 'heading' && el.text.startsWith(`${sectionNumber} `),
-  );
+  const headingIdx = findSectionHeadingIndex(elements, sectionNumber);
+  return headingIdx > 0 ? elements.slice(headingIdx) : elements;
+}
 
-  // Also try matching "Annex X" format
-  if (headingIdx === -1 && sectionNumber.startsWith('Annex ')) {
-    const annexIdx = elements.findIndex(
-      (el) => el.type === 'heading' && el.text.startsWith(sectionNumber),
-    );
-    if (annexIdx > 0) return elements.slice(annexIdx);
-  }
+/**
+ * The content `trimToSectionStart` throws away at the top of `seamPage` — the tail of the
+ * *previous* section, which spilled past its last page.
+ *
+ * Section ranges come from the outline as `[page, nextSection.page - 1]`, so anything a
+ * section runs over onto the next section's first page falls outside its own range. The
+ * next section then discards it as pre-heading content. Nobody keeps it: 412 sections of
+ * ISO 32000-2 lose content this way, 271 of them requirement text ("shall"), plus the
+ * table rows that B-S1 first surfaced.
+ *
+ * Returning it here lets the previous section adopt it, and **cannot double-count**: this
+ * returns a non-empty strip exactly when trimToSectionStart drops one, both deciding via
+ * findSectionHeadingIndex.
+ *   - heading at index > 0 → trimmed away there, adopted here
+ *   - heading at index 0   → nothing precedes it; both return nothing
+ *   - heading not found    → trimToSectionStart keeps the whole page, so the next section
+ *                            already owns this content (69 sections of ISO 32000-2).
+ *                            Adopting it here too would duplicate it — hence `[]`.
+ *
+ * The `> 0` above is for clarity, not safety: `>= 0` and `!== -1` behave identically, since
+ * `slice(0, 0)` is empty and a `-1` index never reaches the slice. What must not change is
+ * the "not found → adopt nothing" arm, and that the heading is located the same way as in
+ * trimToSectionStart. Both are pinned by tests.
+ */
+export async function extractOrphanedStrip(
+  doc: PDFDocumentProxy,
+  seamPage: number,
+  nextSectionNumber: string,
+): Promise<ContentElement[]> {
+  if (seamPage < 1 || seamPage > (doc.numPages || 0)) return [];
 
-  if (headingIdx > 0) {
-    return elements.slice(headingIdx);
-  }
-
-  return elements;
+  const elements = await extractPageContent(doc, seamPage);
+  const headingIdx = findSectionHeadingIndex(elements, nextSectionNumber);
+  return headingIdx > 0 ? elements.slice(0, headingIdx) : [];
 }
 
 /**
