@@ -35,6 +35,7 @@ jobs:
         run: |
           npm run check
           npm run typecheck
+          npm run typecheck:tests
 
       - name: Run tests
         run: npm test

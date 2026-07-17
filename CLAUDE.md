@@ -98,10 +98,17 @@ ESM は import を巻き上げるため、ガードは `index.ts` の**最初の
 ## テスト
 
 ```bash
-npm test              # ユニット（仕様 PDF 不要）
-npm run test:e2e      # 実 PDF（PDF_SPEC_DIR=./pdf-spec）
-npm run check:imports # import 順（biome なしで動く。サンドボックスからでも実行可）
+npm test                 # ユニット（仕様 PDF 不要）
+npm run test:e2e         # 実 PDF（PDF_SPEC_DIR=./pdf-spec）
+npm run typecheck        # src のみ（tsconfig.json が **/*.test.ts を除外している）
+npm run typecheck:tests  # ★ テストを含む型検査。サンドボックスからでも実行可
+npm run check:imports    # import 順（biome なしで動く。サンドボックスからでも実行可）
 ```
+
+> ⚠️ **`npm run typecheck` はテストを見ない**（`tsconfig.json` の `exclude`）。エクスポートを
+> 削除・改名しても、それを参照するテストの型エラーは**出ない**。A-4 で実際にこれを踏み、
+> 旧バリデータを消したまま `validation.test.ts` を放置して 39 件落とした。
+> **公開 API を触ったら `npm run typecheck:tests` を必ず実行する**（vitest と違い素の node で動く）。
 
 - `PDFSpecService` は registry / loader を**コンストラクタ注入**するので、`vi.mock` なしで
   合成 PDF を組んで実コードを通せる（`src/services/pdf-service.test.ts` が実例）

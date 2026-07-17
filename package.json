@@ -33,6 +33,7 @@
     "test:e2e": "PDF_SPEC_DIR=./pdf-spec vitest run --config tests/e2e/vitest.config.ts",
     "test:e2e:watch": "PDF_SPEC_DIR=./pdf-spec vitest --config tests/e2e/vitest.config.ts",
     "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
     "lint": "biome lint ./src ./tests",
     "lint:fix": "biome lint --fix ./src ./tests",
     "format": "biome format ./src ./tests",

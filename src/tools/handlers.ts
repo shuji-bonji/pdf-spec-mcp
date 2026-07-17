@@ -41,11 +41,11 @@ import {
   GetStructureSchema,
   GetTablesSchema,
   ListSpecsSchema,
-  SearchSpecSchema,
   normalizeRequirementLevel,
   normalizeTerm,
   parseArgs,
   resolveMaxResults,
+  SearchSpecSchema,
 } from '../utils/validation.js';
 
 // ========================================

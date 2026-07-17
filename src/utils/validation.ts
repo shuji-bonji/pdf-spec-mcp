@@ -39,11 +39,16 @@ const zSpec = z
   .optional()
   .describe('Spec ID (e.g. "iso32000-2", "pdf17"). Omit for the default spec.');
 
-/** Section identifier such as "12.5.6.10" or "Annex A". */
+/**
+ * Section identifier such as "12.5.6.10" or "Annex A".
+ *
+ * The trim check is not decoration: `min(1)` alone would let "   " through, which the
+ * hand-written validator rejected. Use this everywhere a section is accepted.
+ */
 const zSection = z
   .string()
-  .min(1)
-  .refine((s) => s.trim().length > 0, 'Section must not be empty');
+  .min(1, 'Section must not be empty')
+  .refine((v) => v.trim().length > 0, 'Section must not be empty');
 
 export const REQUIREMENT_LEVELS: [ISORequirementLevel, ...ISORequirementLevel[]] = [
   'shall',
@@ -91,7 +96,7 @@ export const searchSpecShape = {
   spec: zSpec,
   query: z
     .string()
-    .min(1)
+    .min(1, 'Query must not be empty')
     .max(queryMaxLength, `Query too long (max ${queryMaxLength} characters)`)
     .refine((q) => q.trim().length > 0, 'Query must not be empty')
     .describe('Search terms. Matched as an exact phrase first, then as AND over the words.'),
@@ -107,7 +112,7 @@ export const SearchSpecSchema = z.object(searchSpecShape);
 
 export const getRequirementsShape = {
   spec: zSpec,
-  section: z.string().min(1).optional().describe('Limit to this section and its subsections.'),
+  section: zSection.optional().describe('Limit to this section and its subsections.'),
   level: z
     .string()
     .optional()
@@ -119,7 +124,7 @@ export const getDefinitionsShape = {
   spec: zSpec,
   term: z
     .string()
-    .min(1)
+    .min(1, 'term must not be empty')
     .max(termMaxLength, `term too long (max ${termMaxLength} characters)`)
     .refine((t) => t.trim().length > 0, 'term must not be empty')
     .optional()
@@ -140,7 +145,7 @@ export const getTablesShape = {
 export const GetTablesSchema = z.object(getTablesShape);
 
 export const compareVersionsShape = {
-  section: z.string().min(1).optional().describe('Limit the comparison to this section subtree.'),
+  section: zSection.optional().describe('Limit the comparison to this section subtree.'),
 };
 export const CompareVersionsSchema = z.object(compareVersionsShape);
 

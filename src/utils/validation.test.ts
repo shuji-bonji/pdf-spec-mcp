@@ -1,260 +1,225 @@
 /**
  * validation.ts unit tests
- * Phase 1-2 validators + Phase 3 additions (validateSpecId, validateCompareSection)
+ *
+ * Rewritten for A-4: the hand-written `validateXxx` asserts were replaced by Zod schemas,
+ * so these exercise the schemas through `parseArgs` — the same path the handlers take.
+ *
+ * The limits and the rejections they enforce are unchanged from the hand-written
+ * validators; this file is what pins that, since the constraints now live in a schema that
+ * is also published to clients.
  */
 
 import { describe, expect, it } from 'vitest';
 import {
-  validateCompareSection,
-  validateMaxDepth,
-  validateMaxResults,
-  validateRequirementLevel,
-  validateSearchQuery,
-  validateSectionId,
-  validateSpecId,
-  validateTableIndex,
-  validateTermQuery,
+  CompareVersionsSchema,
+  GetDefinitionsSchema,
+  GetRequirementsSchema,
+  GetSectionSchema,
+  GetStructureSchema,
+  GetTablesSchema,
+  ListSpecsSchema,
+  SearchSpecSchema,
+  normalizeRequirementLevel,
+  normalizeTerm,
+  parseArgs,
+  resolveMaxResults,
 } from './validation.js';
 
-// ========================================
-// Phase 1-2: Existing validators
-// ========================================
-
-describe('validateSectionId', () => {
-  it('accepts valid section strings', () => {
-    expect(() => validateSectionId('7.3.4')).not.toThrow();
-    expect(() => validateSectionId('Annex A')).not.toThrow();
-    expect(() => validateSectionId('12.8.1')).not.toThrow();
-    expect(() => validateSectionId('Foreword')).not.toThrow();
+describe('parseArgs', () => {
+  it('returns the parsed value on success', () => {
+    expect(parseArgs(GetSectionSchema, { section: '7.3.4' })).toEqual({ section: '7.3.4' });
   });
 
-  it('rejects non-string values', () => {
-    expect(() => validateSectionId(123)).toThrow('Section must be a string');
-    expect(() => validateSectionId(null)).toThrow('Section must be a string');
-    expect(() => validateSectionId(undefined)).toThrow('Section must be a string');
+  it('reports the offending field, not just that something was wrong', () => {
+    expect(() => parseArgs(GetSectionSchema, { section: 123 })).toThrow(/section/);
   });
 
-  it('rejects empty strings', () => {
-    expect(() => validateSectionId('')).toThrow('must not be empty');
-    expect(() => validateSectionId('   ')).toThrow('must not be empty');
+  it('raises a ValidationError so it reaches the client as VALIDATION_ERROR', () => {
+    try {
+      parseArgs(GetSectionSchema, {});
+      throw new Error('should have thrown');
+    } catch (e) {
+      expect((e as { code?: string }).code).toBe('VALIDATION_ERROR');
+      expect((e as { retryable?: boolean }).retryable).toBe(true);
+    }
   });
 });
 
-describe('validateSearchQuery', () => {
-  it('accepts valid queries', () => {
-    expect(() => validateSearchQuery('digital signature')).not.toThrow();
-    expect(() => validateSearchQuery('CMS')).not.toThrow();
+describe('section argument', () => {
+  it('accepts section numbers and annex names', () => {
+    for (const section of ['7.3.4', 'Annex A', '12.8.1']) {
+      expect(parseArgs(GetSectionSchema, { section }).section).toBe(section);
+    }
   });
 
-  it('rejects non-string values', () => {
-    expect(() => validateSearchQuery(42)).toThrow('Query must be a string');
-    expect(() => validateSearchQuery(null)).toThrow('Query must be a string');
+  it('rejects a missing or non-string section', () => {
+    expect(() => parseArgs(GetSectionSchema, {})).toThrow();
+    expect(() => parseArgs(GetSectionSchema, { section: 123 })).toThrow();
   });
 
-  it('rejects empty queries', () => {
-    expect(() => validateSearchQuery('')).toThrow('must not be empty');
-    expect(() => validateSearchQuery('  ')).toThrow('must not be empty');
+  it('rejects an empty or whitespace-only section', () => {
+    // Whitespace matters: `min(1)` alone would accept "   ".
+    expect(() => parseArgs(GetSectionSchema, { section: '' })).toThrow('must not be empty');
+    expect(() => parseArgs(GetSectionSchema, { section: '   ' })).toThrow('must not be empty');
   });
 
-  it('rejects queries exceeding 500 characters', () => {
-    const longQuery = 'a'.repeat(501);
-    expect(() => validateSearchQuery(longQuery)).toThrow('too long');
-  });
-
-  it('accepts queries at exactly 500 characters', () => {
-    const maxQuery = 'a'.repeat(500);
-    expect(() => validateSearchQuery(maxQuery)).not.toThrow();
-  });
-});
-
-describe('validateMaxDepth', () => {
-  it('returns undefined for null/undefined', () => {
-    expect(validateMaxDepth(undefined)).toBeUndefined();
-    expect(validateMaxDepth(null)).toBeUndefined();
-  });
-
-  it('accepts valid integers 1-10', () => {
-    expect(validateMaxDepth(1)).toBe(1);
-    expect(validateMaxDepth(5)).toBe(5);
-    expect(validateMaxDepth(10)).toBe(10);
-  });
-
-  it('rejects out-of-range values', () => {
-    expect(() => validateMaxDepth(0)).toThrow();
-    expect(() => validateMaxDepth(11)).toThrow();
-    expect(() => validateMaxDepth(-1)).toThrow();
-  });
-
-  it('rejects non-integer numbers', () => {
-    expect(() => validateMaxDepth(1.5)).toThrow();
-    expect(() => validateMaxDepth(3.14)).toThrow();
-  });
-
-  it('rejects non-number types', () => {
-    expect(() => validateMaxDepth('3')).toThrow();
+  it('applies the same rule where section is optional', () => {
+    // get_requirements and compare_versions take an optional section — optional must not
+    // mean unchecked.
+    expect(parseArgs(GetRequirementsSchema, {}).section).toBeUndefined();
+    expect(() => parseArgs(GetRequirementsSchema, { section: '   ' })).toThrow('must not be empty');
+    expect(parseArgs(CompareVersionsSchema, {}).section).toBeUndefined();
+    expect(() => parseArgs(CompareVersionsSchema, { section: '   ' })).toThrow('must not be empty');
   });
 });
 
-describe('validateMaxResults', () => {
-  it('returns 10 for null/undefined (default)', () => {
-    expect(validateMaxResults(undefined)).toBe(10);
-    expect(validateMaxResults(null)).toBe(10);
+describe('search_spec query', () => {
+  it('accepts a normal query', () => {
+    expect(parseArgs(SearchSpecSchema, { query: 'digital signature' }).query).toBe(
+      'digital signature',
+    );
   });
 
-  it('accepts valid integers 1-50', () => {
-    expect(validateMaxResults(1)).toBe(1);
-    expect(validateMaxResults(25)).toBe(25);
-    expect(validateMaxResults(50)).toBe(50);
+  it('rejects a missing, empty or whitespace-only query', () => {
+    expect(() => parseArgs(SearchSpecSchema, {})).toThrow();
+    expect(() => parseArgs(SearchSpecSchema, { query: '' })).toThrow('must not be empty');
+    expect(() => parseArgs(SearchSpecSchema, { query: '  ' })).toThrow('must not be empty');
   });
 
-  it('rejects out-of-range values', () => {
-    expect(() => validateMaxResults(0)).toThrow();
-    expect(() => validateMaxResults(51)).toThrow();
-    expect(() => validateMaxResults(-1)).toThrow();
-  });
-
-  it('rejects non-integer numbers', () => {
-    expect(() => validateMaxResults(2.5)).toThrow();
+  it('accepts exactly 500 characters and rejects 501', () => {
+    expect(() => parseArgs(SearchSpecSchema, { query: 'a'.repeat(500) })).not.toThrow();
+    expect(() => parseArgs(SearchSpecSchema, { query: 'a'.repeat(501) })).toThrow('too long');
   });
 });
 
-describe('validateRequirementLevel', () => {
-  it('returns undefined for null/undefined', () => {
-    expect(validateRequirementLevel(undefined)).toBeUndefined();
-    expect(validateRequirementLevel(null)).toBeUndefined();
+describe('max_depth', () => {
+  it('is optional', () => {
+    expect(parseArgs(GetStructureSchema, {}).max_depth).toBeUndefined();
   });
 
-  it('accepts valid lowercase levels', () => {
-    expect(validateRequirementLevel('shall')).toBe('shall');
-    expect(validateRequirementLevel('shall not')).toBe('shall not');
-    expect(validateRequirementLevel('should')).toBe('should');
-    expect(validateRequirementLevel('should not')).toBe('should not');
-    expect(validateRequirementLevel('may')).toBe('may');
+  it('accepts 1 to 10', () => {
+    for (const d of [1, 5, 10]) {
+      expect(parseArgs(GetStructureSchema, { max_depth: d }).max_depth).toBe(d);
+    }
   });
 
-  it('normalizes uppercase to lowercase', () => {
-    expect(validateRequirementLevel('SHALL')).toBe('shall');
-    expect(validateRequirementLevel('SHALL NOT')).toBe('shall not');
-    expect(validateRequirementLevel('May')).toBe('may');
-  });
-
-  it('rejects invalid levels', () => {
-    expect(() => validateRequirementLevel('must')).toThrow('Invalid requirement level');
-    expect(() => validateRequirementLevel('invalid')).toThrow('Invalid requirement level');
-  });
-
-  it('rejects non-string types', () => {
-    expect(() => validateRequirementLevel(123)).toThrow('level must be a string');
+  it('rejects out-of-range, non-integer and non-number values', () => {
+    expect(() => parseArgs(GetStructureSchema, { max_depth: 0 })).toThrow();
+    expect(() => parseArgs(GetStructureSchema, { max_depth: 11 })).toThrow();
+    expect(() => parseArgs(GetStructureSchema, { max_depth: 2.5 })).toThrow();
+    expect(() => parseArgs(GetStructureSchema, { max_depth: '5' })).toThrow();
   });
 });
 
-describe('validateTermQuery', () => {
-  it('returns undefined for null/undefined', () => {
-    expect(validateTermQuery(undefined)).toBeUndefined();
-    expect(validateTermQuery(null)).toBeUndefined();
+describe('max_results', () => {
+  it('defaults to 10 when omitted', () => {
+    expect(resolveMaxResults(parseArgs(SearchSpecSchema, { query: 'x' }).max_results)).toBe(10);
   });
 
-  it('accepts valid term strings', () => {
-    expect(validateTermQuery('font')).toBe('font');
-    expect(validateTermQuery('  glyph  ')).toBe('glyph');
+  it('accepts 1 to 50, and passes the value through', () => {
+    for (const n of [1, 25, 50]) {
+      const parsed = parseArgs(SearchSpecSchema, { query: 'x', max_results: n });
+      expect(parsed.max_results).toBe(n);
+      expect(resolveMaxResults(parsed.max_results)).toBe(n);
+    }
   });
 
-  it('rejects empty strings', () => {
-    expect(() => validateTermQuery('')).toThrow('must not be empty');
-    expect(() => validateTermQuery('   ')).toThrow('must not be empty');
-  });
-
-  it('rejects terms exceeding 200 characters', () => {
-    expect(() => validateTermQuery('a'.repeat(201))).toThrow('too long');
-  });
-
-  it('rejects non-string types', () => {
-    expect(() => validateTermQuery(42)).toThrow('term must be a string');
+  it('rejects out-of-range and non-integer values', () => {
+    expect(() => parseArgs(SearchSpecSchema, { query: 'x', max_results: 0 })).toThrow();
+    expect(() => parseArgs(SearchSpecSchema, { query: 'x', max_results: 51 })).toThrow();
+    expect(() => parseArgs(SearchSpecSchema, { query: 'x', max_results: 1.5 })).toThrow();
   });
 });
 
-describe('validateTableIndex', () => {
-  it('returns undefined for null/undefined', () => {
-    expect(validateTableIndex(undefined)).toBeUndefined();
-    expect(validateTableIndex(null)).toBeUndefined();
+describe('normalizeRequirementLevel', () => {
+  it('returns undefined when omitted', () => {
+    expect(normalizeRequirementLevel(undefined)).toBeUndefined();
   });
 
-  it('accepts valid non-negative integers', () => {
-    expect(validateTableIndex(0)).toBe(0);
-    expect(validateTableIndex(5)).toBe(5);
+  it('accepts the five ISO levels', () => {
+    for (const level of ['shall', 'shall not', 'should', 'should not', 'may']) {
+      expect(normalizeRequirementLevel(level)).toBe(level);
+    }
   });
 
-  it('rejects negative numbers', () => {
-    expect(() => validateTableIndex(-1)).toThrow('non-negative integer');
+  it('forgives case and surrounding whitespace', () => {
+    // Deliberately left out of the Zod enum so callers can keep passing "SHALL".
+    expect(normalizeRequirementLevel('SHALL')).toBe('shall');
+    expect(normalizeRequirementLevel('SHALL NOT')).toBe('shall not');
+    expect(normalizeRequirementLevel('May')).toBe('may');
+    expect(normalizeRequirementLevel('  shall  ')).toBe('shall');
   });
 
-  it('rejects non-integer numbers', () => {
-    expect(() => validateTableIndex(1.5)).toThrow('non-negative integer');
-  });
-
-  it('rejects non-number types', () => {
-    expect(() => validateTableIndex('0')).toThrow('non-negative integer');
+  it('rejects anything else', () => {
+    expect(() => normalizeRequirementLevel('must')).toThrow('Invalid requirement level');
+    expect(() => normalizeRequirementLevel('invalid')).toThrow('Invalid requirement level');
   });
 });
 
-// ========================================
-// Phase 3: validateSpecId
-// ========================================
-
-describe('validateSpecId', () => {
-  it('returns undefined for undefined input', () => {
-    expect(validateSpecId(undefined)).toBeUndefined();
+describe('get_definitions term', () => {
+  it('is optional', () => {
+    expect(parseArgs(GetDefinitionsSchema, {}).term).toBeUndefined();
+    expect(normalizeTerm(undefined)).toBeUndefined();
   });
 
-  it('returns undefined for null input', () => {
-    expect(validateSpecId(null)).toBeUndefined();
+  it('is trimmed before use', () => {
+    expect(normalizeTerm(parseArgs(GetDefinitionsSchema, { term: '  glyph  ' }).term)).toBe('glyph');
   });
 
-  it('accepts valid spec ID: "iso32000-2"', () => {
-    expect(validateSpecId('iso32000-2')).toBe('iso32000-2');
+  it('rejects empty, whitespace-only, over-long and non-string terms', () => {
+    expect(() => parseArgs(GetDefinitionsSchema, { term: '' })).toThrow('must not be empty');
+    expect(() => parseArgs(GetDefinitionsSchema, { term: '   ' })).toThrow('must not be empty');
+    expect(() => parseArgs(GetDefinitionsSchema, { term: 'a'.repeat(201) })).toThrow('too long');
+    expect(() => parseArgs(GetDefinitionsSchema, { term: 42 })).toThrow();
+  });
+});
+
+describe('table_index', () => {
+  it('is optional', () => {
+    expect(parseArgs(GetTablesSchema, { section: '1' }).table_index).toBeUndefined();
   });
 
-  it('accepts valid spec ID: "ts32002"', () => {
-    expect(validateSpecId('ts32002')).toBe('ts32002');
+  it('accepts non-negative integers', () => {
+    expect(parseArgs(GetTablesSchema, { section: '1', table_index: 0 }).table_index).toBe(0);
+    expect(parseArgs(GetTablesSchema, { section: '1', table_index: 5 }).table_index).toBe(5);
   });
 
-  it('rejects empty string', () => {
-    expect(() => validateSpecId('')).toThrow('spec must be a non-empty string');
+  it('rejects negative, non-integer and non-number values', () => {
+    expect(() => parseArgs(GetTablesSchema, { section: '1', table_index: -1 })).toThrow();
+    expect(() => parseArgs(GetTablesSchema, { section: '1', table_index: 1.5 })).toThrow();
+    expect(() => parseArgs(GetTablesSchema, { section: '1', table_index: '0' })).toThrow();
+  });
+});
+
+describe('spec', () => {
+  it('is optional — omitted means the default spec', () => {
+    expect(parseArgs(GetStructureSchema, {}).spec).toBeUndefined();
   });
 
-  it('rejects non-string types', () => {
-    expect(() => validateSpecId(123)).toThrow('spec must be a non-empty string');
+  it('accepts known spec ids', () => {
+    for (const spec of ['iso32000-2', 'ts32002']) {
+      expect(parseArgs(GetStructureSchema, { spec }).spec).toBe(spec);
+    }
   });
 
-  it('rejects strings exceeding 50 characters', () => {
-    const long = 'a'.repeat(51);
-    expect(() => validateSpecId(long)).toThrow('spec must be 50 characters or less');
-  });
-
-  it('accepts strings of exactly 50 characters', () => {
+  it('accepts exactly 50 characters and rejects 51', () => {
     const exact = 'a'.repeat(50);
-    expect(validateSpecId(exact)).toBe(exact);
+    expect(parseArgs(GetStructureSchema, { spec: exact }).spec).toBe(exact);
+    expect(() => parseArgs(GetStructureSchema, { spec: 'a'.repeat(51) })).toThrow(
+      '50 characters or less',
+    );
+  });
+
+  it('rejects an empty or non-string spec', () => {
+    expect(() => parseArgs(GetStructureSchema, { spec: '' })).toThrow('non-empty');
+    expect(() => parseArgs(GetStructureSchema, { spec: 123 })).toThrow();
   });
 });
 
-// ========================================
-// Phase 3: validateCompareSection
-// ========================================
-
-describe('validateCompareSection', () => {
-  it('returns undefined for undefined input', () => {
-    expect(validateCompareSection(undefined)).toBeUndefined();
-  });
-
-  it('returns undefined for null input', () => {
-    expect(validateCompareSection(null)).toBeUndefined();
-  });
-
-  it('accepts valid section "12.8"', () => {
-    expect(validateCompareSection('12.8')).toBe('12.8');
-  });
-
-  it('delegates to validateSectionId — rejects empty string', () => {
-    expect(() => validateCompareSection('')).toThrow('Section must not be empty');
+describe('list_specs category', () => {
+  it('is optional and free-form (an unknown category filters to nothing)', () => {
+    expect(parseArgs(ListSpecsSchema, {}).category).toBeUndefined();
+    expect(parseArgs(ListSpecsSchema, { category: 'ts' }).category).toBe('ts');
+    expect(parseArgs(ListSpecsSchema, { category: 'nonexistent' }).category).toBe('nonexistent');
   });
 });
