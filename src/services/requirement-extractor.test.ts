@@ -179,9 +179,7 @@ describe('extractRequirementsFromContent — tables', () => {
   });
 
   it('leaves prose requirements untagged', () => {
-    const content: ContentElement[] = [
-      { type: 'paragraph', text: 'The value shall be positive.' },
-    ];
+    const content: ContentElement[] = [{ type: 'paragraph', text: 'The value shall be positive.' }];
 
     const reqs = extractRequirementsFromContent(content, '1.1', 'T');
 
@@ -246,9 +244,7 @@ describe('extractRequirementsFromContent — tables', () => {
   });
 
   it('reports a table with no caption without inventing one', () => {
-    const content: ContentElement[] = [
-      table(['Key', 'Value'], [['A', 'It shall be set.']]),
-    ];
+    const content: ContentElement[] = [table(['Key', 'Value'], [['A', 'It shall be set.']])];
 
     const reqs = extractRequirementsFromContent(content, '1.1', 'T');
 

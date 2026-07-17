@@ -48,7 +48,9 @@ export function buildServer(): Server {
       // After validating the tool name, we cast args to match the handler's
       // expected input — each handler validates its own arguments at runtime.
       const handler = toolHandlers[name as ToolName];
-      const result = await (handler as (a: Record<string, unknown>) => Promise<unknown>)(args ?? {});
+      const result = await (handler as (a: Record<string, unknown>) => Promise<unknown>)(
+        args ?? {},
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
