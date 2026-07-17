@@ -170,3 +170,18 @@ npm run check:imports    # import 順（biome なしで動く。サンドボッ�
 
 `npx` の例には **`@latest` を付ける**。バージョン指定なしの `npx -y <pkg>` は最初にキャッシュした
 ものを使い続ける（`-y` は確認を省くだけで更新は見ない）。README 4 箇所と `.claude-plugin/plugin.json`。
+
+**リリースしたら必ず公開版を叩く。** テストが全緑でも足りない — 0.4.0 のキャッシュ破壊は
+ここでしか見つからなかった（結果 unpublish になった）。隔離環境を作って MCP 越しに検証する:
+
+```bash
+mkdir /tmp/verify && cd /tmp/verify && npm init -y
+npm install @shuji-bonji/pdf-spec-mcp@latest
+# PDF_SPEC_DIR を渡して spawn し、同じツールを 2〜3 回呼ぶ
+```
+
+ホストの `node_modules` と混ざらず、**linux 版の `@napi-rs/canvas` が入るのでサンドボックスでも
+pdfjs が動く**。同じツールを複数回・順序を変えて呼ぶこと（1 回では冪等性の破れが出ない）。
+
+> `[0.4.0]` は unpublish 済み。CHANGELOG に節は残してあるが `(unpublished)` と明記している。
+> **unpublish は最後の手段**（依存している人がいれば壊れる）。公開前の検証で防ぐこと。
