@@ -2,7 +2,7 @@
  * Application Configuration
  */
 
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 import type { SpecCategory } from './types/index.js';
 
 const require = createRequire(import.meta.url);

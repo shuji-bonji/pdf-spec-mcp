@@ -122,11 +122,11 @@ describe.skipIf(!HAS_PDFS)('03 - get_structure', () => {
 
         const info = getSpecInfo(specId);
         expect(info).toBeDefined();
-        expect(info!.pages).not.toBeNull();
-        expect(info!.pages).toBeGreaterThan(0);
-        expect(info!.outlineEntries).not.toBeNull();
+        expect(info?.pages).not.toBeNull();
+        expect(info?.pages).toBeGreaterThan(0);
+        expect(info?.outlineEntries).not.toBeNull();
         // outlineEntries は 0 の場合もある (declarations 等ブックマークなし)
-        expect(info!.outlineEntries).toBeGreaterThanOrEqual(0);
+        expect(info?.outlineEntries).toBeGreaterThanOrEqual(0);
       });
     }
   });

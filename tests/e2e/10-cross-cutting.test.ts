@@ -147,16 +147,28 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
   // ========================================
 
   describe('エラーハンドリング', () => {
+    /**
+     * 必須引数を欠いた空オブジェクトを、その位置が要求する型として渡す。
+     *
+     * MCP クライアントはスキーマを無視して何でも送ってこられるため、静的型だけでは
+     * 守れず、ハンドラ側の実行時検査が最後の砦になる。そこを踏むテストなので、
+     * 型システムが禁じる入力を意図的に作る必要がある。`as any` と違い、戻り値の型は
+     * 呼び出し位置から推論されるので、この 1 箇所以外の型検査は効いたまま。
+     */
+    function missingArgs<T>(): T {
+      return {} as unknown as T;
+    }
+
     // X-9: 全ツールの不正引数
     it('X-9: 各ツールに不正引数を渡してクラッシュしない', async () => {
       // get_section: section 未指定
-      await expect(toolHandlers.get_section({} as any)).rejects.toThrow();
+      await expect(toolHandlers.get_section(missingArgs())).rejects.toThrow();
 
       // search_spec: query 未指定
-      await expect(toolHandlers.search_spec({} as any)).rejects.toThrow();
+      await expect(toolHandlers.search_spec(missingArgs())).rejects.toThrow();
 
       // get_tables: section 未指定
-      await expect(toolHandlers.get_tables({} as any)).rejects.toThrow();
+      await expect(toolHandlers.get_tables(missingArgs())).rejects.toThrow();
 
       // get_requirements: 無効な level
       await expect(toolHandlers.get_requirements({ level: 'invalid' })).rejects.toThrow();

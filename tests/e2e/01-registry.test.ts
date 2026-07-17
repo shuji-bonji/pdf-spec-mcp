@@ -73,9 +73,9 @@ describe.skipIf(!HAS_PDFS)('01 - Registry & Discovery', () => {
 
     const info = getSpecInfo('iso32000-2');
     expect(info).toBeDefined();
-    expect(info!.pages).not.toBeNull();
-    expect(info!.pages).toBeGreaterThan(0);
-    expect(info!.outlineEntries).not.toBeNull();
-    expect(info!.outlineEntries).toBeGreaterThan(0);
+    expect(info?.pages).not.toBeNull();
+    expect(info?.pages).toBeGreaterThan(0);
+    expect(info?.outlineEntries).not.toBeNull();
+    expect(info?.outlineEntries).toBeGreaterThan(0);
   });
 });

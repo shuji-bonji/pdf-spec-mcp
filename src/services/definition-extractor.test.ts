@@ -60,7 +60,7 @@ describe('parseSection3Content', () => {
     const defs = parseSection3Content(content);
     expect(defs).toHaveLength(1);
     expect(defs[0].notes).toHaveLength(1);
-    expect(defs[0].notes![0]).toContain('Note 1 to entry');
+    expect(defs[0].notes?.[0]).toContain('Note 1 to entry');
   });
 
   it('extracts source references', () => {

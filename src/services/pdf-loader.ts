@@ -7,7 +7,7 @@
  *   - Least-recently-used documents are evicted via doc.destroy() to free memory.
  */
 
-import { readFile } from 'fs/promises';
+import { readFile } from 'node:fs/promises';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MAX_CACHED_DOCS } from '../config.js';
 import type { OutlineEntry } from '../types/index.js';
@@ -126,9 +126,12 @@ export class DocumentLoaderService {
    * Internal: Load a fresh document from disk and add to LRU cache.
    */
   private async loadDocumentFresh(pdfPath: string): Promise<PDFDocumentProxy> {
-    // Evict oldest if cache is full
-    while (this.documentCache.size >= this.maxCachedDocs && this.accessOrder.length > 0) {
-      const oldest = this.accessOrder.shift()!;
+    // Evict oldest if cache is full.
+    // shift() returning undefined replaces the old `accessOrder.length > 0` guard —
+    // same condition, without a non-null assertion.
+    while (this.documentCache.size >= this.maxCachedDocs) {
+      const oldest = this.accessOrder.shift();
+      if (oldest === undefined) break;
       const doc = this.documentCache.get(oldest);
       if (doc) {
         doc.destroy();
@@ -140,8 +143,14 @@ export class DocumentLoaderService {
     // Load new document
     const start = Date.now();
     const data = new Uint8Array(await readFile(pdfPath));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const doc: PDFDocumentProxy = await (pdfjsLib as any).getDocument({ data }).promise;
+    // The legacy build (pdfjs-dist/legacy/build/pdf.mjs) ships no type declarations of its
+    // own, so the module object is untyped here. Narrow it to just the call we make rather
+    // than casting to `any`, which would silence real errors on this line too.
+    const doc: PDFDocumentProxy = await (
+      pdfjsLib as unknown as {
+        getDocument(src: { data: Uint8Array }): { promise: Promise<PDFDocumentProxy> };
+      }
+    ).getDocument({ data }).promise;
     const elapsed = Date.now() - start;
 
     logger.info('PDFLoader', `Loaded ${pdfPath} (${doc.numPages} pages) in ${elapsed}ms`);

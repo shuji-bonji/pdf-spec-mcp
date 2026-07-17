@@ -7,8 +7,8 @@
  *   2. enrichSpecInfo() — open PDF to get pages/outlineEntries (on first tool access)
  */
 
-import { readdir } from 'fs/promises';
-import { join } from 'path';
+import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { DEFAULT_SPEC_ID, PDF_CONFIG, SPEC_PATTERNS } from '../config.js';
 import { RegistryError } from '../errors.js';
 import type { SpecCategory, SpecId, SpecInfo } from '../types/index.js';

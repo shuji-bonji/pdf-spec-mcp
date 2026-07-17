@@ -99,10 +99,13 @@ class PDFSpecService {
    */
   public async getSectionIndex(specId?: string): Promise<SectionIndex> {
     const id = this.registry.resolveSpecId(specId);
-    if (!this.sectionIndexMap.has(id)) {
-      this.sectionIndexMap.set(id, this.initSectionIndex(id));
+    // Hold the memoised promise in a local: one lookup, and no non-null assertion.
+    let index = this.sectionIndexMap.get(id);
+    if (!index) {
+      index = this.initSectionIndex(id);
+      this.sectionIndexMap.set(id, index);
     }
-    return this.sectionIndexMap.get(id)!;
+    return index;
   }
 
   /**
@@ -194,16 +197,18 @@ class PDFSpecService {
     const id = this.registry.resolveSpecId(specId);
     const index = await this.getSectionIndex(id);
 
-    if (!this.searchIndexMap.has(id)) {
+    let searchIndexPromise = this.searchIndexMap.get(id);
+    if (!searchIndexPromise) {
       const pdfPath = this.registry.getSpecPath(id);
       // Force-reload to reset pdfjs-dist PagesMapper singleton state.
       // Without this, getPage() fails for pages beyond the LAST-loaded document's numPages.
       const doc = await this.loader.reloadDocument(pdfPath);
       logger.info('PDFService', `[${id}] Building search index (this may take a few seconds)...`);
-      this.searchIndexMap.set(id, buildSearchIndex(doc, index));
+      searchIndexPromise = buildSearchIndex(doc, index);
+      this.searchIndexMap.set(id, searchIndexPromise);
     }
 
-    const searchIdx = await this.searchIndexMap.get(id)!;
+    const searchIdx = await searchIndexPromise;
     return searchTextIndex(searchIdx, query, maxResults, index);
   }
 
@@ -228,7 +233,7 @@ class PDFSpecService {
       // Fast path: extract from specific section + subsections
       const index = await this.getSectionIndex(id);
       const matchingSections = index.flatOrder.filter(
-        (s) => s.sectionNumber === section || s.sectionNumber.startsWith(section + '.'),
+        (s) => s.sectionNumber === section || s.sectionNumber.startsWith(`${section}.`),
       );
 
       if (matchingSections.length === 0) {
@@ -255,11 +260,13 @@ class PDFSpecService {
       }
     } else {
       // Full scan: build or reuse cached index
-      if (!this.requirementsIndexMap.has(id)) {
+      let requirementsPromise = this.requirementsIndexMap.get(id);
+      if (!requirementsPromise) {
         logger.info('PDFService', `[${id}] Building requirements index (this may take a while)...`);
-        this.requirementsIndexMap.set(id, this.buildRequirementsIndex(id));
+        requirementsPromise = this.buildRequirementsIndex(id);
+        this.requirementsIndexMap.set(id, requirementsPromise);
       }
-      allRequirements = await this.requirementsIndexMap.get(id)!;
+      allRequirements = await requirementsPromise;
     }
 
     // Apply level filter
@@ -328,15 +335,16 @@ class PDFSpecService {
       );
     }
 
-    if (!this.definitionsMap.has(id)) {
+    let definitionsPromise = this.definitionsMap.get(id);
+    if (!definitionsPromise) {
       logger.info('PDFService', `[${id}] Extracting definitions from Section 3...`);
-      this.definitionsMap.set(
-        id,
-        extractAllDefinitions((sectionId) => this.getSectionContent(sectionId, id)),
+      definitionsPromise = extractAllDefinitions((sectionId) =>
+        this.getSectionContent(sectionId, id),
       );
+      this.definitionsMap.set(id, definitionsPromise);
     }
 
-    let definitions = await this.definitionsMap.get(id)!;
+    let definitions = await definitionsPromise;
 
     if (term) {
       const searchTerm = term.toLowerCase();

@@ -6,9 +6,9 @@
  * Only filename-pattern matching is tested — no actual PDF parsing.
  */
 
-import { mkdtemp, rm, writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // We import from the built JS to avoid module-state issues.

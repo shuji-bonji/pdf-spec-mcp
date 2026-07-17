@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ensureRegistryInitialized } from '../../src/services/pdf-registry.js';
 import { toolHandlers } from '../../src/tools/handlers.js';
 import { checkRegression, recordPerformance, saveBaseline, withTiming } from './helpers.js';
-import { ALL_SPEC_IDS, HAS_PDFS, initRegistry } from './setup.js';
+import { ALL_SPEC_IDS, HAS_PDFS } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   beforeAll(async () => {

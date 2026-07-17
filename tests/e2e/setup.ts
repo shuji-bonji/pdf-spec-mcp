@@ -5,7 +5,7 @@
  * - ensureRegistryInitialized() の共通呼び出し
  * - PDF 有無判定 (CI/ローカル切替)
  */
-import { existsSync } from 'fs';
+import { existsSync } from 'node:fs';
 import { ensureRegistryInitialized } from '../../src/services/pdf-registry.js';
 
 /** PDF_SPEC_DIR が設定済みかつ実在するか */

@@ -64,7 +64,7 @@ export async function extractSectionContent(
  */
 function trimToSectionStart(elements: ContentElement[], sectionNumber: string): ContentElement[] {
   const headingIdx = elements.findIndex(
-    (el) => el.type === 'heading' && el.text.startsWith(sectionNumber + ' '),
+    (el) => el.type === 'heading' && el.text.startsWith(`${sectionNumber} `),
   );
 
   // Also try matching "Annex X" format
@@ -177,7 +177,9 @@ function walkStructTree(
     if (/^H[1-6]?$/.test(role)) {
       const text = collectText(child, textMap).trim();
       if (text) {
-        const level = role.length === 2 ? parseInt(role[1]) : 3;
+        // role is /^H[1-6]?$/ (checked above), so role[1] is a single decimal digit.
+        // Bare "H" (no level) defaults to 3.
+        const level = role.length === 2 ? Number.parseInt(role[1], 10) : 3;
         elements.push({ type: 'heading', level, text } as HeadingElement);
       }
       continue;

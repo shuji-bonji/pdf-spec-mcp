@@ -57,7 +57,7 @@ export class CompareService {
 
     // Apply section filter if specified
     if (section) {
-      const prefix = section + '.';
+      const prefix = `${section}.`;
       const matched = full.matched.filter(
         (m) =>
           m.section20 === section ||

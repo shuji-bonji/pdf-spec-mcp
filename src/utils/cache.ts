@@ -26,6 +26,10 @@ export class LRUCache<K, V> {
     if (!this.cache.has(key)) {
       return undefined;
     }
+    // `has` above establishes the entry exists. The assertion cannot be replaced by
+    // `?.` or an `=== undefined` check: V is unconstrained, so a stored `undefined`
+    // is a legitimate value and must stay distinguishable from "absent".
+    // biome-ignore lint/style/noNonNullAssertion: guarded by the has() check above
     const value = this.cache.get(key)!;
     this.cache.delete(key);
     this.cache.set(key, value);
