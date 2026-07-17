@@ -18,11 +18,11 @@ import {
   GetStructureSchema,
   GetTablesSchema,
   ListSpecsSchema,
-  SearchSpecSchema,
   normalizeRequirementLevel,
   normalizeTerm,
   parseArgs,
   resolveMaxResults,
+  SearchSpecSchema,
 } from './validation.js';
 
 describe('parseArgs', () => {
@@ -163,7 +163,9 @@ describe('get_definitions term', () => {
   });
 
   it('is trimmed before use', () => {
-    expect(normalizeTerm(parseArgs(GetDefinitionsSchema, { term: '  glyph  ' }).term)).toBe('glyph');
+    expect(normalizeTerm(parseArgs(GetDefinitionsSchema, { term: '  glyph  ' }).term)).toBe(
+      'glyph',
+    );
   });
 
   it('rejects empty, whitespace-only, over-long and non-string terms', () => {
