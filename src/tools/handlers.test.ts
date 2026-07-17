@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock pdf-service before importing handlers
 vi.mock('../services/pdf-service.js', () => ({
@@ -28,27 +28,27 @@ vi.mock('../services/compare-service.js', () => ({
   compareVersions: vi.fn(),
 }));
 
-import { toolHandlers } from './handlers.js';
-import {
-  getSectionIndex,
-  getSectionContent,
-  searchSpec,
-  getRequirements,
-  getDefinitions,
-  getTables,
-} from '../services/pdf-service.js';
-import { listSpecs, isSpecAvailable } from '../services/pdf-registry.js';
 import { compareVersions } from '../services/compare-service.js';
+import { isSpecAvailable, listSpecs } from '../services/pdf-registry.js';
+import {
+  getDefinitions,
+  getRequirements,
+  getSectionContent,
+  getSectionIndex,
+  getTables,
+  searchSpec,
+} from '../services/pdf-service.js';
 import type {
+  CompareVersionsResult,
+  DefinitionsResult,
+  RequirementsResult,
+  SearchHit,
   SectionIndex,
   SectionResult,
-  SearchHit,
-  RequirementsResult,
-  DefinitionsResult,
-  TablesResult,
-  CompareVersionsResult,
   SpecInfo,
+  TablesResult,
 } from '../types/index.js';
+import { toolHandlers } from './handlers.js';
 
 const mockGetSectionIndex = vi.mocked(getSectionIndex);
 const mockGetSectionContent = vi.mocked(getSectionContent);
@@ -283,13 +283,13 @@ describe('toolHandlers', () => {
 
     it('rejects invalid level', async () => {
       await expect(toolHandlers.get_requirements({ level: 'invalid' })).rejects.toThrow(
-        'Invalid requirement level'
+        'Invalid requirement level',
       );
     });
 
     it('rejects empty section string', async () => {
       await expect(toolHandlers.get_requirements({ section: '' })).rejects.toThrow(
-        'must not be empty'
+        'must not be empty',
       );
     });
   });
@@ -379,7 +379,7 @@ describe('toolHandlers', () => {
 
     it('rejects negative table_index', async () => {
       await expect(toolHandlers.get_tables({ section: '7.2.3', table_index: -1 })).rejects.toThrow(
-        'non-negative integer'
+        'non-negative integer',
       );
     });
   });
@@ -453,14 +453,14 @@ describe('toolHandlers', () => {
     it('throws if pdf17 is not available', async () => {
       mockIsSpecAvailable.mockImplementation((id: string) => id !== 'pdf17');
       await expect(toolHandlers.compare_versions({})).rejects.toThrow(
-        'compare_versions requires PDF32000_2008.pdf'
+        'compare_versions requires PDF32000_2008.pdf',
       );
     });
 
     it('throws if iso32000-2 is not available', async () => {
       mockIsSpecAvailable.mockImplementation((id: string) => id !== 'iso32000-2');
       await expect(toolHandlers.compare_versions({})).rejects.toThrow(
-        'compare_versions requires ISO_32000-2_sponsored-ec2.pdf'
+        'compare_versions requires ISO_32000-2_sponsored-ec2.pdf',
       );
     });
   });

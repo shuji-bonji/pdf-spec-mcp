@@ -3,7 +3,7 @@
  * Tests parseSectionNumber() for various PDF spec formats.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { parseSectionNumber } from './pdf-loader.js';
 
 describe('parseSectionNumber', () => {

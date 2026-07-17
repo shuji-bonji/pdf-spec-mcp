@@ -7,22 +7,22 @@
  *   - Least-recently-used documents are evicted via doc.destroy() to free memory.
  */
 
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { readFile } from 'fs/promises';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MAX_CACHED_DOCS } from '../config.js';
+import type { OutlineEntry } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 import { stripZeroWidthChars } from '../utils/text.js';
-import type { OutlineEntry } from '../types/index.js';
 
 // Use pdfjs-dist types directly
 export type {
   PDFDocumentProxy,
   PDFPageProxy,
+  StructTreeContent,
+  StructTreeNode,
   TextContent,
   TextItem,
   TextMarkedContent,
-  StructTreeNode,
-  StructTreeContent,
 } from 'pdfjs-dist/types/src/display/api.js';
 
 import type { PDFDocumentProxy, RefProxy } from 'pdfjs-dist/types/src/display/api.js';
@@ -156,7 +156,7 @@ export class DocumentLoaderService {
    */
   private async resolveOutlineNodes(
     doc: PDFDocumentProxy,
-    nodes: OutlineNode[]
+    nodes: OutlineNode[],
   ): Promise<OutlineEntry[]> {
     const entries: OutlineEntry[] = [];
 
@@ -181,7 +181,7 @@ export class DocumentLoaderService {
    */
   private async resolveDestToPage(
     doc: PDFDocumentProxy,
-    dest: string | unknown[] | null
+    dest: string | unknown[] | null,
   ): Promise<number> {
     if (!dest) return -1;
 

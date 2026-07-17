@@ -3,11 +3,11 @@
  *
  * S-1 〜 S-8: 全17仕様の構造取得、max_depth、デフォルトspec、enrichSpecInfo
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry, ALL_SPEC_IDS, SPEC_EXPECTATIONS } from './setup.js';
-import { expectInRange } from './helpers.js';
-import { toolHandlers } from '../../src/tools/handlers.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { getSpecInfo } from '../../src/services/pdf-registry.js';
+import { toolHandlers } from '../../src/tools/handlers.js';
+import { expectInRange } from './helpers.js';
+import { ALL_SPEC_IDS, HAS_PDFS, initRegistry, SPEC_EXPECTATIONS } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('03 - get_structure', () => {
   beforeAll(async () => {
@@ -97,15 +97,15 @@ describe.skipIf(!HAS_PDFS)('03 - get_structure', () => {
 
   // S-6: max_depth 境界値
   it('S-6: max_depth=0 → エラー', async () => {
-    await expect(
-      toolHandlers.get_structure({ spec: 'iso32000-2', max_depth: 0 })
-    ).rejects.toThrow('max_depth');
+    await expect(toolHandlers.get_structure({ spec: 'iso32000-2', max_depth: 0 })).rejects.toThrow(
+      'max_depth',
+    );
   });
 
   it('S-6: max_depth=11 → エラー', async () => {
-    await expect(
-      toolHandlers.get_structure({ spec: 'iso32000-2', max_depth: 11 })
-    ).rejects.toThrow('max_depth');
+    await expect(toolHandlers.get_structure({ spec: 'iso32000-2', max_depth: 11 })).rejects.toThrow(
+      'max_depth',
+    );
   });
 
   // S-7: デフォルト spec

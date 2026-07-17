@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { parseSection3Content } from './definition-extractor.js';
+import { describe, expect, it } from 'vitest';
 import type { ContentElement } from '../types/index.js';
+import { parseSection3Content } from './definition-extractor.js';
 
 describe('parseSection3Content', () => {
   it('parses term-definition pairs from paragraphs', () => {

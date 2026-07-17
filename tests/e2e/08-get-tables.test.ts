@@ -3,9 +3,9 @@
  *
  * T-1 〜 T-9: テーブル取得、構造検証、table_index、フォールバック
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry } from './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
+import { HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   beforeAll(async () => {
@@ -31,10 +31,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
           found = true;
           break;
         }
-      } catch {
-        // セクションが見つからない場合はスキップ
-        continue;
-      }
+      } catch {}
     }
     // テーブルを含むセクションが少なくとも1つ見つかるはず
     expect(found).toBe(true);
@@ -59,9 +56,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
           }
           return;
         }
-      } catch {
-        continue;
-      }
+      } catch {}
     }
   });
 
@@ -79,9 +74,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
           expect(result.tables).toHaveLength(1);
           return;
         }
-      } catch {
-        continue;
-      }
+      } catch {}
     }
   });
 
@@ -92,14 +85,12 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
     for (const section of candidates) {
       try {
         await expect(
-          toolHandlers.get_tables({ section, spec: 'iso32000-2', table_index: 999 })
+          toolHandlers.get_tables({ section, spec: 'iso32000-2', table_index: 999 }),
         ).rejects.toThrow(/out of range/i);
         return;
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : '';
         if (msg.includes('out of range')) return;
-        // セクション自体が見つからない場合は次
-        continue;
       }
     }
   });
@@ -163,9 +154,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
           expect(result.tables[0].headers.length).toBeGreaterThan(0);
           return;
         }
-      } catch {
-        continue;
-      }
+      } catch {}
     }
   });
 });

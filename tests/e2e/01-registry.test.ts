@@ -3,17 +3,17 @@
  *
  * R-1 〜 R-8: レジストリ初期化、specId 一意性、resolveSpecId、getSpecPath、enrichSpecInfo
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry, ALL_SPEC_IDS } from './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   ensureRegistryInitialized,
-  listSpecs,
-  isSpecAvailable,
-  resolveSpecId,
-  getSpecPath,
   getSpecInfo,
+  getSpecPath,
+  isSpecAvailable,
+  listSpecs,
+  resolveSpecId,
 } from '../../src/services/pdf-registry.js';
 import { toolHandlers } from '../../src/tools/handlers.js';
+import { ALL_SPEC_IDS, HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('01 - Registry & Discovery', () => {
   beforeAll(async () => {

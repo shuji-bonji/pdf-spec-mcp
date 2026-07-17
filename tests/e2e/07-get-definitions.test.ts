@@ -3,9 +3,9 @@
  *
  * D-1 〜 D-12: 全定義取得、用語検索、非対応spec、構造検証
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry } from './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
+import { HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('07 - get_definitions', () => {
   beforeAll(async () => {
@@ -64,21 +64,21 @@ describe.skipIf(!HAS_PDFS)('07 - get_definitions', () => {
   // D-8: 非対応 spec (ts32002)
   it('D-8: ts32002 → "only supported for" エラー', async () => {
     await expect(toolHandlers.get_definitions({ spec: 'ts32002' })).rejects.toThrow(
-      /only supported for/i
+      /only supported for/i,
     );
   });
 
   // D-9: 非対応 spec (wtpdf)
   it('D-9: wtpdf → "only supported for" エラー', async () => {
     await expect(toolHandlers.get_definitions({ spec: 'wtpdf' })).rejects.toThrow(
-      /only supported for/i
+      /only supported for/i,
     );
   });
 
   // D-10: 非対応 spec (pdfua2)
   it('D-10: pdfua2 → "only supported for" エラー', async () => {
     await expect(toolHandlers.get_definitions({ spec: 'pdfua2' })).rejects.toThrow(
-      /only supported for/i
+      /only supported for/i,
     );
   });
 

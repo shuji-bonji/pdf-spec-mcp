@@ -182,7 +182,7 @@ export function parseSection3Content(content: ContentElement[]): Definition[] {
  * Gets Section 3 content and parses it for term-definition pairs.
  */
 export async function extractAllDefinitions(
-  getSectionContentFn: (sectionId: string) => Promise<SectionResult>
+  getSectionContentFn: (sectionId: string) => Promise<SectionResult>,
 ): Promise<Definition[]> {
   const result = await getSectionContentFn('3');
   return parseSection3Content(result.content);

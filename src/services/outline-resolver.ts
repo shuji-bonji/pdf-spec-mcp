@@ -3,7 +3,7 @@
  * Builds section index from PDF outline tree
  */
 
-import type { OutlineEntry, SectionInfo, SectionIndex } from '../types/index.js';
+import type { OutlineEntry, SectionIndex, SectionInfo } from '../types/index.js';
 
 /**
  * Build a section index from outline entries
@@ -48,7 +48,7 @@ export function buildSectionIndex(outline: OutlineEntry[], totalPages: number): 
     if (i + 1 < flatOrder.length) {
       flatOrder[i].endPage = Math.min(
         totalPages,
-        Math.max(flatOrder[i].page, flatOrder[i + 1].page - 1)
+        Math.max(flatOrder[i].page, flatOrder[i + 1].page - 1),
       );
     } else {
       flatOrder[i].endPage = totalPages;

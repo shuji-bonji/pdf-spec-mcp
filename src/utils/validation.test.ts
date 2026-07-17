@@ -3,17 +3,17 @@
  * Phase 1-2 validators + Phase 3 additions (validateSpecId, validateCompareSection)
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  validateSectionId,
-  validateSearchQuery,
+  validateCompareSection,
   validateMaxDepth,
   validateMaxResults,
   validateRequirementLevel,
-  validateTermQuery,
-  validateTableIndex,
+  validateSearchQuery,
+  validateSectionId,
   validateSpecId,
-  validateCompareSection,
+  validateTableIndex,
+  validateTermQuery,
 } from './validation.js';
 
 // ========================================

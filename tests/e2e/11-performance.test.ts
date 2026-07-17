@@ -3,11 +3,11 @@
  *
  * P-1 〜 P-11: コールド/キャッシュ計測、パフォーマンスベースライン記録
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { HAS_PDFS, initRegistry, ALL_SPEC_IDS } from './setup.js';
-import { withTiming, recordPerformance, saveBaseline, checkRegression } from './helpers.js';
-import { toolHandlers } from '../../src/tools/handlers.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ensureRegistryInitialized } from '../../src/services/pdf-registry.js';
+import { toolHandlers } from '../../src/tools/handlers.js';
+import { checkRegression, recordPerformance, saveBaseline, withTiming } from './helpers.js';
+import { ALL_SPEC_IDS, HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   beforeAll(async () => {
@@ -33,14 +33,14 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   // P-2: get_structure (iso32000-2, コールド)
   it('P-2: get_structure iso32000-2 (コールド) < 2000ms', async () => {
     const { durationMs } = await withTiming(() =>
-      toolHandlers.get_structure({ spec: 'iso32000-2' })
+      toolHandlers.get_structure({ spec: 'iso32000-2' }),
     );
     recordPerformance('get_structure-cold', durationMs);
 
     const regression = checkRegression('get_structure-cold', durationMs);
     if (regression.regressed) {
       console.warn(
-        `⚠️ get_structure コールド性能劣化: ${regression.baselineMs}ms → ${durationMs}ms (${regression.changePercent}%)`
+        `⚠️ get_structure コールド性能劣化: ${regression.baselineMs}ms → ${durationMs}ms (${regression.changePercent}%)`,
       );
     }
     expect(durationMs).toBeLessThan(2000);
@@ -50,7 +50,7 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   it('P-3: get_structure iso32000-2 (キャッシュ) < 50ms', async () => {
     // P-2 でキャッシュ済み
     const { durationMs } = await withTiming(() =>
-      toolHandlers.get_structure({ spec: 'iso32000-2' })
+      toolHandlers.get_structure({ spec: 'iso32000-2' }),
     );
     recordPerformance('get_structure-cached', durationMs);
     expect(durationMs).toBeLessThan(50);
@@ -59,7 +59,7 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   // P-4: get_section (iso32000-2, コールド)
   it('P-4: get_section iso32000-2 (コールド) < 1000ms', async () => {
     const { durationMs } = await withTiming(() =>
-      toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' })
+      toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' }),
     );
     recordPerformance('get_section-cold', durationMs);
     expect(durationMs).toBeLessThan(1000);
@@ -69,7 +69,7 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   it('P-5: get_section iso32000-2 (キャッシュ) < 100ms', async () => {
     // P-4 でキャッシュ済み
     const { durationMs } = await withTiming(() =>
-      toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' })
+      toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' }),
     );
     recordPerformance('get_section-cached', durationMs);
     expect(durationMs).toBeLessThan(100);
@@ -78,7 +78,7 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   // P-6: search_spec (iso32000-2, コールド)
   it('P-6: search_spec iso32000-2 (コールド) < 15000ms', async () => {
     const { durationMs } = await withTiming(() =>
-      toolHandlers.search_spec({ query: 'digital signature', spec: 'iso32000-2' })
+      toolHandlers.search_spec({ query: 'digital signature', spec: 'iso32000-2' }),
     );
     recordPerformance('search_spec-cold', durationMs);
     expect(durationMs).toBeLessThan(15000);
@@ -88,7 +88,7 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   it('P-7: search_spec iso32000-2 (キャッシュ) < 200ms', async () => {
     // P-6 でインデックス構築済み
     const { durationMs } = await withTiming(() =>
-      toolHandlers.search_spec({ query: 'font', spec: 'iso32000-2' })
+      toolHandlers.search_spec({ query: 'font', spec: 'iso32000-2' }),
     );
     recordPerformance('search_spec-cached', durationMs);
     expect(durationMs).toBeLessThan(200);
@@ -97,7 +97,7 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   // P-8: get_requirements (section 指定)
   it('P-8: get_requirements section="12.8" < 2000ms', async () => {
     const { durationMs } = await withTiming(() =>
-      toolHandlers.get_requirements({ section: '12.8', spec: 'iso32000-2' })
+      toolHandlers.get_requirements({ section: '12.8', spec: 'iso32000-2' }),
     );
     recordPerformance('get_requirements-section', durationMs);
     expect(durationMs).toBeLessThan(2000);
@@ -106,7 +106,7 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
   // P-9: get_definitions (コールド)
   it('P-9: get_definitions (コールド) < 1000ms', async () => {
     const { durationMs } = await withTiming(() =>
-      toolHandlers.get_definitions({ spec: 'iso32000-2' })
+      toolHandlers.get_definitions({ spec: 'iso32000-2' }),
     );
     recordPerformance('get_definitions-cold', durationMs);
     expect(durationMs).toBeLessThan(1000);

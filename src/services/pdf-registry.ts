@@ -9,10 +9,10 @@
 
 import { readdir } from 'fs/promises';
 import { join } from 'path';
-import { PDF_CONFIG, SPEC_PATTERNS, DEFAULT_SPEC_ID } from '../config.js';
+import { DEFAULT_SPEC_ID, PDF_CONFIG, SPEC_PATTERNS } from '../config.js';
 import { RegistryError } from '../errors.js';
-import { logger } from '../utils/logger.js';
 import type { SpecCategory, SpecId, SpecInfo } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 interface RegistryEntry {
   path: string;
@@ -47,7 +47,7 @@ export class RegistryService {
     if (!dir) {
       throw new RegistryError(
         `Environment variable ${PDF_CONFIG.envVar} is not set. ` +
-          `Set it to the directory containing PDF specification files.`
+          `Set it to the directory containing PDF specification files.`,
       );
     }
 
@@ -101,7 +101,7 @@ export class RegistryService {
     this.discoveryDone = true;
     logger.info(
       'PDFRegistry',
-      `Discovered ${matched} specs from ${pdfFiles.length} PDFs in ${dir}`
+      `Discovered ${matched} specs from ${pdfFiles.length} PDFs in ${dir}`,
     );
   }
 
@@ -114,7 +114,7 @@ export class RegistryService {
     if (!entry) {
       const available = [...this.registry.keys()].join(', ');
       throw new RegistryError(
-        `Specification "${specId}" not found. Available specs: ${available || '(none — run list_specs first)'}`
+        `Specification "${specId}" not found. Available specs: ${available || '(none — run list_specs first)'}`,
       );
     }
     return entry.path;
@@ -154,7 +154,7 @@ export class RegistryService {
     if (!this.registry.has(id)) {
       const available = [...this.registry.keys()].join(', ');
       throw new RegistryError(
-        `Specification "${id}" not found. Available specs: ${available || '(none)'}`
+        `Specification "${id}" not found. Available specs: ${available || '(none)'}`,
       );
     }
     return id;

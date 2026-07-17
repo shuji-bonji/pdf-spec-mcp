@@ -6,34 +6,34 @@
  * When omitted, the default spec (iso32000-2) is used via resolveSpecId().
  */
 
+import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api.js';
 import { CACHE_CONFIG, CONCURRENCY } from '../config.js';
-import { mapConcurrent } from '../utils/concurrency.js';
 import { ContentError } from '../errors.js';
-import { LRUCache } from '../utils/cache.js';
-import { logger } from '../utils/logger.js';
-import { loadDocument, reloadDocument, getOutlineWithPages } from './pdf-loader.js';
-import { buildSectionIndex, findSection } from './outline-resolver.js';
-import { extractSectionContent } from './content-extractor.js';
-import { buildSearchIndex, searchTextIndex } from './search-index.js';
-import { extractRequirementsFromContent } from './requirement-extractor.js';
-import { extractAllDefinitions } from './definition-extractor.js';
-import { getSpecPath, resolveSpecId, enrichSpecInfo } from './pdf-registry.js';
 import type {
-  SectionIndex,
-  TextIndex,
-  SectionResult,
-  SearchHit,
   ContentElement,
-  Requirement,
-  RequirementsResult,
-  ISORequirementLevel,
   Definition,
   DefinitionsResult,
-  TablesResult,
-  TableInfo,
+  ISORequirementLevel,
   OutlineEntry,
+  Requirement,
+  RequirementsResult,
+  SearchHit,
+  SectionIndex,
+  SectionResult,
+  TableInfo,
+  TablesResult,
+  TextIndex,
 } from '../types/index.js';
-import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api.js';
+import { LRUCache } from '../utils/cache.js';
+import { mapConcurrent } from '../utils/concurrency.js';
+import { logger } from '../utils/logger.js';
+import { extractSectionContent } from './content-extractor.js';
+import { extractAllDefinitions } from './definition-extractor.js';
+import { buildSectionIndex, findSection } from './outline-resolver.js';
+import { getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.js';
+import { enrichSpecInfo, getSpecPath, resolveSpecId } from './pdf-registry.js';
+import { extractRequirementsFromContent } from './requirement-extractor.js';
+import { buildSearchIndex, searchTextIndex } from './search-index.js';
 
 // ========================================
 // PDFSpecService Class
@@ -75,7 +75,7 @@ class PDFSpecService {
       loadDocument(path: string): Promise<PDFDocumentProxy>;
       reloadDocument(path: string): Promise<PDFDocumentProxy>;
       getOutlineWithPages(doc: PDFDocumentProxy): Promise<OutlineEntry[]>;
-    }
+    },
   ) {
     this.sectionIndexMap = new Map();
     this.searchIndexMap = new Map();
@@ -116,7 +116,7 @@ class PDFSpecService {
 
     logger.info(
       'PDFService',
-      `[${specId}] Section index built: ${index.sections.size} sections, ${doc.numPages} pages`
+      `[${specId}] Section index built: ${index.sections.size} sections, ${doc.numPages} pages`,
     );
     return index;
   }
@@ -160,7 +160,7 @@ class PDFSpecService {
       doc,
       section.page,
       section.endPage,
-      section.sectionNumber
+      section.sectionNumber,
     );
 
     this.sectionContentCache.set(cacheKey, content);
@@ -183,7 +183,7 @@ class PDFSpecService {
   public async searchSpec(
     query: string,
     maxResults: number,
-    specId?: string
+    specId?: string,
   ): Promise<SearchHit[]> {
     const id = this.registry.resolveSpecId(specId);
     const index = await this.getSectionIndex(id);
@@ -213,7 +213,7 @@ class PDFSpecService {
   public async getRequirements(
     section?: string,
     level?: ISORequirementLevel,
-    specId?: string
+    specId?: string,
   ): Promise<RequirementsResult> {
     const id = this.registry.resolveSpecId(specId);
     let allRequirements: Requirement[];
@@ -222,19 +222,19 @@ class PDFSpecService {
       // Fast path: extract from specific section + subsections
       const index = await this.getSectionIndex(id);
       const matchingSections = index.flatOrder.filter(
-        (s) => s.sectionNumber === section || s.sectionNumber.startsWith(section + '.')
+        (s) => s.sectionNumber === section || s.sectionNumber.startsWith(section + '.'),
       );
 
       if (matchingSections.length === 0) {
         throw new ContentError(
-          `Section "${section}" not found. Use get_structure to see available sections.`
+          `Section "${section}" not found. Use get_structure to see available sections.`,
         );
       }
 
       // Only extract from leaf sections to avoid duplicates
       const matchingNumbers = new Set(matchingSections.map((s) => s.sectionNumber));
       const leafSections = matchingSections.filter(
-        (s) => !s.children.some((child) => matchingNumbers.has(child))
+        (s) => !s.children.some((child) => matchingNumbers.has(child)),
       );
 
       allRequirements = [];
@@ -243,7 +243,7 @@ class PDFSpecService {
         const reqs = extractRequirementsFromContent(
           result.content,
           sec.sectionNumber,
-          result.title
+          result.title,
         );
         allRequirements.push(...reqs);
       }
@@ -291,14 +291,14 @@ class PDFSpecService {
           return [];
         }
       },
-      CONCURRENCY.requirementsIndex
+      CONCURRENCY.requirementsIndex,
     );
 
     const allRequirements = results.flat();
 
     logger.info(
       'PDFService',
-      `[${specId}] Requirements index built: ${allRequirements.length} requirements`
+      `[${specId}] Requirements index built: ${allRequirements.length} requirements`,
     );
     return allRequirements;
   }
@@ -318,7 +318,7 @@ class PDFSpecService {
     if (!PDFSpecService.DEFINITIONS_SUPPORTED_SPECS.has(id)) {
       throw new ContentError(
         `get_definitions is only supported for ISO 32000-2 and PDF 1.7. ` +
-          `For "${id}", use get_section with section "3" instead.`
+          `For "${id}", use get_section with section "3" instead.`,
       );
     }
 
@@ -326,7 +326,7 @@ class PDFSpecService {
       logger.info('PDFService', `[${id}] Extracting definitions from Section 3...`);
       this.definitionsMap.set(
         id,
-        extractAllDefinitions((sectionId) => this.getSectionContent(sectionId, id))
+        extractAllDefinitions((sectionId) => this.getSectionContent(sectionId, id)),
       );
     }
 
@@ -337,7 +337,7 @@ class PDFSpecService {
       definitions = definitions.filter(
         (d) =>
           d.term.toLowerCase().includes(searchTerm) ||
-          d.definition.toLowerCase().includes(searchTerm)
+          d.definition.toLowerCase().includes(searchTerm),
       );
     }
 
@@ -359,7 +359,7 @@ class PDFSpecService {
   public async getTables(
     sectionId: string,
     tableIndex?: number,
-    specId?: string
+    specId?: string,
   ): Promise<TablesResult> {
     const id = this.registry.resolveSpecId(specId);
     const result = await this.getSectionContent(sectionId, id);
@@ -375,7 +375,7 @@ class PDFSpecService {
     if (tableIndex !== undefined) {
       if (tableIndex >= tables.length) {
         throw new ContentError(
-          `table_index ${tableIndex} out of range. Section "${sectionId}" has ${tables.length} table(s).`
+          `table_index ${tableIndex} out of range. Section "${sectionId}" has ${tables.length} table(s).`,
         );
       }
       return {
@@ -542,7 +542,7 @@ function findSimilarSections(index: SectionIndex, query: string): string[] {
  */
 export const defaultPdfService = new PDFSpecService(
   { getSpecPath, resolveSpecId, enrichSpecInfo },
-  { loadDocument, reloadDocument, getOutlineWithPages }
+  { loadDocument, reloadDocument, getOutlineWithPages },
 );
 
 /**
@@ -554,7 +554,7 @@ export async function getSectionIndex(specId?: string): Promise<SectionIndex> {
 
 export async function getSectionContent(
   sectionId: string,
-  specId?: string
+  specId?: string,
 ): Promise<SectionResult> {
   return defaultPdfService.getSectionContent(sectionId, specId);
 }
@@ -562,7 +562,7 @@ export async function getSectionContent(
 export async function searchSpec(
   query: string,
   maxResults: number,
-  specId?: string
+  specId?: string,
 ): Promise<SearchHit[]> {
   return defaultPdfService.searchSpec(query, maxResults, specId);
 }
@@ -570,7 +570,7 @@ export async function searchSpec(
 export async function getRequirements(
   section?: string,
   level?: ISORequirementLevel,
-  specId?: string
+  specId?: string,
 ): Promise<RequirementsResult> {
   return defaultPdfService.getRequirements(section, level, specId);
 }
@@ -582,7 +582,7 @@ export async function getDefinitions(term?: string, specId?: string): Promise<De
 export async function getTables(
   sectionId: string,
   tableIndex?: number,
-  specId?: string
+  specId?: string,
 ): Promise<TablesResult> {
   return defaultPdfService.getTables(sectionId, tableIndex, specId);
 }

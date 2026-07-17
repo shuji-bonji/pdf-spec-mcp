@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { extractSectionContent } from './content-extractor.js';
 
 // Helper to create a mock PDFDocumentProxy

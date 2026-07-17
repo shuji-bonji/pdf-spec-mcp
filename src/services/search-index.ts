@@ -3,11 +3,11 @@
  * Full-text search over PDF specification pages
  */
 
-import type { SectionIndex, PageText, TextIndex, SearchHit } from '../types/index.js';
-import type { PDFDocumentProxy, TextItem } from './pdf-loader.js';
 import { CONCURRENCY } from '../config.js';
+import type { PageText, SearchHit, SectionIndex, TextIndex } from '../types/index.js';
 import { mapConcurrent } from '../utils/concurrency.js';
 import { logger } from '../utils/logger.js';
+import type { PDFDocumentProxy, TextItem } from './pdf-loader.js';
 
 /**
  * Build full-text search index from all PDF pages.
@@ -15,14 +15,14 @@ import { logger } from '../utils/logger.js';
  */
 export async function buildSearchIndex(
   doc: PDFDocumentProxy,
-  sectionIndex: SectionIndex
+  sectionIndex: SectionIndex,
 ): Promise<TextIndex> {
   const start = Date.now();
   const totalPages = doc.numPages;
 
   logger.info(
     'SearchIndex',
-    `Building search index for ${totalPages} pages (concurrency: ${CONCURRENCY.searchIndex})...`
+    `Building search index for ${totalPages} pages (concurrency: ${CONCURRENCY.searchIndex})...`,
   );
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -44,7 +44,7 @@ export async function buildSearchIndex(
         text,
       };
     },
-    CONCURRENCY.searchIndex
+    CONCURRENCY.searchIndex,
   );
 
   const buildTime = Date.now() - start;
@@ -71,7 +71,7 @@ export function searchTextIndex(
   index: TextIndex,
   query: string,
   maxResults: number,
-  sectionIndex: SectionIndex
+  sectionIndex: SectionIndex,
 ): SearchHit[] {
   const normalizedQuery = normalizeForSearch(query.toLowerCase());
   const queryWords = normalizedQuery.split(/\s+/).filter((w) => w.length > 0);
@@ -86,10 +86,10 @@ export function searchTextIndex(
 
     if (idx !== -1) {
       // Count exact phrase occurrences
-      let searchIdx = 0;
-      while ((searchIdx = normalizedText.indexOf(normalizedQuery, searchIdx)) !== -1) {
+      let searchIdx = normalizedText.indexOf(normalizedQuery);
+      while (searchIdx !== -1) {
         score += 3; // exact phrase match scores higher than AND
-        searchIdx += normalizedQuery.length;
+        searchIdx = normalizedText.indexOf(normalizedQuery, searchIdx + normalizedQuery.length);
       }
     } else if (queryWords.length > 1) {
       // Fallback: AND search — all words must be present
@@ -98,10 +98,10 @@ export function searchTextIndex(
 
       // Score = sum of individual word occurrences
       for (const word of queryWords) {
-        let searchIdx = 0;
-        while ((searchIdx = normalizedText.indexOf(word, searchIdx)) !== -1) {
+        let searchIdx = normalizedText.indexOf(word);
+        while (searchIdx !== -1) {
           score++;
-          searchIdx += word.length;
+          searchIdx = normalizedText.indexOf(word, searchIdx + word.length);
         }
       }
 
@@ -155,7 +155,7 @@ export function searchTextIndex(
 function findOriginalPosition(
   original: string,
   normalizedIdx: number,
-  _normalized: string
+  _normalized: string,
 ): number {
   // Simple heuristic: the position ratio is roughly preserved
   if (normalizedIdx <= 0) return 0;
@@ -168,7 +168,7 @@ function findOriginalPosition(
  */
 function findSectionForPage(
   sectionIndex: SectionIndex,
-  page: number
+  page: number,
 ): { sectionNumber: string } | undefined {
   // Binary search on flatOrder (sorted by page)
   const flat = sectionIndex.flatOrder;

@@ -1,7 +1,7 @@
 /**
  * Unit tests for mapConcurrent utility
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mapConcurrent } from './concurrency.js';
 
 describe('mapConcurrent', () => {
@@ -25,7 +25,7 @@ describe('mapConcurrent', () => {
         indices.push(index);
         return index;
       },
-      2
+      2,
     );
     expect(indices.sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4]);
   });
@@ -45,7 +45,7 @@ describe('mapConcurrent', () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         running--;
       },
-      concurrency
+      concurrency,
     );
 
     expect(maxRunning).toBeLessThanOrEqual(concurrency);
@@ -60,14 +60,14 @@ describe('mapConcurrent', () => {
           if (n === 3) throw new Error('boom');
           return n;
         },
-        2
-      )
+        2,
+      ),
     ).rejects.toThrow('boom');
   });
 
   it('throws for concurrency < 1', async () => {
     await expect(mapConcurrent([1, 2, 3], async (n) => n, 0)).rejects.toThrow(
-      'concurrency must be >= 1'
+      'concurrency must be >= 1',
     );
   });
 
@@ -80,7 +80,7 @@ describe('mapConcurrent', () => {
         order.push(n);
         return n * 10;
       },
-      1
+      1,
     );
     expect(results).toEqual([10, 20, 30, 40, 50]);
     // With concurrency=1, items are processed in strict order

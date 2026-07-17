@@ -4,7 +4,7 @@
  * Operates at the semantic level on already-extracted content.
  */
 
-import type { ContentElement, Requirement, ISORequirementLevel } from '../types/index.js';
+import type { ContentElement, ISORequirementLevel, Requirement } from '../types/index.js';
 
 /**
  * ISO requirement keywords ordered longest-first for greedy regex matching.
@@ -82,14 +82,14 @@ function extractFromText(
   text: string,
   sectionNumber: string,
   sectionTitle: string,
-  idCounter: { value: number }
+  idCounter: { value: number },
 ): Requirement[] {
   const requirements: Requirement[] = [];
   const regex = createISORequirementRegex();
   const seen = new Set<string>(); // deduplicate by sentence text
 
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
+  // regex is global (see createISORequirementRegex), so matchAll walks every hit.
+  for (const match of text.matchAll(regex)) {
     const level = match[1].toLowerCase() as ISORequirementLevel;
     const sentence = extractSentence(text, match.index);
 
@@ -117,7 +117,7 @@ function extractFromText(
 export function extractRequirementsFromContent(
   content: ContentElement[],
   sectionNumber: string,
-  sectionTitle: string
+  sectionTitle: string,
 ): Requirement[] {
   const requirements: Requirement[] = [];
   const idCounter = { value: 1 };

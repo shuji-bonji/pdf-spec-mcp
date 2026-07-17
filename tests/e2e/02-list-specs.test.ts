@@ -3,9 +3,9 @@
  *
  * L-1 〜 L-8: カテゴリフィルタ、必須フィールド検証
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry } from './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
+import { HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('02 - list_specs', () => {
   beforeAll(async () => {

@@ -3,9 +3,9 @@
  *
  * Q-1 〜 Q-14: 基本検索、全仕様検索、PagesMapper回帰テスト
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry, ALL_SPEC_IDS } from './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
+import { ALL_SPEC_IDS, HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('05 - search_spec', () => {
   beforeAll(async () => {
@@ -22,7 +22,8 @@ describe.skipIf(!HAS_PDFS)('05 - search_spec', () => {
     // スニペットに検索語を含む
     const hasSnippet = result.results.some(
       (r) =>
-        r.snippet.toLowerCase().includes('digital') || r.snippet.toLowerCase().includes('signature')
+        r.snippet.toLowerCase().includes('digital') ||
+        r.snippet.toLowerCase().includes('signature'),
     );
     expect(hasSnippet).toBe(true);
   });
@@ -100,16 +101,16 @@ describe.skipIf(!HAS_PDFS)('05 - search_spec', () => {
 
   // Q-9: 空クエリ
   it('Q-9: 空クエリ → エラー', async () => {
-    await expect(
-      toolHandlers.search_spec({ query: '', spec: 'iso32000-2' })
-    ).rejects.toThrow(/must not be empty|empty/i);
+    await expect(toolHandlers.search_spec({ query: '', spec: 'iso32000-2' })).rejects.toThrow(
+      /must not be empty|empty/i,
+    );
   });
 
   // Q-10: 500文字超クエリ
   it('Q-10: 500文字超クエリ → エラー', async () => {
     const longQuery = 'a'.repeat(501);
     await expect(
-      toolHandlers.search_spec({ query: longQuery, spec: 'iso32000-2' })
+      toolHandlers.search_spec({ query: longQuery, spec: 'iso32000-2' }),
     ).rejects.toThrow(/too long|500/i);
   });
 

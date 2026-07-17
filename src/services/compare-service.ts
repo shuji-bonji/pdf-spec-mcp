@@ -12,16 +12,16 @@
  * Results are cached — full comparison runs once, then filtered per request.
  */
 
-import { getSectionIndex } from './pdf-service.js';
-import { logger } from '../utils/logger.js';
-import { normalizeTitle } from '../utils/text.js';
 import type {
+  CompareVersionsResult,
   SectionIndex,
   SectionInfo,
   SectionMapping,
   UnmatchedSection,
-  CompareVersionsResult,
 } from '../types/index.js';
+import { logger } from '../utils/logger.js';
+import { normalizeTitle } from '../utils/text.js';
+import { getSectionIndex } from './pdf-service.js';
 
 // ========================================
 // Types
@@ -63,11 +63,11 @@ export class CompareService {
           m.section20 === section ||
           m.section20.startsWith(prefix) ||
           m.section17 === section ||
-          m.section17.startsWith(prefix)
+          m.section17.startsWith(prefix),
       );
       const added = full.added.filter((a) => a.section === section || a.section.startsWith(prefix));
       const removed = full.removed.filter(
-        (r) => r.section === section || r.section.startsWith(prefix)
+        (r) => r.section === section || r.section.startsWith(prefix),
       );
 
       return {
@@ -174,7 +174,7 @@ export class CompareService {
     logger.info(
       'CompareService',
       `Comparison built in ${elapsed}ms: ${matched.length} matched, ` +
-        `${added.length} added, ${removed.length} removed`
+        `${added.length} added, ${removed.length} removed`,
     );
 
     return { matched, added, removed };
@@ -258,7 +258,7 @@ function findContextMatch(
   sec17: SectionInfo,
   candidates20: SectionInfo[],
   index17: SectionIndex,
-  index20: SectionIndex
+  index20: SectionIndex,
 ): SectionInfo | null {
   const context17 = buildContextKey(sec17, index17);
 

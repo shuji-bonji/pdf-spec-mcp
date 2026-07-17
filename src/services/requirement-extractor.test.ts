@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { extractRequirementsFromContent, extractSentence } from './requirement-extractor.js';
+import { describe, expect, it } from 'vitest';
 import type { ContentElement } from '../types/index.js';
+import { extractRequirementsFromContent, extractSentence } from './requirement-extractor.js';
 
 describe('extractSentence', () => {
   it('extracts a sentence ending with period', () => {

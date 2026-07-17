@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { buildSectionIndex, findSection } from './outline-resolver.js';
+import { describe, expect, it } from 'vitest';
 import type { OutlineEntry } from '../types/index.js';
+import { buildSectionIndex, findSection } from './outline-resolver.js';
 
 function makeOutline(): OutlineEntry[] {
   return [

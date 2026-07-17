@@ -45,7 +45,7 @@ export function validateMaxDepth(depth: unknown): number | undefined {
     depth > maxDepthRange.max
   ) {
     throw new ValidationError(
-      `max_depth must be an integer between ${maxDepthRange.min} and ${maxDepthRange.max}, got ${depth}`
+      `max_depth must be an integer between ${maxDepthRange.min} and ${maxDepthRange.max}, got ${depth}`,
     );
   }
   return depth;
@@ -60,7 +60,7 @@ export function validateMaxResults(max: unknown): number {
     max > maxResultsRange.max
   ) {
     throw new ValidationError(
-      `max_results must be an integer between ${maxResultsRange.min} and ${maxResultsRange.max}, got ${max}`
+      `max_results must be an integer between ${maxResultsRange.min} and ${maxResultsRange.max}, got ${max}`,
     );
   }
   return max;
@@ -82,7 +82,7 @@ export function validateRequirementLevel(level: unknown): ISORequirementLevel | 
   const normalized = level.toLowerCase().trim() as ISORequirementLevel;
   if (!VALID_REQUIREMENT_LEVELS.includes(normalized)) {
     throw new ValidationError(
-      `Invalid requirement level "${level}". Valid levels: ${VALID_REQUIREMENT_LEVELS.join(', ')}`
+      `Invalid requirement level "${level}". Valid levels: ${VALID_REQUIREMENT_LEVELS.join(', ')}`,
     );
   }
   return normalized;

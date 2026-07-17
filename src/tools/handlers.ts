@@ -2,47 +2,47 @@
  * MCP Tool Handlers
  */
 
-import {
-  getSectionIndex,
-  getSectionContent,
-  searchSpec,
-  getRequirements,
-  getDefinitions,
-  getTables,
-} from '../services/pdf-service.js';
+import { ToolPrerequisiteError } from '../errors.js';
+import { compareVersions } from '../services/compare-service.js';
 import {
   ensureRegistryInitialized,
-  listSpecs,
-  isSpecAvailable,
   getSpecInfo,
+  isSpecAvailable,
+  listSpecs,
 } from '../services/pdf-registry.js';
-import { compareVersions } from '../services/compare-service.js';
-import { ToolPrerequisiteError } from '../errors.js';
 import {
-  validateSectionId,
-  validateSearchQuery,
+  getDefinitions,
+  getRequirements,
+  getSectionContent,
+  getSectionIndex,
+  getTables,
+  searchSpec,
+} from '../services/pdf-service.js';
+import type {
+  CompareVersionsArgs,
+  GetDefinitionsArgs,
+  GetRequirementsArgs,
+  GetSectionArgs,
+  GetStructureArgs,
+  GetTablesArgs,
+  ListSpecsArgs,
+  ListSpecsResult,
+  OutlineEntry,
+  SearchSpecArgs,
+  SpecCategory,
+  StructureResult,
+} from '../types/index.js';
+import {
+  validateCompareSection,
   validateMaxDepth,
   validateMaxResults,
   validateRequirementLevel,
-  validateTermQuery,
-  validateTableIndex,
+  validateSearchQuery,
+  validateSectionId,
   validateSpecId,
-  validateCompareSection,
+  validateTableIndex,
+  validateTermQuery,
 } from '../utils/validation.js';
-import type {
-  GetStructureArgs,
-  GetSectionArgs,
-  SearchSpecArgs,
-  GetRequirementsArgs,
-  GetDefinitionsArgs,
-  GetTablesArgs,
-  ListSpecsArgs,
-  CompareVersionsArgs,
-  OutlineEntry,
-  StructureResult,
-  ListSpecsResult,
-  SpecCategory,
-} from '../types/index.js';
 
 // ========================================
 // list_specs
@@ -166,13 +166,13 @@ async function handleCompareVersions(args: CompareVersionsArgs) {
   if (!isSpecAvailable('pdf17')) {
     throw new ToolPrerequisiteError(
       'compare_versions requires PDF32000_2008.pdf in PDF_SPEC_DIR. ' +
-        'Download it from https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf'
+        'Download it from https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf',
     );
   }
   if (!isSpecAvailable('iso32000-2')) {
     throw new ToolPrerequisiteError(
       'compare_versions requires ISO_32000-2_sponsored-ec2.pdf in PDF_SPEC_DIR. ' +
-        'Download it from https://pdfa.org/resource/iso-32000-pdf/'
+        'Download it from https://pdfa.org/resource/iso-32000-pdf/',
     );
   }
 

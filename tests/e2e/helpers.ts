@@ -5,7 +5,7 @@
  * - 結果アサーション
  * - JSON レポート出力
  */
-import { writeFileSync, existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 // ========================================
@@ -85,7 +85,7 @@ export function saveBaseline(): void {
 export function checkRegression(
   operation: string,
   currentMs: number,
-  threshold = 0.2
+  threshold = 0.2,
 ): { regressed: boolean; baselineMs?: number; changePercent?: number } {
   const baseline = loadBaseline();
   if (!baseline) return { regressed: false };
@@ -122,7 +122,7 @@ export function expectInRange(value: number, min: number, max: number, label?: s
  */
 export async function expectError(
   fn: () => Promise<unknown>,
-  expectedSubstring: string
+  expectedSubstring: string,
 ): Promise<void> {
   try {
     await fn();

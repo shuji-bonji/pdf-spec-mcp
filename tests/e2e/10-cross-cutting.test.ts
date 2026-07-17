@@ -3,10 +3,10 @@
  *
  * X-1 〜 X-12: LRU キャッシュ、PagesMapper 安定性、セクションキャッシュ、エラーハンドリング
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry } from './setup.js';
-import { withTiming } from './helpers.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
+import { withTiming } from './helpers.js';
+import { HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
   beforeAll(async () => {
@@ -22,11 +22,11 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
     it('X-1: 同一 spec の2回目呼び出しが高速', async () => {
       // コールドスタート
       const { durationMs: cold } = await withTiming(() =>
-        toolHandlers.get_structure({ spec: 'iso32000-2' })
+        toolHandlers.get_structure({ spec: 'iso32000-2' }),
       );
       // キャッシュヒット
       const { durationMs: warm } = await withTiming(() =>
-        toolHandlers.get_structure({ spec: 'iso32000-2' })
+        toolHandlers.get_structure({ spec: 'iso32000-2' }),
       );
       // キャッシュヒットはコールドより速いはず
       expect(warm).toBeLessThan(cold + 100); // マージン付き
@@ -61,7 +61,7 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
 
       // ts32001 はまだキャッシュにある（最近アクセスした）
       const { durationMs: ts1Time } = await withTiming(() =>
-        toolHandlers.get_structure({ spec: 'ts32001' })
+        toolHandlers.get_structure({ spec: 'ts32001' }),
       );
 
       // ts32002 はエビクトされたが再ロード可能
@@ -118,10 +118,10 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
       await toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' });
 
       const { durationMs: cold } = await withTiming(() =>
-        toolHandlers.get_section({ section: '7.4', spec: 'iso32000-2' })
+        toolHandlers.get_section({ section: '7.4', spec: 'iso32000-2' }),
       );
       const { durationMs: warm } = await withTiming(() =>
-        toolHandlers.get_section({ section: '7.4', spec: 'iso32000-2' })
+        toolHandlers.get_section({ section: '7.4', spec: 'iso32000-2' }),
       );
       // 2回目はキャッシュヒットで高速
       expect(warm).toBeLessThanOrEqual(cold + 50);
@@ -150,24 +150,16 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
     // X-9: 全ツールの不正引数
     it('X-9: 各ツールに不正引数を渡してクラッシュしない', async () => {
       // get_section: section 未指定
-      await expect(
-        toolHandlers.get_section({} as any)
-      ).rejects.toThrow();
+      await expect(toolHandlers.get_section({} as any)).rejects.toThrow();
 
       // search_spec: query 未指定
-      await expect(
-        toolHandlers.search_spec({} as any)
-      ).rejects.toThrow();
+      await expect(toolHandlers.search_spec({} as any)).rejects.toThrow();
 
       // get_tables: section 未指定
-      await expect(
-        toolHandlers.get_tables({} as any)
-      ).rejects.toThrow();
+      await expect(toolHandlers.get_tables({} as any)).rejects.toThrow();
 
       // get_requirements: 無効な level
-      await expect(
-        toolHandlers.get_requirements({ level: 'invalid' })
-      ).rejects.toThrow();
+      await expect(toolHandlers.get_requirements({ level: 'invalid' })).rejects.toThrow();
 
       // list_specs: 不正 category → 空結果（エラーにならない）
       const r = await toolHandlers.list_specs({ category: 'nonexistent' });
@@ -177,23 +169,19 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
     // X-10: specId 50文字超
     it('X-10: specId 50文字超 → "50 characters" エラー', async () => {
       const longId = 'a'.repeat(51);
-      await expect(
-        toolHandlers.get_structure({ spec: longId })
-      ).rejects.toThrow(/50 characters/i);
+      await expect(toolHandlers.get_structure({ spec: longId })).rejects.toThrow(/50 characters/i);
     });
 
     // X-11: specId 空文字
     it('X-11: specId 空文字 → "non-empty string" エラー', async () => {
-      await expect(
-        toolHandlers.get_structure({ spec: '' })
-      ).rejects.toThrow(/non-empty string/i);
+      await expect(toolHandlers.get_structure({ spec: '' })).rejects.toThrow(/non-empty string/i);
     });
 
     // X-12: 存在しない specId
     it('X-12: 存在しない specId → "not found" エラー', async () => {
-      await expect(
-        toolHandlers.get_structure({ spec: 'nonexistent-spec' })
-      ).rejects.toThrow(/not found/i);
+      await expect(toolHandlers.get_structure({ spec: 'nonexistent-spec' })).rejects.toThrow(
+        /not found/i,
+      );
     });
   });
 });

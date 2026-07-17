@@ -3,10 +3,10 @@
  *
  * C-1 〜 C-11: セクション取得、ContentElement型、エラーハンドリング
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry, ALL_SPEC_IDS } from './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
 import type { ContentElement } from '../../src/types/index.js';
+import { ALL_SPEC_IDS, HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   beforeAll(async () => {
@@ -57,9 +57,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
         }
 
         // sectionNumber が非null な最初のセクションを探す
-        function findFirstSection(
-          entries: typeof structure.sections
-        ): string | null {
+        function findFirstSection(entries: typeof structure.sections): string | null {
           for (const entry of entries) {
             if (entry.sectionNumber) return entry.sectionNumber;
             const child = findFirstSection(entry.children);
@@ -128,15 +126,15 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   // C-9: 存在しないセクション
   it('C-9: 存在しないセクション "999.999" → エラー + サジェスト', async () => {
     await expect(
-      toolHandlers.get_section({ section: '999.999', spec: 'iso32000-2' })
+      toolHandlers.get_section({ section: '999.999', spec: 'iso32000-2' }),
     ).rejects.toThrow('not found');
   });
 
   // C-10: 空文字セクション
   it('C-10: 空文字セクション → エラー', async () => {
-    await expect(
-      toolHandlers.get_section({ section: '', spec: 'iso32000-2' })
-    ).rejects.toThrow(/must not be empty|empty/i);
+    await expect(toolHandlers.get_section({ section: '', spec: 'iso32000-2' })).rejects.toThrow(
+      /must not be empty|empty/i,
+    );
   });
 
   // C-11: 大文字小文字

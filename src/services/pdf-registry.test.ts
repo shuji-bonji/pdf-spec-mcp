@@ -6,21 +6,21 @@
  * Only filename-pattern matching is tested — no actual PDF parsing.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtemp, writeFile, rm } from 'fs/promises';
-import { join } from 'path';
+import { mkdtemp, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
+import { join } from 'path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // We import from the built JS to avoid module-state issues.
 // The registry is module-level singleton, so we test in a controlled order.
 import {
-  ensureRegistryInitialized,
-  listSpecs,
-  isSpecAvailable,
-  getSpecPath,
-  getSpecInfo,
-  resolveSpecId,
   enrichSpecInfo,
+  ensureRegistryInitialized,
+  getSpecInfo,
+  getSpecPath,
+  isSpecAvailable,
+  listSpecs,
+  resolveSpecId,
 } from './pdf-registry.js';
 
 let tempDir: string;

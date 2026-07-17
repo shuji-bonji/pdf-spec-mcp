@@ -3,10 +3,10 @@
  *
  * V-1 〜 V-10: 全体比較、セクションフィルタ、マッチ品質、キャッシュ一貫性
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry } from './setup.js';
-import { toolHandlers } from '../../src/tools/handlers.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { isSpecAvailable } from '../../src/services/pdf-registry.js';
+import { toolHandlers } from '../../src/tools/handlers.js';
+import { HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('09 - compare_versions', () => {
   let hasBothSpecs = false;
@@ -104,9 +104,7 @@ describe.skipIf(!HAS_PDFS)('09 - compare_versions', () => {
       return;
     }
     // pdf17 がない場合はエラーが出るはず
-    expect(
-      toolHandlers.compare_versions({})
-    ).rejects.toThrow(/requires/i);
+    expect(toolHandlers.compare_versions({})).rejects.toThrow(/requires/i);
   });
 
   // V-10: status 値の検証

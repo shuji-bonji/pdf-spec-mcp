@@ -3,24 +3,24 @@
  * Extracts structured content from PDF pages using StructTree + TextContent
  */
 
+import { CONCURRENCY } from '../config.js';
 import type {
   ContentElement,
   HeadingElement,
-  ParagraphElement,
   ListElement,
-  TableElement,
   NoteElement,
+  ParagraphElement,
+  TableElement,
 } from '../types/index.js';
+import { mapConcurrent } from '../utils/concurrency.js';
 import type {
   PDFDocumentProxy,
-  StructTreeNode,
   StructTreeContent,
+  StructTreeNode,
+  TextContent,
   TextItem,
   TextMarkedContent,
-  TextContent,
 } from './pdf-loader.js';
-import { CONCURRENCY } from '../config.js';
-import { mapConcurrent } from '../utils/concurrency.js';
 
 type TextContentItem = TextItem | TextMarkedContent;
 
@@ -33,7 +33,7 @@ export async function extractSectionContent(
   doc: PDFDocumentProxy,
   startPage: number,
   endPage: number,
-  sectionNumber?: string
+  sectionNumber?: string,
 ): Promise<ContentElement[]> {
   // Clamp page range to valid bounds (defensive against outline/PagesMapper issues)
   const totalPages = doc.numPages || endPage;
@@ -46,7 +46,7 @@ export async function extractSectionContent(
   const pageResults = await mapConcurrent(
     pageNumbers,
     (pageNum) => extractPageContent(doc, pageNum),
-    CONCURRENCY.contentExtraction
+    CONCURRENCY.contentExtraction,
   );
 
   const elements = pageResults.flat();
@@ -64,13 +64,13 @@ export async function extractSectionContent(
  */
 function trimToSectionStart(elements: ContentElement[], sectionNumber: string): ContentElement[] {
   const headingIdx = elements.findIndex(
-    (el) => el.type === 'heading' && el.text.startsWith(sectionNumber + ' ')
+    (el) => el.type === 'heading' && el.text.startsWith(sectionNumber + ' '),
   );
 
   // Also try matching "Annex X" format
   if (headingIdx === -1 && sectionNumber.startsWith('Annex ')) {
     const annexIdx = elements.findIndex(
-      (el) => el.type === 'heading' && el.text.startsWith(sectionNumber)
+      (el) => el.type === 'heading' && el.text.startsWith(sectionNumber),
     );
     if (annexIdx > 0) return elements.slice(annexIdx);
   }
@@ -87,7 +87,7 @@ function trimToSectionStart(elements: ContentElement[], sectionNumber: string): 
  */
 async function extractPageContent(
   doc: PDFDocumentProxy,
-  pageNum: number
+  pageNum: number,
 ): Promise<ContentElement[]> {
   const page = await doc.getPage(pageNum);
 
@@ -156,7 +156,7 @@ function buildTextMap(items: TextContentItem[]): Map<string, string> {
 function walkStructTree(
   node: StructTreeNode,
   textMap: Map<string, string>,
-  styles: TextContent['styles']
+  styles: TextContent['styles'],
 ): ContentElement[] {
   const elements: ContentElement[] = [];
 

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { SectionIndex, SectionInfo, TextIndex } from '../types/index.js';
 import { searchTextIndex } from './search-index.js';
-import type { SectionIndex, TextIndex, SectionInfo } from '../types/index.js';
 
 function createTestIndex(): { textIndex: TextIndex; sectionIndex: SectionIndex } {
   const sectionA: SectionInfo = {

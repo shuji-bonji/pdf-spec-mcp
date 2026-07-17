@@ -3,13 +3,13 @@
  * Phase 5-2: Error hierarchy classes
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  PDFSpecError,
-  ValidationError,
-  RegistryError,
   ContentError,
+  PDFSpecError,
+  RegistryError,
   ToolPrerequisiteError,
+  ValidationError,
 } from './errors.js';
 
 // ========================================

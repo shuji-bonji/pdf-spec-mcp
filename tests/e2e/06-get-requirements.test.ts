@@ -3,9 +3,9 @@
  *
  * RQ-1 〜 RQ-12: セクション/レベルフィルタ、全仕様、統計情報
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { HAS_PDFS, initRegistry, ALL_SPEC_IDS } from './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { toolHandlers } from '../../src/tools/handlers.js';
+import { ALL_SPEC_IDS, HAS_PDFS, initRegistry } from './setup.js';
 
 describe.skipIf(!HAS_PDFS)('06 - get_requirements', () => {
   beforeAll(async () => {
@@ -134,7 +134,7 @@ describe.skipIf(!HAS_PDFS)('06 - get_requirements', () => {
   // RQ-10: 無効なレベル
   it('RQ-10: level="invalid" → エラー', async () => {
     await expect(
-      toolHandlers.get_requirements({ level: 'invalid', spec: 'iso32000-2' })
+      toolHandlers.get_requirements({ level: 'invalid', spec: 'iso32000-2' }),
     ).rejects.toThrow(/Invalid requirement level/i);
   });
 

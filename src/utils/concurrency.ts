@@ -21,7 +21,7 @@
 export async function mapConcurrent<T, R>(
   items: T[],
   fn: (item: T, index: number) => Promise<R>,
-  concurrency: number = 10
+  concurrency: number = 10,
 ): Promise<R[]> {
   if (items.length === 0) return [];
   if (concurrency < 1) {

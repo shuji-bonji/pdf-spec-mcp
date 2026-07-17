@@ -3,8 +3,8 @@
  * Tests for text processing utilities: stripZeroWidthChars and normalizeTitle
  */
 
-import { describe, it, expect } from 'vitest';
-import { stripZeroWidthChars, normalizeTitle } from './text.js';
+import { describe, expect, it } from 'vitest';
+import { normalizeTitle, stripZeroWidthChars } from './text.js';
 
 // ========================================
 // stripZeroWidthChars Tests
@@ -39,7 +39,7 @@ describe('stripZeroWidthChars', () => {
 
   it('removes multiple types of invisible characters mixed together', () => {
     expect(stripZeroWidthChars('7.3.4\u200B Types\u200F of\u2028 function\uFEFF')).toBe(
-      '7.3.4 Types of function'
+      '7.3.4 Types of function',
     );
     expect(stripZeroWidthChars('A\u200BB\u200FC\uFEFFD\u2028E')).toBe('ABCDE');
   });
@@ -93,7 +93,7 @@ describe('normalizeTitle', () => {
 
   it('removes zero-width characters and then normalizes', () => {
     expect(normalizeTitle('7.3.4\u200B Types\u200F of\u2028 function\uFEFF')).toBe(
-      '7.3.4 types of function'
+      '7.3.4 types of function',
     );
     expect(normalizeTitle('Hello\u200BWorld\u200F')).toBe('helloworld');
   });
