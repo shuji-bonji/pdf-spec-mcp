@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- 🔴 **`collectStructTreeTables` がセクション内容キャッシュを破壊していた**（0.4.0 の退行）。
+  継続行の連結時、返す `TableInfo` が `ContentElement` の `rows` 配列を**参照で共有**したまま
+  そこへ `push` していたため、**キャッシュされたページ自体が書き換わっていた**。
+  結果、同じセクションを引くたびに表が膨らむ:
+  - `get_tables("12.5.6.10")` の Table 182 が 1 回目 6 行 → 2 回目 7 行 → …と増え続ける
+  - `get_tables` を挟むと `get_requirements("12.5.6.10")` が 6 件 → 15 件に増える
+
+  全ツールは `readOnlyHint: true` / `idempotentHint: true` を宣言しているが、
+  **実際には呼び出し順と回数で結果が変わっていた**。行と headers をコピーして返すよう修正。
+  検証: 0.4.0 と修正版で全 987 セクションの初回結果が**完全に一致**（結果は変えず破壊だけを止めた）。
+  `table-collector.test.ts` に「与えられた content を変更しない」「何度呼んでも同じ結果」
+  「返した結果を汚してもキャッシュに届かない」を追加。
+
+  npx で公開版を叩いて初めて見つかった。ユニットテストも e2e も**各ツールを 1 回ずつしか
+  呼んでおらず**、順序・回数への依存を検査していなかった。
+
 ## [0.4.0] - 2026-07-18
 
 抽出の正確性に関する大きな修正を含む。`get_section` / `get_requirements` / `get_tables` の

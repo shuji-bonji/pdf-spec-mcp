@@ -49,8 +49,13 @@ export function collectStructTreeTables(content: ContentElement[]): TableInfo[] 
     tables.push({
       index: tables.length,
       caption,
-      headers: element.headers,
-      rows: element.rows,
+      // Copy, never alias. `content` is the section content cache: handing out a reference
+      // to `element.rows` and then pushing into it (above) rewrites the cached page itself,
+      // so every later call sees a table that has grown. get_tables followed by
+      // get_requirements returned 4 table requirements, then 7, then 10 — the tool is
+      // declared idempotent and read-only, and this made it neither.
+      headers: [...element.headers],
+      rows: element.rows.map((row) => [...row]),
     });
   }
 
