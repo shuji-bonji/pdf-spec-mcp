@@ -37,27 +37,45 @@ Biome は薄いラッパがプラットフォーム別バイナリを探す構�
 
 ## 落とし穴
 
-### 1. ページ跨ぎの表 — 「セクション境界の帯」（B-S1 / 2026-07-18 修正）
+### 1. セクション境界の「帯」（B-S1 → S-5 / 2026-07-18）
 
 セクションのページ範囲は outline から `[page, 次セクションの page - 1]` として決まる。
-表が最終ページを越えて続くと、**残りの行は「次セクションの先頭ページの、見出しより上」に取り残される**。
-この帯はどのセクションにも属さない — 当該セクションのページ範囲外であり、かつ
-`trimToSectionStart` が次セクションの内容から捨てるため、**行が丸ごと消える**。
+最終ページを越えて溢れた分は**次セクションの先頭ページの、見出しより上**に取り残される。
+この帯はどのセクションにも属さない — 自分の範囲外であり、かつ `trimToSectionStart` が
+次セクションの内容から捨てるため、**丸ごと消える**。ISO 32000-2 では **412 セクション**が
+内容を落としており、**271 が要件文**を含んでいた。
 
-全 988 セクションの走査で **148 個の表**が行を落としていた（Table 182 の `QuadPoints`、
-Table 166 の `CA`/`BM`/`Lang`、Table 171 の注釈型 7→28 行、Annex A の演算子 11→73 行）。
-`getTables` は `collectTrailingTableRows` で帯を回収する。セクション**内**の継続は元々
-`collectStructTreeTables` が連結できており、穴は境界だけだった。
+`getSectionContent` が帯を回収する（`adoptOrphanedStrip` → `extractOrphanedStrip`）。
+これで `get_section` / `get_requirements` / `get_tables` が一度に直るので、
+**表専用の境界処理は要らない**（B-S1 の `collectTrailingTableRows` は S-5 で撤去した）。
 
-**同じ帯は本文・要件文でも落ちたまま**（`get_section` / `get_requirements`）。S-5 として未着手。
+**二重計上を防ぐ 2 つの条件を弱めないこと**:
 
-### 2. 連結の条件は `collectStructTreeTables` の連結規則と必ず揃える
+1. **採用は `trimToSectionStart` の正確な裏返し**。両者が同じ `findSectionHeadingIndex` で
+   判定する。見出しが見つからないとき（69 セクション）は次セクションがページ全体を保持して
+   いるので、**あえて採用しない**
+2. **`next.page === endPage + 1`**（構造条件）。同一ページを共有する場合（`endPage === page`）の
+   `endPage + 1` は継ぎ目ではなく次セクションの領分。読むと**自セクションの内容が重複する**
 
-`collectStructTreeTables` は `headers.length > 0` の表しか連結しない。継続行だけ足すと
-**連結されずに表が 1 個増え、以降の `table_index` がずれる**（8.7.4.5.5 で実際に出した退行）。
-欠落行より悪い。ヘッダなしの表を対象外にしているのはこのため（S-4）。
+> ⚠️ B-S1 の「148 個の表を回復」は**誤り**だった。前方走査が最大 5 ページ先まで境界を無視して
+> 読んでいたため、40 件は過剰包含（Table 147 を 12 / 12.1 / 12.2 が揃って報告。持ち主は 12.2 のみ）、
+> さらに D.3 と D.4 に同じ 13 行を**二重計上**していた。S-5 で是正し正味 92 件。
+> **全数差分がなければ気づけなかった。**
 
-### 3. 「LRU を検証している」テストは LRU に届いていなかった（2026-07-18 是正）
+### 2. ヘッダなしの表は連結されない（S-4）
+
+`collectStructTreeTables` は `headers.length > 0` の表しか連結しない。帯として正しく採用しても
+**ヘッダなしの表は連結されずに分裂する**（5 セクション。8.7.4.5.5 は 2 → 4 表）。
+連結条件を変えるなら、ヘッダ一致では判定できないので列数や位置での同一性判定が要る。
+
+### 3. 要件抽出は表を見ていない（S-7・未修正）
+
+`extractRequirementsFromContent` は paragraph / list / note しか走査せず、**表のセルを無視する**。
+ISO の表は要件語の宝庫（先頭 260 セクションの表 106 個中、"shall" を含むセルが 301 個）。
+**帯を直しても表内の要件は不可視のまま。**「QuadPoints の shall が見えないのは帯のせい」という
+見立ては誤りだったので繰り返さないこと。
+
+### 4. 「LRU を検証している」テストは LRU に届いていなかった（2026-07-18 是正）
 
 `get_structure` は `getSectionIndex` のメモ（spec ごと・**上限なし・無期限**）を引くため、
 **2 回目以降は loader を一切呼ばない**。e2e の X-1〜X-3 はこれを通してドキュメント LRU を
@@ -68,7 +86,7 @@ Table 166 の `CA`/`BM`/`Lang`、Table 171 の注釈型 7→28 行、Annex A の
 上位を通すテストは下位に届かない。ドキュメント LRU は `DocumentLoaderService` に
 `DocumentSource` を注入して直接検証する（`pdf-loader.test.ts`）。
 
-### 4. stdout を汚すのは `console.log` と `console.info`（`warn` ではない）
+### 5. stdout を汚すのは `console.log` と `console.info`（`warn` ではない）
 
 Node では **`console.log` / `console.info` が stdout**、`warn` / `error` は stderr。
 pdfjs-dist v5 の実際の経路は `warn()` → `console.warn`（stderr・**stdout は汚さない**）、
