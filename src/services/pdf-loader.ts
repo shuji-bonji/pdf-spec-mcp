@@ -39,17 +39,44 @@ interface OutlineNode {
 // ========================================
 
 /**
+ * Opens a PDF from disk into a pdfjs document.
+ *
+ * Injected so the LRU cache can be tested on its own: reading a real file and driving
+ * pdfjs is the only part of this service that needs the outside world, and it is
+ * irrelevant to the eviction logic. Defaults to the real implementation, so callers
+ * that do not care (i.e. everyone but the tests) are unaffected.
+ */
+export type DocumentSource = (pdfPath: string) => Promise<PDFDocumentProxy>;
+
+const openFromDisk: DocumentSource = async (pdfPath) => {
+  const start = Date.now();
+  const data = new Uint8Array(await readFile(pdfPath));
+  // The legacy build (pdfjs-dist/legacy/build/pdf.mjs) ships no type declarations of its
+  // own, so the module object is untyped here. Narrow it to just the call we make rather
+  // than casting to `any`, which would silence real errors on this line too.
+  const doc: PDFDocumentProxy = await (
+    pdfjsLib as unknown as {
+      getDocument(src: { data: Uint8Array }): { promise: Promise<PDFDocumentProxy> };
+    }
+  ).getDocument({ data }).promise;
+  logger.info('PDFLoader', `Loaded ${pdfPath} (${doc.numPages} pages) in ${Date.now() - start}ms`);
+  return doc;
+};
+
+/**
  * Class-based PDF loader service with multi-document LRU cache.
  */
 export class DocumentLoaderService {
   private documentCache: Map<string, PDFDocumentProxy>;
   private accessOrder: string[]; // LRU tracking: oldest first
   private maxCachedDocs: number;
+  private source: DocumentSource;
 
-  constructor(maxCachedDocs: number = MAX_CACHED_DOCS) {
+  constructor(maxCachedDocs: number = MAX_CACHED_DOCS, source: DocumentSource = openFromDisk) {
     this.documentCache = new Map();
     this.accessOrder = [];
     this.maxCachedDocs = maxCachedDocs;
+    this.source = source;
   }
 
   /**
@@ -141,19 +168,7 @@ export class DocumentLoaderService {
     }
 
     // Load new document
-    const start = Date.now();
-    const data = new Uint8Array(await readFile(pdfPath));
-    // The legacy build (pdfjs-dist/legacy/build/pdf.mjs) ships no type declarations of its
-    // own, so the module object is untyped here. Narrow it to just the call we make rather
-    // than casting to `any`, which would silence real errors on this line too.
-    const doc: PDFDocumentProxy = await (
-      pdfjsLib as unknown as {
-        getDocument(src: { data: Uint8Array }): { promise: Promise<PDFDocumentProxy> };
-      }
-    ).getDocument({ data }).promise;
-    const elapsed = Date.now() - start;
-
-    logger.info('PDFLoader', `Loaded ${pdfPath} (${doc.numPages} pages) in ${elapsed}ms`);
+    const doc = await this.source(pdfPath);
 
     this.documentCache.set(pdfPath, doc);
     this.accessOrder.push(pdfPath);

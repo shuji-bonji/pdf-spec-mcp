@@ -17,55 +17,54 @@ describe.skipIf(!HAS_PDFS)('10 - Cross-Cutting Concerns', () => {
   // LRU ドキュメントキャッシュ
   // ========================================
 
-  describe('LRU ドキュメントキャッシュ', () => {
-    // X-1: 4文書以内のキャッシュヒット
-    it('X-1: 同一 spec の2回目呼び出しが高速', async () => {
-      // コールドスタート
+  /**
+   * 複数 spec を跨いでも壊れないこと（多 spec スモーク）。
+   *
+   * ⚠️ かつてこの describe は「LRU ドキュメントキャッシュ」と名乗り、エビクション順を
+   * 検証しているつもりだったが、**実際には LRU に届いていなかった**。get_structure は
+   * getSectionIndex のメモ（spec ごと・上限なし・無期限）を引くため、2 回目以降は
+   * loader を一切呼ばない。よって「再アクセスして LRU 更新」は順序を動かさず、
+   * 「エビクトされたが再ロード可能」も再ロードしていなかった。ドキュメント LRU が
+   * 完全に壊れていても、ここは緑のままだった。
+   *
+   * ドキュメント LRU（エビクション順・destroy・アクセス順の更新）の検証は
+   * `src/services/pdf-loader.test.ts` の DocumentLoaderService のユニットテストが担う。
+   * ここに残すのは「多 spec を跨いでツールが破綻しない」ことのスモークに限る。
+   */
+  describe('多 spec 横断スモーク', () => {
+    // X-1: 同一 spec の 2 回目はメモが効く
+    it('X-1: 同一 spec の2回目呼び出しが高速（section-index メモ）', async () => {
       const { durationMs: cold } = await withTiming(() =>
         toolHandlers.get_structure({ spec: 'iso32000-2' }),
       );
-      // キャッシュヒット
       const { durationMs: warm } = await withTiming(() =>
         toolHandlers.get_structure({ spec: 'iso32000-2' }),
       );
-      // キャッシュヒットはコールドより速いはず
+      // 計測しているのは sectionIndexMap のメモであって、ドキュメント LRU ではない。
       expect(warm).toBeLessThan(cold + 100); // マージン付き
     });
 
-    // X-2: 5文書目でエビクション
-    it('X-2: 5つ目の spec ロード後も正常動作', async () => {
-      // 5つの異なる spec を順にロード (LRU上限=4)
+    // X-2: LRU 上限（4）を超える数の spec を跨いでも壊れない
+    it('X-2: LRU 上限を超える数の spec をロードしても全て取得できる', async () => {
       const specs = ['iso32000-2', 'pdf17', 'ts32002', 'pdfua2', 'wtpdf'];
       for (const specId of specs) {
         const result = await toolHandlers.get_structure({ spec: specId });
         expect(result.totalPages).toBeGreaterThan(0);
       }
-      // 1番目 (iso32000-2) はエビクトされたが再ロード可能
+      // 最初の spec も引き続き取得できる（メモ経由なので再ロードは起きない）
       const result = await toolHandlers.get_structure({ spec: 'iso32000-2' });
       expect(result.totalPages).toBeGreaterThan(0);
     });
 
-    // X-3: LRU 順序の正しさ
-    it('X-3: アクセス順がLRU順序で更新される', async () => {
-      // 4つのスペックをロード
-      await toolHandlers.get_structure({ spec: 'ts32001' });
-      await toolHandlers.get_structure({ spec: 'ts32002' });
-      await toolHandlers.get_structure({ spec: 'ts32003' });
-      await toolHandlers.get_structure({ spec: 'ts32004' });
-
-      // ts32001 を再アクセスしてLRU更新
-      await toolHandlers.get_structure({ spec: 'ts32001' });
-
-      // 5つ目をロード → ts32002 がエビクトされるはず
-      await toolHandlers.get_structure({ spec: 'ts32005' });
-
-      // ts32001 はまだキャッシュにある（最近アクセスした）
-      const { durationMs: ts1Time } = await withTiming(() =>
-        toolHandlers.get_structure({ spec: 'ts32001' }),
-      );
-
-      // ts32002 はエビクトされたが再ロード可能
-      const result = await toolHandlers.get_structure({ spec: 'ts32002' });
+    // X-3: さらに別系統の spec を跨いでも破綻しない
+    it('X-3: 別系統の spec を連続で跨いでも全て取得できる', async () => {
+      const specs = ['ts32001', 'ts32002', 'ts32003', 'ts32004', 'ts32005'];
+      for (const specId of specs) {
+        const result = await toolHandlers.get_structure({ spec: specId });
+        expect(result.totalPages).toBeGreaterThan(0);
+      }
+      // 最初に戻っても取得できる
+      const result = await toolHandlers.get_structure({ spec: 'ts32001' });
       expect(result.totalPages).toBeGreaterThan(0);
     });
   });

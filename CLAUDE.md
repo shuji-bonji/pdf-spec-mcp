@@ -55,7 +55,18 @@ Table 166 の `CA`/`BM`/`Lang`、Table 171 の注釈型 7→28 行、Annex A の
 **連結されずに表が 1 個増え、以降の `table_index` がずれる**（8.7.4.5.5 で実際に出した退行）。
 欠落行より悪い。ヘッダなしの表を対象外にしているのはこのため（S-4）。
 
-### 3. stdout を汚すのは `console.log` と `console.info`（`warn` ではない）
+### 3. 「LRU を検証している」テストは LRU に届いていなかった（2026-07-18 是正）
+
+`get_structure` は `getSectionIndex` のメモ（spec ごと・**上限なし・無期限**）を引くため、
+**2 回目以降は loader を一切呼ばない**。e2e の X-1〜X-3 はこれを通してドキュメント LRU を
+検証したつもりだったが、実際には section-index メモを測っていただけで、
+**LRU が完全に壊れていても緑のまま**だった（`pdf-loader.test.ts` にも LRU テストは無かった）。
+
+教訓: **キャッシュの層が 2 つある**（上位 = section-index メモ、下位 = ドキュメント LRU）。
+上位を通すテストは下位に届かない。ドキュメント LRU は `DocumentLoaderService` に
+`DocumentSource` を注入して直接検証する（`pdf-loader.test.ts`）。
+
+### 4. stdout を汚すのは `console.log` と `console.info`（`warn` ではない）
 
 Node では **`console.log` / `console.info` が stdout**、`warn` / `error` は stderr。
 pdfjs-dist v5 の実際の経路は `warn()` → `console.warn`（stderr・**stdout は汚さない**）、
@@ -73,7 +84,12 @@ npm run test:e2e  # 実 PDF（PDF_SPEC_DIR=./pdf-spec）
 
 - `PDFSpecService` は registry / loader を**コンストラクタ注入**するので、`vi.mock` なしで
   合成 PDF を組んで実コードを通せる（`src/services/pdf-service.test.ts` が実例）
-- **新しいテストは必ず旧実装に当てて落ちることを確認する**。通ってしまうならバグを捉えていない
+- **新しいテストは必ず「壊して落ちる」ことを確認する**。通ってしまうならバグを捉えていない。
+  旧実装に当てる（B-S1）か、dist を変異させる（LRU）。実際どちらでも自分のテスト/主張の
+  誤りが 1 件ずつ見つかっている
+- pdfjs は import 時に `DOMMatrix` を要求する（本来 `@napi-rs/canvas` が供給）。LRU のように
+  pdfjs が無関係なロジックを素の node で回したいときは `globalThis.DOMMatrix ??= class {}` で
+  import を通せる
 - 抽出ロジックを変えたら、**旧実装を `git worktree` で並べてビルドし、全セクションに
   `get_tables` 等を流して JSON 差分を取る**。「行を失った表 0 / 表の個数が変わった表 0」を
   機械的に示せる。8.7.4.5.5 の退行はこの全数差分でしか見つからなかった
