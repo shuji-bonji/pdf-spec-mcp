@@ -9,11 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ページを跨ぐ表の行が失われる問題を修正**（B-S1・正典としての本丸）。
+  セクションのページ範囲は outline から `[page, 次セクションの page - 1]` として決まるため、
+  表が最終ページを越えて続く場合、残りの行は「次セクションの先頭ページの、見出しより上」に取り残される。
+  この帯はどのセクションにも属していなかった（このセクションのページ範囲外であり、かつ
+  `trimToSectionStart` が次セクションの内容から捨てる）ため、**行が丸ごと消えていた**。
+  ISO 32000-2 全 988 セクションを走査した結果、**148 個の表**が行を取りこぼしていた。例:
+  - Table 182（12.5.6.10）… `QuadPoints` 行（p.508 へ脱落）— Issue #8 の発端となった実害
+  - Table 166（12.5.2）… `CA` / `BM` / `Lang`（16 → 19 行）
+  - Table 171（12.5.6）… 注釈型が 7 → 28 行（全型が揃った）
+  - Annex A の演算子一覧 … 11 → 73 行
+  セクション**内**の継続は従来どおり `collectStructTreeTables` が連結しており、修正は境界のみ。
+  検証: 旧実装との全セクション差分で、**行を失った表 0 件 / 表の個数が変わった表 0 件**。
+  既知の限界として、ヘッダ行を持たない表（例: 8.7.4.5.5）は連結対象外（下記の理由）
 - **stdout ガードを追加**（[#8](https://github.com/shuji-bonji/pdf-spec-mcp/issues/8) 項目 1・family 規約 §2.4）。
   MCP は stdout で JSON-RPC を喋るが、本リポジトリが依存する pdfjs-dist の `warn()` は
   `console.log`（= stdout）を使うため、JSON-RPC ストリームが壊れうる（reader で実証済みの事故）。
   `src/utils/stdout-guard.ts` を追加し `console.log` / `console.warn` を stderr へリダイレクトする。
-  ESM の import 巻き上げにより、ガードは `index.ts` の**最初の import** である必要がある
+  ESM の import 巻き上げにより、ガードは `index.ts` の**最初の import** である必要がある。
+  なお pdfjs-dist v5 の実際の経路を確認したところ、`warn()` は `console.warn`（= stderr）で
+  **stdout は汚さない**。stdout に出るのは `info()`（`console.info`）と `deprecated()`（`console.log`）で、
+  Node では `console.log` と `console.info` が stdout に出る。よって本リポジトリのガードは
+  **`console.info` も塞いでいる**（family の writer / verify は log と warn のみで info が素通り。要追随）
 
 ### Changed
 
