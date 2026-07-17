@@ -7,7 +7,12 @@
  */
 
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api.js';
-import { CACHE_CONFIG, CONCURRENCY } from '../config.js';
+import {
+  CACHE_CONFIG,
+  CONCURRENCY,
+  MAX_TABLE_CONTINUATION_PAGES,
+  TABLE_CAPTION_START_RE,
+} from '../config.js';
 import { ContentError } from '../errors.js';
 import type {
   ContentElement,
@@ -20,6 +25,7 @@ import type {
   SearchHit,
   SectionIndex,
   SectionResult,
+  TableElement,
   TableInfo,
   TablesResult,
   TextIndex,
@@ -364,12 +370,19 @@ class PDFSpecService {
     const id = this.registry.resolveSpecId(specId);
     const result = await this.getSectionContent(sectionId, id);
 
+    // A table may spill past the section's last page (see collectTrailingTableRows).
+    // Append those rows before collecting, so the normal continuation rule merges them.
+    const content = [
+      ...result.content,
+      ...(await this.collectTrailingTableRows(id, result.content, result.pageRange.end)),
+    ];
+
     // Collect tables from StructTree (type: 'table')
-    let tables: TableInfo[] = collectStructTreeTables(result.content);
+    let tables: TableInfo[] = collectStructTreeTables(content);
 
     // Fallback: text-based table detection if StructTree has no tables
     if (tables.length === 0) {
-      tables = detectTablesFromText(result.content);
+      tables = detectTablesFromText(content);
     }
 
     if (tableIndex !== undefined) {
@@ -393,6 +406,72 @@ class PDFSpecService {
       tables,
     };
   }
+
+  /**
+   * Table rows that live past the section's last page ("the seam").
+   *
+   * Section page ranges come from the outline as `[page, nextSection.page - 1]`
+   * (see outline-resolver), so when a table spills over the section's last page its
+   * remaining rows sit at the top of `endPage + 1` — above the next section's heading.
+   * That strip belongs to no section today: it is outside this section's page range,
+   * and `trimToSectionStart` discards it from the next section's content. Rows are
+   * therefore lost outright, which for a canon is fatal:
+   *   - Table 182 (12.5.6.10) loses its `QuadPoints` row to p.508
+   *   - Table 166 (12.5.2) loses `CA` / `BM` / `Lang` to p.485
+   * Continuations *within* a section already merge correctly (collectStructTreeTables),
+   * so only this boundary case needs handling.
+   *
+   * Returns the continuation table elements so collectStructTreeTables merges them by
+   * its existing rule (same headers, no caption). Conservative by design — it bails
+   * unless the evidence says "this really is the same table continuing":
+   *   - the section's content must END with a table (otherwise the table already closed)
+   *   - that table must have headers, because a headerless table is exactly what
+   *     collectStructTreeTables refuses to merge. Appending rows it will not merge only
+   *     invents a spurious extra table (observed in 8.7.4.5.5), which is worse than the
+   *     missing row: it shifts every subsequent `table_index`. The rule here must mirror
+   *     the merge rule it depends on. Headerless tables therefore still lose spillover
+   *     rows — a known gap, tracked rather than papered over.
+   *   - the strip above the next heading must start with a table whose headers match
+   *   - a `Table N — ...` caption ends the strip: that is a NEW table, not a continuation
+   */
+  private async collectTrailingTableRows(
+    specId: string,
+    content: ContentElement[],
+    endPage: number,
+  ): Promise<ContentElement[]> {
+    const last = content[content.length - 1];
+    if (last?.type !== 'table' || last.headers.length === 0) return [];
+
+    const doc = await this.loader.loadDocument(this.registry.getSpecPath(specId));
+    const collected: ContentElement[] = [];
+    let expectedHeaders = last.headers;
+
+    const lastPage = Math.min(endPage + MAX_TABLE_CONTINUATION_PAGES, doc.numPages);
+    for (let page = endPage + 1; page <= lastPage; page++) {
+      // No sectionNumber → no trimming; we want this page's leading strip verbatim.
+      const elements = await extractSectionContent(doc, page, page);
+
+      // The strip ends at the next section's heading, or at a new table's caption.
+      const stopIdx = elements.findIndex(
+        (el) =>
+          el.type === 'heading' ||
+          (el.type === 'paragraph' && TABLE_CAPTION_START_RE.test(el.text)),
+      );
+      const strip = stopIdx === -1 ? elements : elements.slice(0, stopIdx);
+
+      const continuation = strip.find((el): el is TableElement => el.type === 'table');
+      if (!continuation || !arraysEqual(continuation.headers, expectedHeaders)) break;
+
+      collected.push(continuation);
+      expectedHeaders = continuation.headers;
+
+      // A heading/caption on this page means the table ended here; otherwise the whole
+      // page was continuation and it may run onto the next one.
+      if (stopIdx !== -1) break;
+    }
+
+    return collected;
+  }
 }
 
 // ========================================
@@ -413,7 +492,7 @@ function collectStructTreeTables(content: ContentElement[]): TableInfo[] {
     let caption: string | null = null;
     if (i > 0) {
       const prev = content[i - 1];
-      if (prev.type === 'paragraph' && /^Table\s+\d+/.test(prev.text)) {
+      if (prev.type === 'paragraph' && TABLE_CAPTION_START_RE.test(prev.text)) {
         caption = prev.text;
       }
     }

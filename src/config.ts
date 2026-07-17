@@ -38,6 +38,19 @@ export const VALIDATION_LIMITS = {
   defaultMaxResults: 10,
 } as const;
 
+/**
+ * How many pages past a section's last page to follow a table continuation.
+ *
+ * Section ranges end at `nextSection.page - 1`, so a continuation normally occupies
+ * exactly one page (`endPage + 1`) before the next heading appears. The allowance
+ * exists only for tables long enough to fill whole pages with no heading in sight;
+ * it caps the damage if the outline's page numbers are wrong.
+ */
+export const MAX_TABLE_CONTINUATION_PAGES = 5;
+
+/** Matches a table caption paragraph ("Table 182 — Additional entries...") */
+export const TABLE_CAPTION_START_RE = /^Table\s+\d+/;
+
 /** Concurrency limits for chunked parallel processing */
 export const CONCURRENCY = {
   /** Pages processed in parallel during search index build */
