@@ -3,8 +3,8 @@
  * Tests parseSectionNumber() and the LRU document cache.
  */
 
-import { describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api.js';
+import { describe, expect, it, vi } from 'vitest';
 import { DocumentLoaderService, parseSectionNumber } from './pdf-loader.js';
 
 describe('parseSectionNumber', () => {

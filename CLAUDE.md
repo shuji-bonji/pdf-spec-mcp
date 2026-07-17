@@ -29,7 +29,9 @@ Biome は薄いラッパがプラットフォーム別バイナリを探す構�
 
 - **エージェント**: `npm install` / `npm ci` を実行しない。ホストが install した直後は
   `npm test` / `biome` も動かないので、**テストと lint はホスト側で実行してもらう**。
-  依存を変えたいときは `package.json` を編集し、**ホストでの `npm install` を依頼する**
+  依存を変えたいときは `package.json` を編集し、**ホストでの `npm install` を依頼する**。
+  ただし `npm run check:imports` は素の node で動くので、**import を触ったら必ず実行する**
+  （biome の `organizeImports` 違反はこれで事前に潰せる。ホストに投げて指摘されるのは無駄）
 - **ホスト**: 壊れた場合は `npm install` で直る（`package-lock.json` には全 8 プラットフォームの
   エントリがあるので lockfile は無傷。CI の `npm ci` も各 OS で正しく解決する）
 
@@ -78,8 +80,9 @@ ESM は import を巻き上げるため、ガードは `index.ts` の**最初の
 ## テスト
 
 ```bash
-npm test          # ユニット（仕様 PDF 不要）
-npm run test:e2e  # 実 PDF（PDF_SPEC_DIR=./pdf-spec）
+npm test              # ユニット（仕様 PDF 不要）
+npm run test:e2e      # 実 PDF（PDF_SPEC_DIR=./pdf-spec）
+npm run check:imports # import 順（biome なしで動く。サンドボックスからでも実行可）
 ```
 
 - `PDFSpecService` は registry / loader を**コンストラクタ注入**するので、`vi.mock` なしで
