@@ -165,12 +165,12 @@ pdf-specs/
 ### 2. インストール
 
 このパッケージは MCP クライアントから起動される CLI バイナリ（`pdf-spec-mcp`）を提供します。
-**通常は手動でインストールする必要はありません** — 次のステップのように MCP クライアント側で `npx @shuji-bonji/pdf-spec-mcp` を指定してください。
+**通常は手動でインストールする必要はありません** — 次のステップのように MCP クライアント側で `npx @shuji-bonji/pdf-spec-mcp@latest` を指定してください。
 
 シェルから直接動作確認したい場合（デバッグ用途など）:
 
 ```bash
-PDF_SPEC_DIR=/path/to/pdf-specs npx -y @shuji-bonji/pdf-spec-mcp
+PDF_SPEC_DIR=/path/to/pdf-specs npx -y @shuji-bonji/pdf-spec-mcp@latest
 ```
 
 グローバルインストールしたい場合（任意）:
@@ -197,7 +197,7 @@ PDF_SPEC_DIR=/path/to/pdf-specs pdf-spec-mcp
   "mcpServers": {
     "pdf-spec": {
       "command": "npx",
-      "args": ["-y", "@shuji-bonji/pdf-spec-mcp"],
+      "args": ["-y", "@shuji-bonji/pdf-spec-mcp@latest"],
       "env": {
         "PDF_SPEC_DIR": "/path/to/pdf-specs"
       }
@@ -205,6 +205,13 @@ PDF_SPEC_DIR=/path/to/pdf-specs pdf-spec-mcp
   }
 }
 ```
+
+> [!IMPORTANT]
+> **`@latest` を付ける（またはバージョンを固定する）。** バージョン指定なしの `npx -y <pkg>` は
+> **最初にキャッシュしたものを使い続ける** — `-y` はインストールの確認を省くだけで、更新は確認しない。
+> 指定なしだと数ヶ月前のリリースが動き続けることがある。`@latest` を付けると npx が起動のたびに
+> レジストリを確認する。再現性が要るなら `@0.4.0` のように固定する。
+> 古いキャッシュを消すには `rm -rf ~/.npm/_npx`。
 
 #### Cursor / VS Code
 
@@ -215,7 +222,7 @@ PDF_SPEC_DIR=/path/to/pdf-specs pdf-spec-mcp
   "mcpServers": {
     "pdf-spec": {
       "command": "npx",
-      "args": ["-y", "@shuji-bonji/pdf-spec-mcp"],
+      "args": ["-y", "@shuji-bonji/pdf-spec-mcp@latest"],
       "env": {
         "PDF_SPEC_DIR": "/path/to/pdf-specs"
       }

@@ -133,8 +133,20 @@ npm run check:imports    # import 順（biome なしで動く。サンドボッ�
 
 ## リリース
 
-1. `package.json` の version を上げる → `CHANGELOG.md` に追記
-2. コミット → push → `git tag vX.Y.Z && git push origin vX.Y.Z`
-3. `publish.yml` が Trusted Publisher (OIDC) で公開
+1. `CHANGELOG.md` の `## [Unreleased]` を `## [X.Y.Z] - YYYY-MM-DD` に確定する
+   （`[Unreleased]` の見出しだけ残すのは可。中身が残っていると publish が止まる）
+2. `package.json` の version を上げる
+3. コミット → push → `git tag vX.Y.Z && git push origin vX.Y.Z`
+4. `publish.yml` が Trusted Publisher (OIDC) で公開
 
-タグと version が一致しないと workflow が停止する。**空 bump を避ける**（規約 §2.8）。
+`publish.yml` が止める事故（規約 §2.8）:
+
+| 検査 | 防ぐ事故 |
+|---|---|
+| タグ == `package.json` の version | タグだけ先行して版上げを忘れる |
+| `## [X.Y.Z]` の節がある | CHANGELOG の書き忘れ |
+| **その節に中身がある** | **空 bump**（v0.3.2 がこれだった。見出しだけでは通らない） |
+| `[Unreleased]` が空 | 書いたが移し忘れ、無記載のまま出る |
+
+`npx` の例には **`@latest` を付ける**。バージョン指定なしの `npx -y <pkg>` は最初にキャッシュした
+ものを使い続ける（`-y` は確認を省くだけで更新は見ない）。README 4 箇所と `.claude-plugin/plugin.json`。

@@ -165,12 +165,12 @@ pdf-specs/
 ### 2. Install
 
 This package ships a CLI binary (`pdf-spec-mcp`) intended to be launched by an MCP client.
-**You do not need to install it manually** — just point your MCP client to `npx @shuji-bonji/pdf-spec-mcp` as shown in the next step.
+**You do not need to install it manually** — just point your MCP client to `npx @shuji-bonji/pdf-spec-mcp@latest` as shown in the next step.
 
 If you want to run it directly from the shell (e.g. for debugging):
 
 ```bash
-PDF_SPEC_DIR=/path/to/pdf-specs npx -y @shuji-bonji/pdf-spec-mcp
+PDF_SPEC_DIR=/path/to/pdf-specs npx -y @shuji-bonji/pdf-spec-mcp@latest
 ```
 
 Or install it globally (optional):
@@ -197,7 +197,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "pdf-spec": {
       "command": "npx",
-      "args": ["-y", "@shuji-bonji/pdf-spec-mcp"],
+      "args": ["-y", "@shuji-bonji/pdf-spec-mcp@latest"],
       "env": {
         "PDF_SPEC_DIR": "/path/to/pdf-specs"
       }
@@ -205,6 +205,13 @@ Add to `claude_desktop_config.json`:
   }
 }
 ```
+
+> [!IMPORTANT]
+> **Use `@latest` (or pin a version).** `npx -y <pkg>` without a version keeps running whatever
+> it cached the first time — `-y` only skips the install prompt, it does not check for updates.
+> A bare specifier will happily run a months-old release. `@latest` makes npx check the registry
+> on each start; pin `@0.4.0` instead if you want reproducibility.
+> To clear a stale cache: `rm -rf ~/.npm/_npx`.
 
 #### Cursor / VS Code
 
@@ -215,7 +222,7 @@ Add to `.cursor/mcp.json` or VS Code MCP settings:
   "mcpServers": {
     "pdf-spec": {
       "command": "npx",
-      "args": ["-y", "@shuji-bonji/pdf-spec-mcp"],
+      "args": ["-y", "@shuji-bonji/pdf-spec-mcp@latest"],
       "env": {
         "PDF_SPEC_DIR": "/path/to/pdf-specs"
       }

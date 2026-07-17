@@ -55,6 +55,35 @@ jobs:
           fi
           echo "Version verified: $PACKAGE_VERSION"
 
+      # 空 bump（内容の変更が無い版上げ）と CHANGELOG の書き忘れを防ぐ（規約 §2.8）。
+      # v0.3.2 は「publish 済みバージョンとの整合を取るための版上げ」で、パッケージ内容に
+      # 変更が無かった。同じことを繰り返さないための機械的な歯止め。
+      #
+      # 3 つを見る:
+      #   1. このバージョンの節があるか（タグだけ先行する事故）
+      #   2. その節に中身があるか（← 空 bump の本体。見出しだけ足せば通る検査では意味がない）
+      #   3. [Unreleased] が空か（書いたつもりが移し忘れ、無記載のまま出る事故）
+      - name: Verify CHANGELOG documents this release
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if ! grep -qE "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "Error: CHANGELOG.md has no '## [$VERSION]' section."
+            exit 1
+          fi
+          BODY=$(sed -n "/^## \[$VERSION\]/,/^## \[/{/^## \[/!p}" CHANGELOG.md | grep -v '^\s*$' || true)
+          if [ -z "$BODY" ]; then
+            echo "Error: the '## [$VERSION]' section is empty."
+            echo "A release has to say what changed. If nothing changed, do not release."
+            exit 1
+          fi
+          UNRELEASED=$(sed -n "/^## \[Unreleased\]/,/^## \[/{/^## \[/!p}" CHANGELOG.md | grep -v '^\s*$' || true)
+          if [ -n "$UNRELEASED" ]; then
+            echo "Error: CHANGELOG.md still has content under [Unreleased]."
+            echo "Move it under '## [$VERSION]' before tagging, or it ships undocumented."
+            exit 1
+          fi
+          echo "CHANGELOG verified for $VERSION"
+
       # Trusted Publisher + provenance つき publish。
       # Node 同梱の npm 10.x は OIDC 連携が不完全で 404 になるため、
       # npx で最新の npm（11.x 以降）を明示的に使う。
