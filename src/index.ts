@@ -5,14 +5,17 @@
  * MCP server for structured understanding of ISO 32000 (PDF) specifications
  */
 
+// MUST be the first import: installs the stdout guard before any dependency
+// (notably pdfjs-dist) is evaluated. See utils/stdout-guard.ts.
+import './utils/stdout-guard.js';
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-
-import { tools } from './tools/definitions.js';
-import { toolHandlers, type ToolName } from './tools/handlers.js';
-import { PDFSpecError } from './errors.js';
 import { PACKAGE_INFO } from './config.js';
+import { PDFSpecError } from './errors.js';
+import { tools } from './tools/definitions.js';
+import { type ToolName, toolHandlers } from './tools/handlers.js';
 
 const server = new Server(
   {
@@ -23,7 +26,7 @@ const server = new Server(
     capabilities: {
       tools: {},
     },
-  }
+  },
 );
 
 // List tools
