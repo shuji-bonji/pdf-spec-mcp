@@ -31,21 +31,19 @@
 2. ~~**Biome への移行**（ESLint + Prettier 廃止）~~ — ✅ **完了（2026-07-18）**。2.5.4 完全固定。
    CI / publish に `npm run check` + `npm run typecheck` を組み込み済み
 3. ~~**未使用 `container.ts` の決着**~~ — ✅ **完了（2026-07-18）: 削除**
-4. **McpServer + registerTool + zod への移行**（規約 §2.1）— ツール 8 個。**← 次はここ**
-   annotations も同時付与（spec は読み取り専用なので全ツール `readOnlyHint: true`）。
-   **外部仕様は変えない**。
+4. ~~**McpServer + registerTool + zod への移行**（規約 §2.1）~~ — ✅ **完了（2026-07-18）**。
+   Zod をただ一つの情報源とし（公開スキーマ + 実行時検査）、`types/index.ts` の Args 型は撤去。
+   全ツールに annotations（`readOnlyHint: true` / `openWorldHint: false`）を付与。
+   安全網は `src/registry.test.ts`（プロトコル越しの外部仕様スナップショット）。
 
-   ✅ **安全網は用意済み（2026-07-18）**: `src/registry.test.ts` が 8 ツールの名前・必須フィールド・
-   受入引数・description・エラー応答（`isError` + `code`）を **MCP プロトコル越しに**固定している。
-   `tools/definitions.ts` を直接読まずプロトコルを叩いているので、**A-4 でこのテストを書き換える
-   必要はない**（書き換えたら安全網にならない）。そのために `buildServer()` を `src/server.ts` へ
-   切り出してある（index.ts は stdio に繋ぐだけ）。
-   変異で以下を検出することを確認済み: ツールの公開漏れ / `.optional()` の付け間違えによる
-   必須フィールド喪失 / zod スキーマの引数写し漏れ / 構造化エラーを返さず throw する
-5. **構造化エラー応答**（規約 §2.3）— `code` / `retryable` / `hint` / `next_actions`。
-   `ToolPrerequisiteError`（PDF_SPEC_DIR 未設定）は `next_actions` で設定手順を返すと
-   編成 Skill からの利用が堅牢になる
-6. **リリース運用** — 空 bump を避ける、README の npx 例に `@latest`
+   > ⚠️ **外部仕様が 1 点変わった（意図的）**: スキーマ違反（必須欠落・型違い・範囲外）は
+   > `registerTool` がハンドラを呼ぶ前に弾くため、MCP 標準の `-32602` になり
+   > `{error, code}` ではなくなる。`isError` は立つ。スキーマを通ったエラーは従来どおり構造化される。
+   > この境界は registry.test.ts が明示的に固定している
+5. ~~**構造化エラー応答**（規約 §2.3）~~ — ✅ **完了（2026-07-18）**。
+   `code` / `hint` / `next_actions` / `retryable`。コーパスが著作物で同梱できず
+   「ファイルが無い」が初回の通常フローなので、`next_actions` にファイル名と配布 URL まで載せた
+6. **リリース運用** — 空 bump を避ける、README の npx 例に `@latest`。**← 次はここ**
 
 ### B. 正典としての機能要件（Issue #8 の範囲外・今回の照合で判明）
 
@@ -109,15 +107,16 @@
 3. ~~**B-S1（ページ跨ぎの表）**~~ — ✅ 完了（2026-07-18）
 4. ~~**S-5（帯を get_section 側で直す）**~~ — ✅ 完了（2026-07-18）
 5. ~~**S-7（要件抽出が表を見ていない）**~~ — ✅ 完了（2026-07-18）
-6. **A-4（McpServer + zod）+ A-5（構造化エラー）** — 構造の刷新（外部仕様は不変）**← 次はここ**
-7. **B-S2（コーパス明示）+ S-4（ヘッダなしの表の分裂）+ S-2 / S-3**
+6. ~~**A-4（McpServer + zod）+ A-5（構造化エラー）**~~ — ✅ 完了（2026-07-18）
+7. ~~**S-2（コーパス明示）/ S-3（候補提示）**~~ — ✅ 完了（2026-07-18）
+8. **A-6（リリース運用）→ 0.4.0 を切る** — **← 次はここ**
+9. **S-4（ヘッダなしの表の分裂）** — 残っている唯一の実装項目（影響 5 セクション）
 
-## 2026-07-18 セッションの記録（A-1〜A-3 + B-S1 + S-5）
+## 2026-07-18 セッションの記録（Issue #8 完了 + S-1〜S-3 / S-5 / S-7）
 
-- **未リリース**。CHANGELOG は `[Unreleased]` に積んである。A-4/A-5 まで進めてから
-  まとめて 1 回で版を上げるのがよい（規約 §2.8「空 bump を避ける」の精神）。
-  ただし S-5 は **412 セクションの内容欠落・要件 2974 件**を直す利用者影響の大きい修正なので、
-  A-4 を待たず先に minor を切る判断もありうる
+- **未リリース**。CHANGELOG は `[Unreleased]` に集約済み。**残るは A-6 とリリースのみ**。
+  内容は 0.4.0 相当（抽出の大幅な是正 + 外部仕様の破壊的変更 1 点）。
+  **リリースのコミットとタグはホスト側で打つこと**（agent のコミットは unverified）
 - **検証手法（次回も必ず使うこと）**:
   1. **旧実装を `git worktree` で並べてビルドし、全 987 セクションに流して JSON 差分**。
      B-S1 ではこれが 8.7.4.5.5 の退行を捕まえ、S-5 ではこれが
@@ -130,11 +129,12 @@
   コンストラクタ注入するので、**vi.mock なしで合成 PDF を組んで実コードを通せる**
 - pdfjs は import 時に `DOMMatrix` を要求する。素の node で回すときは
   `globalThis.DOMMatrix ??= class {}` で import を通せる（サンドボックスでは必須）
-- A-4 に着手する際の注意: `biome.json` の `organizeImports` は side-effect import
-  （`import './utils/stdout-guard.js'`）を先頭に保つことを確認済み。ただし index.ts を
-  触るときは **build 後の `dist/index.js` で import 順が保たれているか**を毎回見ること
-- A-4 の非破壊性は writer 同様 `tests/registry.test.ts` 相当のスナップショットで担保するとよい
-  （現状 spec には未整備。移行前に先に書くこと）
+- **`npm run typecheck` はテストを型検査しない**（`tsconfig.json` の exclude）。A-4 で
+  旧バリデータを消したまま `validation.test.ts` を放置し 39 件落とした。
+  **公開 API を触ったら `npm run typecheck:tests` を必ず実行する**（素の node で動く）
+- `biome.json` の `organizeImports` は side-effect import（`stdout-guard.js`）を先頭に保つ。
+  ただし index.ts を触ったら build 後の `dist/index.js` で import 順を確認すること
+- サンドボックスからでも回せる検査: `npm run typecheck` / `typecheck:tests` / `check:imports`
 
 ## 参照すべき先行実装
 
