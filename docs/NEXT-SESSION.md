@@ -31,9 +31,17 @@
 2. ~~**Biome への移行**（ESLint + Prettier 廃止）~~ — ✅ **完了（2026-07-18）**。2.5.4 完全固定。
    CI / publish に `npm run check` + `npm run typecheck` を組み込み済み
 3. ~~**未使用 `container.ts` の決着**~~ — ✅ **完了（2026-07-18）: 削除**
-4. **McpServer + registerTool + zod への移行**（規約 §2.1）— ツール 8 個。
+4. **McpServer + registerTool + zod への移行**（規約 §2.1）— ツール 8 個。**← 次はここ**
    annotations も同時付与（spec は読み取り専用なので全ツール `readOnlyHint: true`）。
-   **外部仕様は変えない**（writer v0.7.0 の移行時は `registry.test.ts` でスナップショット固定した。同じ手が使える）
+   **外部仕様は変えない**。
+
+   ✅ **安全網は用意済み（2026-07-18）**: `src/registry.test.ts` が 8 ツールの名前・必須フィールド・
+   受入引数・description・エラー応答（`isError` + `code`）を **MCP プロトコル越しに**固定している。
+   `tools/definitions.ts` を直接読まずプロトコルを叩いているので、**A-4 でこのテストを書き換える
+   必要はない**（書き換えたら安全網にならない）。そのために `buildServer()` を `src/server.ts` へ
+   切り出してある（index.ts は stdio に繋ぐだけ）。
+   変異で以下を検出することを確認済み: ツールの公開漏れ / `.optional()` の付け間違えによる
+   必須フィールド喪失 / zod スキーマの引数写し漏れ / 構造化エラーを返さず throw する
 5. **構造化エラー応答**（規約 §2.3）— `code` / `retryable` / `hint` / `next_actions`。
    `ToolPrerequisiteError`（PDF_SPEC_DIR 未設定）は `next_actions` で設定手順を返すと
    編成 Skill からの利用が堅牢になる
