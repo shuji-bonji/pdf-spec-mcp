@@ -121,7 +121,6 @@ const outline = (entries: [string, number][]): OutlineEntry[] =>
 // Tests
 // ========================================
 
-
 describe('getSectionContent — the orphaned strip at the section boundary', () => {
   /** Kinds of the elements a section ends up with, for compact assertions. */
   const kinds = (content: { type: string }[]) => content.map((e) => e.type);
@@ -146,7 +145,9 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     const first = await svc.getSectionContent('1.1', 'test-spec');
 
     expect(kinds(first.content)).toEqual(['heading', 'paragraph', 'paragraph']);
-    expect((first.content[2] as { text: string }).text).toBe('The tail of 1.1, which spilled over.');
+    expect((first.content[2] as { text: string }).text).toBe(
+      'The tail of 1.1, which spilled over.',
+    );
   });
 
   it('does not count the strip twice: the next section still excludes it', async () => {
@@ -353,10 +354,7 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
     // The point of generalising B-S1: 271 sections of ISO 32000-2 strand "shall" text.
     const doc = createDoc([
       [headingFixture('1.1 First'), paragraphFixture('An introduction with no requirement.')],
-      [
-        paragraphFixture('The value shall be a positive integer.'),
-        headingFixture('1.2 Second'),
-      ],
+      [paragraphFixture('The value shall be a positive integer.'), headingFixture('1.2 Second')],
     ]);
     const svc = createService(
       doc,
