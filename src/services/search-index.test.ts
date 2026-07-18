@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SectionIndex, SectionInfo, TextIndex } from '../types/index.js';
-import { searchTextIndex } from './search-index.js';
+import { buildSearchIndex, searchTextIndex } from './search-index.js';
 
 function createTestIndex(): { textIndex: TextIndex; sectionIndex: SectionIndex } {
   const sectionA: SectionInfo = {
@@ -149,5 +149,92 @@ describe('searchTextIndex', () => {
     const andResults = searchTextIndex(textIndex, 'digital authentication', 10, sectionIndex);
     // Exact phrase match should score higher
     expect(results[0].score).toBeGreaterThan(andResults[0].score);
+  });
+});
+
+describe('buildSearchIndex (S-8: strip attribution)', () => {
+  function sectionInfo(sectionNumber: string, title: string, page: number): SectionInfo {
+    return { sectionNumber, title, page, endPage: page, depth: 1, parent: null, children: [] };
+  }
+
+  /** Mock page: structTree of headings/paragraphs plus matching text items. */
+  function mockPage(parts: Array<{ h?: string; p?: string }>) {
+    const children: unknown[] = [];
+    const textItems: unknown[] = [];
+    parts.forEach((part, i) => {
+      const id = `mc${i}`;
+      children.push({
+        role: part.h !== undefined ? 'H3' : 'P',
+        children: [{ type: 'content', id }],
+      });
+      textItems.push({ type: 'beginMarkedContentProps', id });
+      textItems.push({ str: part.h ?? part.p ?? '', hasEOL: false });
+      textItems.push({ type: 'endMarkedContent' });
+    });
+    return {
+      getStructTree: async () => ({ role: 'Document', children }),
+      getTextContent: async () => ({ items: textItems, styles: {} }),
+    };
+  }
+
+  function mockDoc(pages: ReturnType<typeof mockPage>[]) {
+    return {
+      numPages: pages.length,
+      getPage: async (n: number) => pages[n - 1],
+    } as unknown as import('./pdf-loader.js').PDFDocumentProxy;
+  }
+
+  it('attributes the strip above a heading to the section flowing in, not the new one', async () => {
+    // The S-8 shape: page 2 opens with the tail of §1.1 (QuadPoints), then §1.2 starts.
+    // The whole-page index attributed QuadPoints to 1.2 — a section where get_section
+    // cannot find it.
+    const doc = mockDoc([
+      mockPage([{ h: '1.1 Text markup annotations' }, { p: 'Text markup body.' }]),
+      mockPage([
+        { p: 'QuadPoints shall be an array of 8 x n numbers.' },
+        { h: '1.2 Caret annotations' },
+        { p: 'A caret annotation is a visual symbol.' },
+      ]),
+    ]);
+    const s11 = sectionInfo('1.1', 'Text markup annotations', 1);
+    const s12 = sectionInfo('1.2', 'Caret annotations', 2);
+    const sectionIdx: SectionIndex = {
+      tree: [],
+      sections: new Map([
+        ['1.1', s11],
+        ['1.2', s12],
+      ]),
+      flatOrder: [s11, s12],
+      totalPages: 2,
+    };
+
+    const index = await buildSearchIndex(doc, sectionIdx);
+
+    const quad = searchTextIndex(index, 'QuadPoints', 10, sectionIdx);
+    expect(quad[0].section).toBe('1.1');
+    expect(quad[0].page).toBe(2);
+
+    const caret = searchTextIndex(index, 'caret annotation', 10, sectionIdx);
+    expect(caret[0].section).toBe('1.2');
+  });
+
+  it('keeps whole pages without section starts on the raw-text path', async () => {
+    const doc = mockDoc([
+      mockPage([{ h: '1.1 First' }, { p: 'First page body.' }]),
+      mockPage([{ p: 'Continuation page entirely inside 1.1.' }]),
+    ]);
+    const s11 = sectionInfo('1.1', 'First', 1);
+    const sectionIdx: SectionIndex = {
+      tree: [],
+      sections: new Map([['1.1', s11]]),
+      flatOrder: [s11],
+      totalPages: 2,
+    };
+
+    const index = await buildSearchIndex(doc, sectionIdx);
+
+    const hits = searchTextIndex(index, 'Continuation', 10, sectionIdx);
+    expect(hits[0].section).toBe('1.1');
+    expect(hits[0].page).toBe(2);
   });
 });

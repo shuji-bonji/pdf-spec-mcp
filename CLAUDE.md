@@ -62,6 +62,21 @@ Biome は薄いラッパがプラットフォーム別バイナリを探す構�
 > さらに D.3 と D.4 に同じ 13 行を**二重計上**していた。S-5 で是正し正味 92 件。
 > **全数差分がなければ気づけなかった。**
 
+帯は **search_spec にも同じ形で現れていた**（S-8 / 2026-07-19 修正）。索引はページ単位だった
+ため、帯は必ず次セクションに誤帰属し、さらに**同一ページで複数セクションが始まると最後の
+1 つ以外は検索から不可視**だった（357 セクション）。`extractPageSegments` が
+**同じ `findSectionHeadingIndex`** でページを分割する。見出しの判定規則を変えるときは
+trimToSectionStart / extractOrphanedStrip / extractPageSegments の 3 つが同じ関数を
+通っていることを崩さないこと。
+
+### 1b. `walkStructTree` は未知コンテナ直下の content 葉を落とす
+
+TOC / TOCI / Link / Span のような未処理ロールは再帰はされるが、**その直下の content 葉は
+どこにも収集されない**。目次・正誤表（Issue #NNN）・扉ページは要素経由だと文字がほぼ出ない。
+このため `extractPageSegments` は**見出しが 1 つも見つからないページを生テキストで索引**する
+（このフォールバックを外すと Contents / Issue 系がインデックスから消える。変異テストで確認済み）。
+get_section / get_requirements にも同じ脱落が及ぶが、影響は前付・正誤表のみで本文は無事。
+
 ### 2. キャッシュされた content を参照で外に出さない（0.4.0 の退行）
 
 `sectionContentCache` が保持する `ContentElement` の配列を、そのまま結果に載せてはいけない。

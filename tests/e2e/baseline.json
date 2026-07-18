@@ -4,57 +4,57 @@
     {
       "operation": "registry-init-cold",
       "durationMs": 1,
-      "timestamp": "2026-07-18T22:34:10.367Z"
+      "timestamp": "2026-07-18T23:44:53.510Z"
     },
     {
       "operation": "get_structure-cold",
-      "durationMs": 177,
-      "timestamp": "2026-07-18T22:34:10.545Z"
+      "durationMs": 150,
+      "timestamp": "2026-07-18T23:44:53.660Z"
     },
     {
       "operation": "get_structure-cached",
       "durationMs": 0,
-      "timestamp": "2026-07-18T22:34:10.546Z"
+      "timestamp": "2026-07-18T23:44:53.662Z"
     },
     {
       "operation": "get_section-cold",
-      "durationMs": 230,
-      "timestamp": "2026-07-18T22:34:10.776Z"
+      "durationMs": 207,
+      "timestamp": "2026-07-18T23:44:53.869Z"
     },
     {
       "operation": "get_section-cached",
       "durationMs": 0,
-      "timestamp": "2026-07-18T22:34:10.776Z"
+      "timestamp": "2026-07-18T23:44:53.869Z"
     },
     {
       "operation": "search_spec-cold",
-      "durationMs": 3570,
-      "timestamp": "2026-07-18T22:34:14.346Z"
+      "durationMs": 5762,
+      "timestamp": "2026-07-18T23:44:59.631Z"
     },
     {
       "operation": "search_spec-cached",
-      "durationMs": 30,
-      "timestamp": "2026-07-18T22:34:14.376Z"
+      "durationMs": 27,
+      "timestamp": "2026-07-18T23:44:59.659Z"
     },
     {
       "operation": "get_requirements-section",
-      "durationMs": 460,
-      "timestamp": "2026-07-18T22:34:14.837Z"
+      "durationMs": 410,
+      "timestamp": "2026-07-18T23:45:00.068Z"
     },
     {
       "operation": "get_definitions-cold",
-      "durationMs": 57,
-      "timestamp": "2026-07-18T22:34:14.894Z"
+      "durationMs": 52,
+      "timestamp": "2026-07-18T23:45:00.120Z"
     },
     {
       "operation": "compare_versions-cold",
-      "durationMs": 84,
-      "timestamp": "2026-07-18T22:34:14.978Z"
+      "durationMs": 59,
+      "timestamp": "2026-07-18T23:45:00.180Z"
     },
     {
       "operation": "get_structure-all-17",
-      "durationMs": 232,
-      "timestamp": "2026-07-18T22:34:15.210Z"
+      "durationMs": 213,
+      "timestamp": "2026-07-18T23:45:00.393Z"
     }
   ]
 }

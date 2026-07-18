@@ -182,4 +182,24 @@ describe.skipIf(!HAS_PDFS)('05 - search_spec', () => {
       expect(result.totalResults).toBeGreaterThanOrEqual(0);
     }
   });
+
+  // Q-15: S-8 回帰 — 帯の内容を次セクションに誤帰属させない
+  it('Q-15: "QuadPoints" が 12.5.6.10 に帰属し、search → get_tables が繋がる', async () => {
+    // ページ 508 の上端は 12.5.6.10 の Table 182 の末尾（QuadPoints 行）。
+    // ページ単位の索引はこれを 12.5.6.11 (Caret annotations) に帰属させていたため、
+    // search で当たりを付けて get_tables("12.5.6.11") を引くと QuadPoints が無い、
+    // というツール間の矛盾になっていた。
+    const result = await toolHandlers.search_spec({
+      query: 'QuadPoints',
+      spec: 'iso32000-2',
+      max_results: 10,
+    });
+    const sections = result.results.map((r) => r.section);
+    expect(sections).toContain('12.5.6.10');
+
+    // search が返した 12.5.6.10 を get_tables で引くと、実際に QuadPoints がある
+    const tables = await toolHandlers.get_tables({ section: '12.5.6.10', spec: 'iso32000-2' });
+    const cells = tables.tables.flatMap((t) => t.rows.flat());
+    expect(cells.some((c) => c.includes('QuadPoints'))).toBe(true);
+  });
 });

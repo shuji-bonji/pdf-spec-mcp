@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { extractSectionContent } from './content-extractor.js';
+import { extractPageSegments, extractSectionContent } from './content-extractor.js';
 
 // Helper to create a mock PDFDocumentProxy
 function createMockDoc(pages: MockPageData[]) {
@@ -467,5 +467,87 @@ describe('extractSectionContent', () => {
     const elements = await extractSectionContent(doc, 1, 1);
 
     expect(elements).toEqual([{ type: 'paragraph', text: 'Nested content' }]);
+  });
+});
+
+describe('extractPageSegments (S-8)', () => {
+  /** Compact page builder: `{ h }` becomes a heading, `{ p }` a paragraph. */
+  function pageOf(...parts: Array<{ h?: string; p?: string }>): MockPageData {
+    const children: MockStructTreeNode[] = [];
+    const textItems: MockTextItem[] = [];
+    parts.forEach((part, i) => {
+      const id = `seg${i}`;
+      children.push({
+        role: part.h !== undefined ? 'H3' : 'P',
+        children: [{ type: 'content', id }],
+      });
+      textItems.push({ type: 'beginMarkedContentProps', id });
+      textItems.push({ str: part.h ?? part.p ?? '', hasEOL: false });
+      textItems.push({ type: 'endMarkedContent' });
+    });
+    return { structTree: { role: 'Document', children }, textItems };
+  }
+
+  it('cuts the strip above the heading and gives it a null owner', async () => {
+    // The QuadPoints shape: the tail of 12.5.6.10's table sits above 12.5.6.11's heading.
+    const doc = createMockDoc([
+      pageOf(
+        { p: 'QuadPoints shall be an array of 8 x n numbers.' },
+        { h: '1.2 Caret annotations' },
+        { p: 'A caret annotation is a visual symbol.' },
+      ),
+    ]);
+
+    const segments = await extractPageSegments(doc, 1, ['1.2']);
+
+    expect(segments).toHaveLength(2);
+    expect(segments[0].section).toBeNull();
+    expect(segments[0].text).toContain('QuadPoints');
+    expect(segments[0].text).not.toContain('caret annotation');
+    expect(segments[1].section).toBe('1.2');
+    expect(segments[1].text).toContain('caret annotation');
+    expect(segments[1].text).not.toContain('QuadPoints');
+  });
+
+  it('emits no strip when the heading opens the page', async () => {
+    const doc = createMockDoc([pageOf({ h: '1.2 Second' }, { p: 'Body text.' })]);
+
+    const segments = await extractPageSegments(doc, 1, ['1.2']);
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0].section).toBe('1.2');
+  });
+
+  it('gives the whole page to the section when its heading is not found', async () => {
+    // Mirrors trimToSectionStart: heading missing → the section keeps the entire page,
+    // and the previous owner adopts nothing (69 sections of ISO 32000-2).
+    const doc = createMockDoc([
+      pageOf({ p: 'Tail of the previous section.' }, { p: 'More text without a heading.' }),
+    ]);
+
+    const segments = await extractPageSegments(doc, 1, ['1.2']);
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0].section).toBe('1.2');
+    expect(segments[0].text).toContain('Tail of the previous section.');
+  });
+
+  it('cuts once per section when several start on the same page', async () => {
+    const doc = createMockDoc([
+      pageOf(
+        { p: 'Strip from before.' },
+        { h: '1.2 Second' },
+        { p: 'Second body.' },
+        { h: '1.3 Third' },
+        { p: 'Third body.' },
+      ),
+    ]);
+
+    const segments = await extractPageSegments(doc, 1, ['1.2', '1.3']);
+
+    expect(segments.map((s) => s.section)).toEqual([null, '1.2', '1.3']);
+    expect(segments[1].text).toContain('Second body.');
+    expect(segments[1].text).not.toContain('Third body.');
+    expect(segments[2].text).toContain('Third body.');
   });
 });

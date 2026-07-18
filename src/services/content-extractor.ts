@@ -124,6 +124,125 @@ export async function extractOrphanedStrip(
 }
 
 /**
+ * A page's text, cut at section headings, for the search index (S-8).
+ */
+export interface PageSegment {
+  /**
+   * Section that owns this text, or null for text above the first heading — the strip,
+   * which belongs to whichever section flows in from the previous page. The caller knows
+   * that section; this module only knows where the cut is.
+   */
+  section: string | null;
+  text: string;
+}
+
+/**
+ * Split a page's text at the headings of the sections that start on it (S-8).
+ *
+ * The search index used to hand each whole page to the last section starting on or before
+ * it, so the strip at the top of a page — the tail of the *previous* section — was always
+ * misattributed to the next one: search_spec("QuadPoints") reported 12.5.6.11, but
+ * QuadPoints is 12.5.6.10's Table 182, and get_tables("12.5.6.11") has no QuadPoints.
+ * Search led straight to a section where the term cannot be found.
+ *
+ * Cutting here uses the same findSectionHeadingIndex as trimToSectionStart /
+ * extractOrphanedStrip, so search attributes text to exactly the section whose
+ * get_section shows it (the S-5 lesson: one rule, one place). The arms mirror it too:
+ *   - heading found at index > 0 → text before it goes to the pending owner (the strip)
+ *   - heading found at index 0   → no strip
+ *   - heading not found          → the section keeps everything pending, and the previous
+ *                                  owner adopts nothing (69 sections of ISO 32000-2)
+ *
+ * When NO heading is found at all, the page is returned as one raw-text segment for the
+ * last starting section — exactly what the whole-page index did. This is not just a
+ * shortcut: walkStructTree drops text whose only home is an unhandled container (TOC /
+ * TOCI / Link / Span chains on the Contents pages, the errata "Issue #NNN" pages, the
+ * INTERNATIONAL STANDARD title page), so element text on those pages is near-empty and
+ * cutting by elements would silently drop them from the index. Headingless pages cannot
+ * be cut anyway — falling back to the raw page keeps them whole.
+ *
+ * @param startingSections - section numbers starting on this page, in document order
+ */
+export async function extractPageSegments(
+  doc: PDFDocumentProxy,
+  pageNum: number,
+  startingSections: string[],
+): Promise<PageSegment[]> {
+  const elements = await extractPageContent(doc, pageNum);
+
+  const segments: PageSegment[] = [];
+  let owner: string | null = null;
+  let start = 0;
+  let anyHeadingFound = false;
+
+  for (const sec of startingSections) {
+    const idx = findSectionHeadingIndex(elements.slice(start), sec);
+    if (idx === -1) {
+      // Mirrors trimToSectionStart keeping the whole page when the heading is missing:
+      // the section takes everything still pending (including any unemitted strip —
+      // exactly what its get_section returns), and the previous owner adopts nothing.
+      owner = sec;
+      continue;
+    }
+    anyHeadingFound = true;
+    const abs = start + idx;
+    if (abs > start) {
+      segments.push({ section: owner, text: elementsToText(elements.slice(start, abs)) });
+    }
+    owner = sec;
+    start = abs;
+  }
+
+  if (!anyHeadingFound) {
+    return [{ section: owner, text: await extractRawPageText(doc, pageNum) }].filter(
+      (s) => s.text.trim().length > 0,
+    );
+  }
+
+  segments.push({ section: owner, text: elementsToText(elements.slice(start)) });
+
+  return segments.filter((s) => s.text.trim().length > 0);
+}
+
+/**
+ * Raw page text, independent of tagging (see extractPageSegments' headingless arm).
+ */
+async function extractRawPageText(doc: PDFDocumentProxy, pageNum: number): Promise<string> {
+  const page = await doc.getPage(pageNum);
+  const textContent = await page.getTextContent();
+  return textContent.items
+    .filter((item): item is TextItem => 'str' in item)
+    .map((item) => item.str)
+    .join(' ');
+}
+
+/**
+ * Flatten content elements to searchable text.
+ */
+function elementsToText(elements: ContentElement[]): string {
+  const parts: string[] = [];
+  for (const el of elements) {
+    switch (el.type) {
+      case 'heading':
+      case 'paragraph':
+      case 'code':
+        parts.push(el.text);
+        break;
+      case 'note':
+        parts.push(`${el.label} ${el.text}`);
+        break;
+      case 'list':
+        parts.push(el.items.join('\n'));
+        break;
+      case 'table':
+        parts.push([el.headers.join(' '), ...el.rows.map((r) => r.join(' '))].join('\n'));
+        break;
+    }
+  }
+  return parts.join('\n');
+}
+
+/**
  * Extract structured content from a single page
  */
 async function extractPageContent(

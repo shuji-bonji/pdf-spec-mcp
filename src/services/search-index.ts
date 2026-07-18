@@ -7,11 +7,19 @@ import { CONCURRENCY } from '../config.js';
 import type { PageText, SearchHit, SectionIndex, TextIndex } from '../types/index.js';
 import { mapConcurrent } from '../utils/concurrency.js';
 import { logger } from '../utils/logger.js';
+import { extractPageSegments } from './content-extractor.js';
 import type { PDFDocumentProxy, TextItem } from './pdf-loader.js';
 
 /**
  * Build full-text search index from all PDF pages.
  * Uses chunked parallel processing for improved performance.
+ *
+ * A page where sections start is indexed as one entry per section segment, cut at the
+ * section headings by extractPageSegments (S-8). Handing the whole page to a single
+ * section misattributed the strip above the first heading — the tail of the previous
+ * section — to the next one, so search pointed at sections where the term cannot be
+ * found by get_section / get_tables. Pages where no section starts stay on the fast
+ * raw-text path: they belong entirely to the section flowing through them.
  */
 export async function buildSearchIndex(
   doc: PDFDocumentProxy,
@@ -25,27 +33,51 @@ export async function buildSearchIndex(
     `Building search index for ${totalPages} pages (concurrency: ${CONCURRENCY.searchIndex})...`,
   );
 
+  // Sections starting on each page, in document order (flatOrder is document-ordered).
+  const startsByPage = new Map<number, string[]>();
+  for (const info of sectionIndex.flatOrder) {
+    const arr = startsByPage.get(info.page);
+    if (arr) {
+      arr.push(info.sectionNumber);
+    } else {
+      startsByPage.set(info.page, [info.sectionNumber]);
+    }
+  }
+
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
-  const pages: PageText[] = await mapConcurrent(
+  const pagesNested: PageText[][] = await mapConcurrent(
     pageNumbers,
     async (pageNum) => {
-      const page = await doc.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const text = textContent.items
-        .filter((item): item is TextItem => 'str' in item)
-        .map((item) => item.str)
-        .join(' ');
+      const startingSections = startsByPage.get(pageNum);
 
-      const section = findSectionForPage(sectionIndex, pageNum);
-      return {
+      if (!startingSections) {
+        // No section starts here — the page belongs to the section flowing through it.
+        const page = await doc.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const text = textContent.items
+          .filter((item): item is TextItem => 'str' in item)
+          .map((item) => item.str)
+          .join(' ');
+
+        const section = findSectionForPage(sectionIndex, pageNum);
+        return [{ page: pageNum, section: section?.sectionNumber || '', text }];
+      }
+
+      // Sections start on this page — cut it at their headings. A null owner is the
+      // strip above the first heading: it belongs to the section flowing in from the
+      // previous page.
+      const flowingIn = findSectionForPage(sectionIndex, pageNum - 1);
+      const segments = await extractPageSegments(doc, pageNum, startingSections);
+      return segments.map((seg) => ({
         page: pageNum,
-        section: section?.sectionNumber || '',
-        text,
-      };
+        section: seg.section ?? flowingIn?.sectionNumber ?? '',
+        text: seg.text,
+      }));
     },
     CONCURRENCY.searchIndex,
   );
+  const pages = pagesNested.flat();
 
   const buildTime = Date.now() - start;
   logger.info('SearchIndex', `Search index built in ${buildTime}ms (${totalPages} pages)`);
