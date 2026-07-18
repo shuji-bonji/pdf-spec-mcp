@@ -23,6 +23,98 @@ describe('collectStructTreeTables', () => {
     expect(tables[0].rows.map((r) => r[0])).toEqual(['Subtype', 'QuadPoints']);
   });
 
+  // ---- S-4: continuations that headers cannot identify ----
+
+  it('merges an adjacent all-blank-header fragment and keeps the chain alive (8.4.3.4 / 10.6.3)', () => {
+    // Table 54 arrives as three fragments: headed, blank-headed (image-only rows),
+    // then the header restated. The blank fragment used to break the chain, so the
+    // restated header no longer matched "the last table" and all three stayed split.
+    const content: ContentElement[] = [
+      caption('Table 54 — Line join styles'),
+      table(['Style', 'Appearance', 'Description'], [['0', '', 'Miter join']]),
+      table(
+        ['', '', ''],
+        [
+          ['', '', ''],
+          ['', '', ''],
+        ],
+      ),
+      table(
+        ['Style', 'Appearance', 'Description'],
+        [
+          ['1', '', 'Round join'],
+          ['2', '', 'Bevel join'],
+        ],
+      ),
+    ];
+
+    const tables = collectStructTreeTables(content);
+
+    expect(tables).toHaveLength(1);
+    expect(tables[0].caption).toBe('Table 54 — Line join styles');
+    expect(tables[0].rows).toHaveLength(5);
+    expect(tables[0].rows.map((r) => r[0])).toEqual(['0', '', '', '1', '2']);
+  });
+
+  it('merges adjacent headerless fragments of the same width (8.7.4.5.5)', () => {
+    const content: ContentElement[] = [
+      table(
+        [],
+        [
+          ['1 (fa = fb = 0)', '7 (fi = 2)'],
+          ['2 (fc = 1)', '8 (fj = 2)'],
+        ],
+      ),
+      table([], [['6 (fh = 1)', '']]),
+    ];
+
+    const tables = collectStructTreeTables(content);
+
+    expect(tables).toHaveLength(1);
+    expect(tables[0].headers).toEqual([]);
+    expect(tables[0].rows).toHaveLength(3);
+  });
+
+  it('does not merge a headerless table separated by prose — it is a different table', () => {
+    // 8.7.4.5.5: "Mesh 2 again begins with triangle 1 ..." separates two flag lists.
+    const content: ContentElement[] = [
+      table([], [['1 (fa = fb = 0)', '7 (fi = 2)']]),
+      {
+        type: 'paragraph',
+        text: 'Mesh 2 again begins with triangle 1 and uses the following edge flags:',
+      },
+      table([], [['1 (fa = fb = 0)', '4 (ff = 2)']]),
+    ];
+
+    expect(collectStructTreeTables(content)).toHaveLength(2);
+  });
+
+  it('does not merge an adjacent headerless table of a different width', () => {
+    const content: ContentElement[] = [
+      table(['Key', 'Type', 'Value'], [['A', 'x', 'y']]),
+      table([], [['left', 'right']]),
+    ];
+
+    expect(collectStructTreeTables(content)).toHaveLength(2);
+  });
+
+  it('drops the blank header row: it holds no text whether restated header or image row', () => {
+    const content: ContentElement[] = [
+      caption('Table 126 — Predefined spot functions'),
+      table(['Name', 'Appearance', 'Definition'], [['SimpleDot', '', '1 - (x2 + y2)']]),
+      table(['', '', ''], [['Round', '', '...']]),
+    ];
+
+    const tables = collectStructTreeTables(content);
+
+    expect(tables).toHaveLength(1);
+    // The blank headers themselves must not appear as a row; the data rows must.
+    expect(tables[0].rows).toEqual([
+      ['SimpleDot', '', '1 - (x2 + y2)'],
+      ['Round', '', '...'],
+    ]);
+  });
+
   it('keeps a captioned table separate', () => {
     const content: ContentElement[] = [
       caption('Table 1 — First'),
@@ -85,5 +177,22 @@ describe('collectStructTreeTables', () => {
     const again = collectStructTreeTables(content);
     expect(again[0].rows).toEqual([['A', 'a']]);
     expect(again[0].headers).toEqual(['Key', 'Value']);
+  });
+
+  it('copies continuation rows too — editing a merged cell must not reach the cache', () => {
+    // The 0.4.1 fix copied rows at push time, but the merge path still spread the
+    // cached inner arrays by reference. Overwriting a cell of a merged row rewrote
+    // the cached page.
+    const content: ContentElement[] = [
+      caption('Table 182 — x'),
+      table(['Key', 'Type', 'Value'], [['Subtype', 'name', 'a']]),
+      table(['Key', 'Type', 'Value'], [['QuadPoints', 'array', 'b']]),
+    ];
+
+    const tables = collectStructTreeTables(content);
+    tables[0].rows[1][0] = 'corrupted';
+
+    const again = collectStructTreeTables(content);
+    expect(again[0].rows[1]).toEqual(['QuadPoints', 'array', 'b']);
   });
 });
