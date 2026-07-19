@@ -88,6 +88,33 @@ function trimToSectionStart(elements: ContentElement[], sectionNumber: string): 
 }
 
 /**
+ * Remove content elements at and after the *next* section's heading (S-9, symptom 2).
+ *
+ * When two sections share a page (endPage === next.page), this section's range covers the
+ * whole page, so without an end cut it also carries everything belonging to the next
+ * section: get_tables("8.4.3.3") returned Table 54 — 8.4.3.4's table — as an incomplete
+ * duplicate (Miter join only, no Round/Bevel), under its correct caption. The same
+ * double attribution reached get_section and get_requirements.
+ *
+ * This is the exact mirror of trimToSectionStart, deciding via the same
+ * findSectionHeadingIndex (the S-5 rule: one rule, one place):
+ *   - heading found     → everything from it on belongs to the next section; cut it
+ *                         (trimToSectionStart keeps exactly that part for the next
+ *                         section, so the page is partitioned, not duplicated)
+ *   - heading not found → keep everything. The next section keeps the whole page too
+ *                         (its trimToSectionStart finds nothing to cut), so cutting here
+ *                         would lose the text entirely — duplication is the lesser harm,
+ *                         and it is the pre-existing arm for headingless sections.
+ */
+export function trimAfterNextSectionStart(
+  elements: ContentElement[],
+  nextSectionNumber: string,
+): ContentElement[] {
+  const headingIdx = findSectionHeadingIndex(elements, nextSectionNumber);
+  return headingIdx >= 0 ? elements.slice(0, headingIdx) : elements;
+}
+
+/**
  * The content `trimToSectionStart` throws away at the top of `seamPage` — the tail of the
  * *previous* section, which spilled past its last page.
  *

@@ -29,6 +29,8 @@ describe('collectStructTreeTables', () => {
     // Table 54 arrives as three fragments: headed, blank-headed (image-only rows),
     // then the header restated. The blank fragment used to break the chain, so the
     // restated header no longer matched "the last table" and all three stayed split.
+    // Its all-blank rows are fabrications (S-9) and must not survive the merge —
+    // only the chain must.
     const content: ContentElement[] = [
       caption('Table 54 — Line join styles'),
       table(['Style', 'Appearance', 'Description'], [['0', '', 'Miter join']]),
@@ -52,8 +54,8 @@ describe('collectStructTreeTables', () => {
 
     expect(tables).toHaveLength(1);
     expect(tables[0].caption).toBe('Table 54 — Line join styles');
-    expect(tables[0].rows).toHaveLength(5);
-    expect(tables[0].rows.map((r) => r[0])).toEqual(['0', '', '', '1', '2']);
+    expect(tables[0].rows).toHaveLength(3);
+    expect(tables[0].rows.map((r) => r[0])).toEqual(['0', '1', '2']);
   });
 
   it('merges adjacent headerless fragments of the same width (8.7.4.5.5)', () => {
@@ -96,6 +98,56 @@ describe('collectStructTreeTables', () => {
     ];
 
     expect(collectStructTreeTables(content)).toHaveLength(2);
+  });
+
+  // ---- S-9: fabricated all-blank rows ----
+
+  it('drops all-blank rows: the struct tree has no such TR (S-9)', () => {
+    // Page-slicing a Table element that spans pages leaves TRs with no text on this
+    // page; they arrived as ["","",""] rows. Table 126 carried six of them.
+    const content: ContentElement[] = [
+      caption('Table 126 — Predefined spot functions'),
+      table(
+        ['Name', 'Appearance', 'Definition'],
+        [
+          ['SimpleDot', '', '1 - (x2+y2)'],
+          ['', '', ''],
+        ],
+      ),
+      table(
+        ['', '', ''],
+        [
+          ['', '', ''],
+          ['', '', ''],
+        ],
+      ),
+      table(['Name', 'Appearance', 'Definition'], [['Line', '', '-|y|']]),
+    ];
+
+    const tables = collectStructTreeTables(content);
+
+    expect(tables).toHaveLength(1);
+    expect(tables[0].rows).toEqual([
+      ['SimpleDot', '', '1 - (x2+y2)'],
+      ['Line', '', '-|y|'],
+    ]);
+  });
+
+  it('emits nothing for a fragment that is pure page-slicing noise (S-9)', () => {
+    // A blank-header fragment whose rows are all blank, not adjacent to any table it
+    // could merge into: presenting it as a table would present nothing as spec content.
+    const content: ContentElement[] = [
+      { type: 'paragraph', text: 'Prose between tables.' },
+      table(
+        ['', '', ''],
+        [
+          ['', '', ''],
+          ['', '', ''],
+        ],
+      ),
+    ];
+
+    expect(collectStructTreeTables(content)).toHaveLength(0);
   });
 
   it('drops the blank header row: it holds no text whether restated header or image row', () => {

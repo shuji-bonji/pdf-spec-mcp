@@ -157,4 +157,28 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
       } catch {}
     }
   });
+
+  // T-10: S-9 回帰 — 実在しない空行を捏造しない
+  it('T-10: Table 126 は 21 行・全セル空の行ゼロ（構造木に空 TR は存在しない）', async () => {
+    // ページ跨ぎ Table 要素（386 の断片が TH 内に他ページの Figure を抱える）の輪切りが
+    // ["","",""] 行として合成されていた。地上真実は pdf-lib ダンプ + reader M-8 で確認済み:
+    // データ行 7+5+7+2 = 21、空行ゼロ。
+    const result = await toolHandlers.get_tables({ section: '10.6.3', spec: 'iso32000-2' });
+    expect(result.totalTables).toBe(1);
+    expect(result.tables[0].rows).toHaveLength(21);
+    expect(result.tables[0].rows.every((r) => r.some((c) => c.trim() !== ''))).toBe(true);
+  });
+
+  // T-11: S-9 回帰 — 次セクションの表を前セクションに残さない
+  it('T-11: 8.4.3.3 に Table 54（8.4.3.4 の表）が不完全な重複として現れない', async () => {
+    const result = await toolHandlers.get_tables({ section: '8.4.3.3', spec: 'iso32000-2' });
+    const captions = result.tables.map((t) => t.caption ?? '');
+    expect(captions.some((c) => c.includes('Table 53'))).toBe(true);
+    expect(captions.some((c) => c.includes('Table 54'))).toBe(false);
+
+    // Table 54 の完全版は 8.4.3.4 が持つ（Miter / Round / Bevel の 3 行）
+    const owner = await toolHandlers.get_tables({ section: '8.4.3.4', spec: 'iso32000-2' });
+    expect(owner.tables[0].caption).toContain('Table 54');
+    expect(owner.tables[0].rows).toHaveLength(3);
+  });
 });

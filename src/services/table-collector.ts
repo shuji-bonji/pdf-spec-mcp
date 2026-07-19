@@ -39,6 +39,15 @@ export function collectStructTreeTables(content: ContentElement[]): TableInfo[] 
       }
     }
 
+    // All-blank rows are fabrications, not content (S-9). The struct tree of ISO 32000-2
+    // contains no TR whose cells are all empty (verified by dumping StructTreeRoot with
+    // pdf-lib, and independently by pdf-reader-mcp's element-wise walker): they appear
+    // when a Table element spanning several pages is sliced per page and a slice holds
+    // only Figures (Table 126's last fragment carries the Appearance images of pp.383-385
+    // inside a TH), leaving its TRs with no text on that page. Dropping them loses
+    // nothing — a row of empty strings carries no text by construction.
+    const rows = element.rows.filter((row) => row.some((cell) => cell.trim() !== ''));
+
     if (!caption && tables.length > 0) {
       const last = tables[tables.length - 1];
 
@@ -46,7 +55,7 @@ export function collectStructTreeTables(content: ContentElement[]): TableInfo[] 
       // resumes on a new page). Matching headers identify the fragment regardless of
       // whatever lies between (the repeated header row itself is dropped).
       if (element.headers.length > 0 && arraysEqual(last.headers, element.headers)) {
-        last.rows.push(...element.rows.map((row) => [...row]));
+        last.rows.push(...rows.map((row) => [...row]));
         lastTableElementIndex = i;
         continue;
       }
@@ -62,11 +71,17 @@ export function collectStructTreeTables(content: ContentElement[]): TableInfo[] 
         isEffectivelyHeaderless(element) &&
         columnCountOf(element.headers, element.rows) === columnCountOf(last.headers, last.rows)
       ) {
-        last.rows.push(...element.rows.map((row) => [...row]));
+        last.rows.push(...rows.map((row) => [...row]));
         lastTableElementIndex = i;
         continue;
       }
     }
+
+    // A fragment left with no text at all (blank headers, only fabricated rows) is pure
+    // page-slicing noise — emitting it would present an empty table as spec content.
+    // It is not consumed either: the adjacency chain must not extend through something
+    // that was never a table.
+    if (rows.length === 0 && isEffectivelyHeaderless(element)) continue;
 
     tables.push({
       index: tables.length,
@@ -79,7 +94,7 @@ export function collectStructTreeTables(content: ContentElement[]): TableInfo[] 
       // neither. Inner row arrays alias the cache just the same: a caller editing a cell
       // of the result must not reach the cached page.
       headers: [...element.headers],
-      rows: element.rows.map((row) => [...row]),
+      rows: rows.map((row) => [...row]),
     });
     lastTableElementIndex = i;
   }

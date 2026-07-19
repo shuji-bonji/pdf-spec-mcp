@@ -78,19 +78,25 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
 
   // C-6: ContentElement 型の検証
   it('C-6: heading/paragraph/list/table/note/code の各型が存在確認', async () => {
-    // iso32000-2 のいくつかのセクションをチェック
-    const result = await toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' });
+    // 葉セクションで検証する。7.3.4 のような親セクションは ISO 原文でも見出しの直後に
+    // 子（7.3.4.1）が始まり前文を持たないため、S-9 のページ分割後は正しく
+    // [heading] のみを返す（旧実装は同一ページ上の子の内容の断片を親に混ぜていた）。
+    const result = await toolHandlers.get_section({ section: '7.3.4.1', spec: 'iso32000-2' });
 
     const types = new Set(result.content.map((e: ContentElement) => e.type));
     // paragraph は確実に存在するはず
     expect(types.has('paragraph')).toBe(true);
-    // heading もセクション内に含まれうる（サブセクションがある場合）
 
-    // 補足: テーブルがあるセクション
-    const tableResult = await toolHandlers.get_section({ section: '7.2.2', spec: 'iso32000-2' });
+    // 補足: テーブルがあるセクション（7.3.4.2 Literal strings は Table 3 を持つ）
+    const tableResult = await toolHandlers.get_section({ section: '7.3.4.2', spec: 'iso32000-2' });
     const tableTypes = new Set(tableResult.content.map((e: ContentElement) => e.type));
-    // テーブルのあるセクションか、テキストのみのセクションか
-    expect(tableTypes.size).toBeGreaterThan(0);
+    expect(tableTypes.has('table')).toBe(true);
+  });
+
+  // C-6b: S-9 — 前文を持たない親セクションは見出しのみを返す（子の断片を混ぜない）
+  it('C-6b: 7.3.4 (親) は heading のみ（内容は 7.3.4.1 以下が持つ）', async () => {
+    const result = await toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' });
+    expect(result.content.map((e: ContentElement) => e.type)).toEqual(['heading']);
   });
 
   // C-7: StructTree 非対応 PDF (pdf17old)
@@ -141,5 +147,23 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   it('C-11: "annex a" (小文字) → case-insensitive で取得', async () => {
     const result = await toolHandlers.get_section({ section: 'annex a', spec: 'iso32000-2' });
     expect(result.sectionNumber.toLowerCase()).toContain('annex');
+  });
+
+  // C-12: S-10 回帰 — pageRange.end が跨ぎ先ページを反映する
+  it('C-12: 14.9.4 の pageRange が 815–816（帯を採用したら end も伸びる）', async () => {
+    // 内容は p.816 の shall / NOTE / EXAMPLE まで返るのに end が 815 のままだったため、
+    // ページ指定の後続処理（reader read_text / veraPDF の該当箇所確認）が 1 ページ手前で
+    // 止まっていた。
+    const result = await toolHandlers.get_section({ section: '14.9.4', spec: 'iso32000-2' });
+    expect(result.pageRange).toEqual({ start: 815, end: 816 });
+  });
+
+  // C-13: S-9 回帰 — ページを共有する次セクションの内容を含まない
+  it('C-13: 8.4.3.3 の内容に 8.4.3.4 の見出しが含まれない（ページ分割）', async () => {
+    const result = await toolHandlers.get_section({ section: '8.4.3.3', spec: 'iso32000-2' });
+    const headings = result.content.filter(
+      (e): e is { type: 'heading'; level: number; text: string } => e.type === 'heading',
+    );
+    expect(headings.some((h) => h.text.startsWith('8.4.3.4 '))).toBe(false);
   });
 });

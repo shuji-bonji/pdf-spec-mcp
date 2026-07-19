@@ -5,7 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.3] - 2026-07-19
+
+### Fixed
+
+- **S-9 (#9): ページ跨ぎ合成の空行捏造と、断片の二重帰属を修正**。
+  - **空行の捏造**: ページ跨ぎの Table 要素（Table 126 の最終断片は TH 内に pp.383–385 の
+    Appearance 画像 19 個を抱えて 4 ページを跨ぐ）をページで輪切りにすると、テキストを持たない
+    TR が `["","",""]` 行として合成されていた。**構造木に全セル空の TR は存在しない**
+    （pdf-lib による StructTreeRoot ダンプ + pdf-reader-mcp の要素単位 walker の両方で確認）。
+    `collectStructTreeTables` が全セル空行を採らないようにし、空だけの断片は表として出力しない。
+    Table 126 は 27 → **21 行**（ISO の定義済みスポット関数 21 個と一致、reader M-8 の
+    データ行合計 7+5+7+2 とも一致）、Table 54 は 5 → **3 行**（Miter/Round/Bevel）
+  - **断片の二重帰属**: セクションがページを共有すると、前セクションの範囲がページ全体を覆う
+    ため、次セクションの内容（キャプション付きの表を含む）も前セクションから見えていた。
+    `get_tables("8.4.3.3")` が 8.4.3.4 の Table 54 を **Miter 1 行だけの不完全な重複**として
+    正しいキャプション付きで返していた。`trimToSectionStart` の正確な裏返しとなる
+    `trimAfterNextSectionStart` を導入（同じ `findSectionHeadingIndex`・同じ
+    found/not-found の腕）し、共有ページをセクション境界で分割。
+    get_section / get_requirements の二重計上も一括で解消され、要件インデックスは
+    8666 → **7183 件**（除去 1483 件は**すべて同一文が他セクションに残る重複**であることを
+    機械検証。喪失ゼロ・追加ゼロ）
+- **S-10 (#10): `get_section` の `pageRange.end` が跨ぎ先ページを反映していなかった**。
+  §14.9.4 は内容が p.816 まで返るのに `815–815` と報告され、ページ指定の後続処理
+  （reader `read_text` / veraPDF の該当箇所確認）が 1 ページ手前で止まっていた。
+  帯を採用したとき（= 次セクション見出しが跨ぎ先ページの途中で見つかったとき）に限り
+  報告する end を +1 する。判定は帯の採用と同一なので規則は割れない。
+  影響は帯を持つ **412 セクション**（全数差分で「すべて正確に end+1」を確認）。
+  内部の endPage（抽出範囲・キャッシュキー）は不変。
 
 ## [0.4.2] - 2026-07-19
 
@@ -30,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   不可視だった 357 セクションが新たに検索可能**になった。索引から消えたセクションはゼロ。
   分割ページでは柱・ノンブル・購入者透かし（Artifact）が索引から外れる（全体で -5.9% の
   文字数はすべてこのノイズ）。索引構築は 3.1s → 4.9s（StructTree 走査の追加分）。
+
 - **S-4: ヘッダで同定できない継続断片が連結されず、表が分裂していた問題を修正**。
   `collectStructTreeTables` の連結条件は「ヘッダ行の再掲が前の表と完全一致」のみだったため、
   ページ跨ぎの継続断片のうち (a) ヘッダが**全セル空文字**（画像のみの行が空で抽出される。
@@ -46,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   （8.4.3.3 / 8.4.3.4: Table 54 が 3 → 1 表、8.7.4.5.5: 4 → 3 表、10.6.3: Table 126 が
   7 → 1 表・27 行）。**非空セルの喪失・追加はゼロ**、要件インデックスは 8666 件のまま文単位の
   増減ゼロ。副産物として Table 54 由来の要件 3 件に `table` コンテキストが付いた。
+
 - **連結パスのキャッシュ混入の残り穴を修正**: 0.4.1 は push 時の行コピーを入れたが、
   継続行の連結は内側の行配列を**参照のまま** push していた。結果の連結行のセルを書き換えると
   セクション内容キャッシュに届いていた。連結時も行をコピーする

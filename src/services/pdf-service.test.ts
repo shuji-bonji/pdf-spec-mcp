@@ -217,9 +217,12 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     expect(kinds(first.content)).toEqual(['heading', 'paragraph']);
   });
 
-  it('does not adopt anything when two sections share a page', async () => {
+  it('partitions a shared page: neither adoption nor trailing overlap (S-9)', async () => {
     // endPage is max(page, next.page - 1), so sections sharing a page get endPage === page.
-    // There is no seam: `endPage + 1` is a page the next section owns outright.
+    // There is no seam: `endPage + 1` is a page the next section owns outright — and the
+    // trailing part of the shared page, from 1.2's heading on, is 1.2's content, cut by
+    // trimAfterNextSectionStart. Before S-9 it stayed in 1.1 too, which is how
+    // get_tables("8.4.3.3") came to return 8.4.3.4's Table 54 as an incomplete duplicate.
     //
     // Asserted as the exact element list, not "page 2 is absent": dropping the
     // `next.page === endPage + 1` guard makes adoptOrphanedStrip re-read page *1* (it reads
@@ -243,11 +246,33 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     );
 
     const first = await svc.getSectionContent('1.1', 'test-spec');
+    const second = await svc.getSectionContent('1.2', 'test-spec');
 
-    // Everything on page 1 from 1.1's heading onward, and nothing more. (That this
-    // includes 1.2's own content is a separate, pre-existing quirk of sections sharing a
-    // page — not something the seam should make worse.)
-    expect(kinds(first.content)).toEqual(['heading', 'paragraph', 'heading', 'paragraph']);
+    // 1.1: from its own heading up to (not including) 1.2's heading.
+    expect(kinds(first.content)).toEqual(['heading', 'paragraph']);
+    expect((first.content[1] as { text: string }).text).toBe('Body of 1.1.');
+    // 1.2 owns the rest of the page — the page is partitioned, nothing is lost.
+    expect(kinds(second.content)).toEqual(['heading', 'paragraph', 'paragraph']);
+  });
+
+  it('keeps the whole shared page when the next section’s heading is not found (S-9)', async () => {
+    // Mirror of the trimToSectionStart arm: heading missing → the next section keeps the
+    // whole page, so cutting here would lose the text entirely. Duplication is the
+    // pre-existing, lesser harm.
+    const doc = createDoc([
+      [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.'), paragraphFixture('More.')],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 Second', 1], // heading not present on the page
+      ]),
+    );
+
+    const first = await svc.getSectionContent('1.1', 'test-spec');
+
+    expect(kinds(first.content)).toEqual(['heading', 'paragraph', 'paragraph']);
   });
 
   it('adopts nothing for the last section', async () => {
@@ -257,6 +282,74 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     const only = await svc.getSectionContent('1.1', 'test-spec');
 
     expect(kinds(only.content)).toEqual(['heading', 'paragraph']);
+  });
+});
+
+describe('getSectionContent — pageRange reflects the spill (S-10)', () => {
+  it('extends pageRange.end onto the seam page when the strip is adopted', async () => {
+    // §14.9.4 reported 815–815 while its shall/NOTE/EXAMPLE text continued on p.816:
+    // content was complete, metadata was short by one page, and page-based follow-ups
+    // (reader read_text, veraPDF spot checks) stopped one page early.
+    const doc = createDoc([
+      [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
+      [
+        paragraphFixture('The tail of 1.1 on page 2.'),
+        headingFixture('1.2 Second'),
+        paragraphFixture('Body of 1.2.'),
+      ],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 Second', 2],
+      ]),
+    );
+
+    const first = await svc.getSectionContent('1.1', 'test-spec');
+    expect(first.pageRange).toEqual({ start: 1, end: 2 });
+
+    // The cached read must report the same range (the cache stores the reported end).
+    const again = await svc.getSectionContent('1.1', 'test-spec');
+    expect(again.pageRange).toEqual({ start: 1, end: 2 });
+  });
+
+  it('keeps pageRange.end when the next section opens its page (no spill)', async () => {
+    const doc = createDoc([
+      [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
+      [headingFixture('1.2 Second'), paragraphFixture('Body of 1.2.')],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 Second', 2],
+      ]),
+    );
+
+    const first = await svc.getSectionContent('1.1', 'test-spec');
+    expect(first.pageRange).toEqual({ start: 1, end: 1 });
+  });
+
+  it('keeps pageRange.end when two sections share a page', async () => {
+    const doc = createDoc([
+      [
+        headingFixture('1.1 First'),
+        paragraphFixture('Body of 1.1.'),
+        headingFixture('1.2 Second'),
+        paragraphFixture('Body of 1.2.'),
+      ],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 Second', 1],
+      ]),
+    );
+
+    const first = await svc.getSectionContent('1.1', 'test-spec');
+    expect(first.pageRange).toEqual({ start: 1, end: 1 });
   });
 });
 
@@ -319,6 +412,37 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
 
     expect(result.totalTables).toBe(1);
     expect(result.tables[0].rows.map((r) => r[0])).toEqual(['A']);
+  });
+
+  it('does not leave the next section’s table in the previous section (S-9)', async () => {
+    // The Table 54 shape: 8.4.3.3 and 8.4.3.4 share page 176; Table 54 (caption, header,
+    // first row) sits after 8.4.3.4's heading. 8.4.3.3 used to return it as an incomplete
+    // duplicate under its correct caption.
+    const doc = createDoc([
+      [
+        headingFixture('8.4.3.3 Line cap style'),
+        paragraphFixture('Table 53 — Line cap styles'),
+        tableFixture(['Style', 'Description'], [['0', 'Butt cap']]),
+        headingFixture('8.4.3.4 Line join style'),
+        paragraphFixture('Table 54 — Line join styles'),
+        tableFixture(['Style', 'Description'], [['0', 'Miter join']]),
+      ],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['8.4.3.3 Line cap style', 1],
+        ['8.4.3.4 Line join style', 1],
+      ]),
+    );
+
+    const first = await svc.getTables('8.4.3.3', undefined, 'test-spec');
+    const second = await svc.getTables('8.4.3.4', undefined, 'test-spec');
+
+    expect(first.totalTables).toBe(1);
+    expect(first.tables[0].caption).toContain('Table 53');
+    expect(second.totalTables).toBe(1);
+    expect(second.tables[0].caption).toContain('Table 54');
   });
 
   it('keeps a stranded table with different headers separate', async () => {

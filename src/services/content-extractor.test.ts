@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { extractPageSegments, extractSectionContent } from './content-extractor.js';
+import type { ContentElement } from '../types/index.js';
+import {
+  extractPageSegments,
+  extractSectionContent,
+  trimAfterNextSectionStart,
+} from './content-extractor.js';
 
 // Helper to create a mock PDFDocumentProxy
 function createMockDoc(pages: MockPageData[]) {
@@ -467,6 +472,41 @@ describe('extractSectionContent', () => {
     const elements = await extractSectionContent(doc, 1, 1);
 
     expect(elements).toEqual([{ type: 'paragraph', text: 'Nested content' }]);
+  });
+});
+
+describe('trimAfterNextSectionStart (S-9)', () => {
+  const heading = (text: string): ContentElement => ({ type: 'heading', level: 3, text });
+  const para = (text: string): ContentElement => ({ type: 'paragraph', text });
+
+  it('cuts at the next section’s heading', () => {
+    const elements = [heading('1.1 First'), para('Mine.'), heading('1.2 Second'), para('Theirs.')];
+
+    const trimmed = trimAfterNextSectionStart(elements, '1.2');
+
+    expect(trimmed).toEqual([heading('1.1 First'), para('Mine.')]);
+  });
+
+  it('keeps everything when the heading is not found (mirror of the start-trim arm)', () => {
+    const elements = [heading('1.1 First'), para('Mine.'), para('Also mine.')];
+
+    expect(trimAfterNextSectionStart(elements, '1.2')).toEqual(elements);
+  });
+
+  it('cuts to empty when the next heading opens the content (heading at index 0)', () => {
+    // Own heading missing, next section's heading first: trimToSectionStart keeps
+    // everything for the next section (index 0 → no cut there), so this section must
+    // keep nothing — `> 0` here would duplicate the whole block into both sections.
+    const elements = [heading('1.2 Second'), para('All of this is 1.2’s.')];
+
+    expect(trimAfterNextSectionStart(elements, '1.2')).toEqual([]);
+  });
+
+  it('does not cut at a prefix-sharing sibling ("1.2" must not match "1.2.1")', () => {
+    const elements = [heading('1.1 First'), para('Mine.'), heading('1.2.1 Grandchild'), para('x')];
+
+    // "1.2 " does not prefix "1.2.1 Grandchild" — no cut.
+    expect(trimAfterNextSectionStart(elements, '1.2')).toEqual(elements);
   });
 });
 

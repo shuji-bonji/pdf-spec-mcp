@@ -19,7 +19,6 @@ import type {
   RequirementsResult,
   SearchHit,
   SectionIndex,
-  SectionInfo,
   SectionResult,
   TableInfo,
   TablesResult,
@@ -28,7 +27,11 @@ import type {
 import { LRUCache } from '../utils/cache.js';
 import { mapConcurrent } from '../utils/concurrency.js';
 import { logger } from '../utils/logger.js';
-import { extractOrphanedStrip, extractSectionContent } from './content-extractor.js';
+import {
+  extractOrphanedStrip,
+  extractSectionContent,
+  trimAfterNextSectionStart,
+} from './content-extractor.js';
 import { extractAllDefinitions } from './definition-extractor.js';
 import { buildSectionIndex, findSection } from './outline-resolver.js';
 import { getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.js';
@@ -53,7 +56,7 @@ class PDFSpecService {
   private definitionsMap: Map<string, Promise<Definition[]>>;
 
   // Section content cache (shared across specs, keyed with specId prefix)
-  private sectionContentCache: LRUCache<string, ContentElement[]>;
+  private sectionContentCache: LRUCache<string, { content: ContentElement[]; endPage: number }>;
 
   // Definition extraction is only supported for specs with compatible Section 3 structure
   private static readonly DEFINITIONS_SUPPORTED_SPECS: Set<string> = new Set([
@@ -157,49 +160,58 @@ class PDFSpecService {
       return {
         sectionNumber: section.sectionNumber,
         title: section.title,
-        pageRange: { start: section.page, end: section.endPage },
-        content: cached,
+        pageRange: { start: section.page, end: cached.endPage },
+        content: cached.content,
       };
     }
 
     const pdfPath = this.registry.getSpecPath(id);
     const doc = await this.loader.loadDocument(pdfPath);
-    const content = [
-      ...(await extractSectionContent(doc, section.page, section.endPage, section.sectionNumber)),
-      ...(await this.adoptOrphanedStrip(doc, index, section)),
-    ];
 
-    this.sectionContentCache.set(cacheKey, content);
+    const position = index.flatOrder.indexOf(section);
+    const next = position === -1 ? undefined : index.flatOrder[position + 1];
+
+    let content = await extractSectionContent(
+      doc,
+      section.page,
+      section.endPage,
+      section.sectionNumber,
+    );
+
+    // When the next section starts on this section's last page, the range covers content
+    // that belongs to it — cut at its heading (S-9, symptom 2; exact mirror of the start
+    // trim, see trimAfterNextSectionStart).
+    if (next && next.page === section.endPage) {
+      content = trimAfterNextSectionStart(content, next.sectionNumber);
+    }
+
+    // This section's tail, stranded on the next section's first page.
+    //
+    // See extractOrphanedStrip for what the strip is and why adopting it cannot
+    // double-count. The condition here is the structural half: a seam exists only when
+    // the next section begins on the page right after this one's last. When two sections
+    // share a page (`next.page === endPage`), `endPage + 1` is a page the *next* section
+    // owns outright, not a seam — reading it here would steal that section's content.
+    const strip =
+      next && next.page === section.endPage + 1
+        ? await extractOrphanedStrip(doc, next.page, next.sectionNumber)
+        : [];
+    content = [...content, ...strip];
+
+    // A non-empty strip means the section spills onto the next page (S-10): report the
+    // page range the content actually spans, or page-based follow-ups (reader read_text,
+    // veraPDF checks) stop one page short. The internal endPage is untouched — it drives
+    // extraction ranges and cache keys, not what the caller reads.
+    const endPage = strip.length > 0 ? section.endPage + 1 : section.endPage;
+
+    this.sectionContentCache.set(cacheKey, { content, endPage });
 
     return {
       sectionNumber: section.sectionNumber,
       title: section.title,
-      pageRange: { start: section.page, end: section.endPage },
+      pageRange: { start: section.page, end: endPage },
       content,
     };
-  }
-
-  /**
-   * This section's tail, stranded on the next section's first page.
-   *
-   * See extractOrphanedStrip for what the strip is and why adopting it cannot
-   * double-count. The condition here is the structural half: a seam exists only when the
-   * next section begins on the page right after this one's last.
-   *
-   * When two sections share a page (`endPage === page`, since endPage is
-   * `max(page, next.page - 1)`), `endPage + 1` is a page the *next* section owns outright,
-   * not a seam — reading it here would steal that section's content.
-   */
-  private async adoptOrphanedStrip(
-    doc: PDFDocumentProxy,
-    index: SectionIndex,
-    section: SectionInfo,
-  ): Promise<ContentElement[]> {
-    const position = index.flatOrder.indexOf(section);
-    const next = position === -1 ? undefined : index.flatOrder[position + 1];
-    if (!next || next.page !== section.endPage + 1) return [];
-
-    return extractOrphanedStrip(doc, next.page, next.sectionNumber);
   }
 
   // ========================================
