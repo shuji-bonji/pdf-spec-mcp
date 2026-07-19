@@ -282,9 +282,11 @@ Get the section hierarchy (TOC tree) of a specification.
 
 Get structured content (headings, paragraphs, lists, tables, notes) of a specific section.
 
+A parent section returns only its own preamble (often just the heading); its content lives in the subsections.
+
 ```jsonc
-// PDF 2.0 Section 7.3.4 (String Objects)
-{ "section": "7.3.4" }
+// PDF 2.0 Section 7.3.4.2 (Literal Strings)
+{ "section": "7.3.4.2" }
 
 // PDF 2.0 Annex A
 { "section": "Annex A" }
@@ -349,11 +351,11 @@ Look up term definitions from Section 3 (Definitions).
 Extract table structures (headers, rows, captions) from a section. Multi-page tables are automatically merged.
 
 ```jsonc
-// All tables in section 7.3.4
-{ "section": "7.3.4" }
+// All tables in section 7.3.4.2 (Table 3 — Escape sequences)
+{ "section": "7.3.4.2" }
 
 // Specific table only (0-based index)
-{ "section": "7.3.4", "table_index": 0 }
+{ "section": "7.3.4.2", "table_index": 0 }
 
 // TS spec tables
 { "spec": "ts32002", "section": "5" }
@@ -425,10 +427,10 @@ cd pdf-spec-mcp
 npm install
 npm run build
 
-# Unit tests (237 tests)
+# Unit tests
 npm run test
 
-# E2E tests (212 tests — requires PDF files in ./pdf-spec/)
+# E2E tests (requires PDF files in ./pdf-spec/)
 npm run test:e2e
 
 # Lint & format

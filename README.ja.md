@@ -284,10 +284,11 @@ PDF_SPEC_DIR=/path/to/pdf-specs pdf-spec-mcp
 ### `get_section` — セクション内容取得
 
 指定セクションの構造化コンテンツ（見出し・段落・リスト・テーブル・注記）を取得します。
+親セクションは自身の前文のみを返します（多くは見出しだけ。内容は各サブセクションが持ちます）。
 
 ```jsonc
-// PDF 2.0 のセクション 7.3.4（String Objects）
-{ "section": "7.3.4" }
+// PDF 2.0 のセクション 7.3.4.2（Literal Strings）
+{ "section": "7.3.4.2" }
 
 // PDF 2.0 の Annex A
 { "section": "Annex A" }
@@ -352,11 +353,11 @@ Section 3（用語定義）からの用語検索を行います。
 セクション内のテーブル構造（ヘッダー・行・キャプション）を抽出します。複数ページにまたがるテーブルも自動マージされます。
 
 ```jsonc
-// セクション 7.3.4 の全テーブル
-{ "section": "7.3.4" }
+// セクション 7.3.4.2 の全テーブル（Table 3 — エスケープシーケンス）
+{ "section": "7.3.4.2" }
 
 // 特定のテーブルのみ（0始まりのインデックス）
-{ "section": "7.3.4", "table_index": 0 }
+{ "section": "7.3.4.2", "table_index": 0 }
 
 // TS 仕様のテーブル
 { "spec": "ts32002", "section": "5" }
@@ -428,10 +429,10 @@ cd pdf-spec-mcp
 npm install
 npm run build
 
-# ユニットテスト（237テスト）
+# ユニットテスト
 npm run test
 
-# E2Eテスト（212テスト — ./pdf-spec/ に PDF ファイルが必要）
+# E2Eテスト（./pdf-spec/ に PDF ファイルが必要）
 npm run test:e2e
 
 # Lint & フォーマット
