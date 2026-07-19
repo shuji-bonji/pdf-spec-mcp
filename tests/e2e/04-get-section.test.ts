@@ -78,9 +78,6 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
 
   // C-6: ContentElement 型の検証
   it('C-6: heading/paragraph/list/table/note/code の各型が存在確認', async () => {
-    // 葉セクションで検証する。7.3.4 のような親セクションは ISO 原文でも見出しの直後に
-    // 子（7.3.4.1）が始まり前文を持たないため、S-9 のページ分割後は正しく
-    // [heading] のみを返す（旧実装は同一ページ上の子の内容の断片を親に混ぜていた）。
     const result = await toolHandlers.get_section({ section: '7.3.4.1', spec: 'iso32000-2' });
 
     const types = new Set(result.content.map((e: ContentElement) => e.type));
@@ -93,10 +90,43 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
     expect(tableTypes.has('table')).toBe(true);
   });
 
-  // C-6b: S-9 — 前文を持たない親セクションは見出しのみを返す（子の断片を混ぜない）
-  it('C-6b: 7.3.4 (親) は heading のみ（内容は 7.3.4.1 以下が持つ）', async () => {
+  // C-6b: SV-1 — 親セクションはサブツリー全体を文書順に返す（分割済み断片の連結なので重複なし）
+  it('C-6b: 7.3.4 (親) は自身の見出し + 全子セクションの内容を返す', async () => {
     const result = await toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' });
-    expect(result.content.map((e: ContentElement) => e.type)).toEqual(['heading']);
+    const headings = result.content
+      .filter(
+        (e: ContentElement): e is Extract<ContentElement, { type: 'heading' }> =>
+          e.type === 'heading',
+      )
+      .map((h) => h.text);
+    expect(headings[0]).toContain('7.3.4 String objects');
+    // 子の見出しが文書順に含まれる
+    expect(headings.some((h) => h.startsWith('7.3.4.1 '))).toBe(true);
+    expect(headings.some((h) => h.startsWith('7.3.4.2 '))).toBe(true);
+    // 子にしか無い内容（Table 3 — Escape sequences）が親から見える
+    const cells = result.content
+      .filter(
+        (e: ContentElement): e is Extract<ContentElement, { type: 'table' }> => e.type === 'table',
+      )
+      .flatMap((t) => t.rows.flat());
+    expect(cells.length).toBeGreaterThan(0);
+  });
+
+  // C-14: SV-1 固定ケース — 親経由で Table 257 の P エントリの規範が見える
+  it('C-14: get_section("12.8.2.2") に Table 257 の DSS 例外（shall not be considered as changes）', async () => {
+    const result = await toolHandlers.get_section({ section: '12.8.2.2', spec: 'iso32000-2' });
+    expect(result.pageRange.start).toBe(588);
+    expect(result.pageRange.end).toBeGreaterThanOrEqual(589);
+    const cells = result.content
+      .filter(
+        (e: ContentElement): e is Extract<ContentElement, { type: 'table' }> => e.type === 'table',
+      )
+      .flatMap((t) => t.rows.flat());
+    expect(cells.some((c) => c.includes('shall not be considered as changes'))).toBe(true);
+
+    // SV-1b: get_tables でも親経由で子孫の表が見える
+    const tables = await toolHandlers.get_tables({ section: '12.8.2.2', spec: 'iso32000-2' });
+    expect(tables.totalTables).toBeGreaterThanOrEqual(1);
   });
 
   // C-7: StructTree 非対応 PDF (pdf17old)

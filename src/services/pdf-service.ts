@@ -33,7 +33,7 @@ import {
   trimAfterNextSectionStart,
 } from './content-extractor.js';
 import { extractAllDefinitions } from './definition-extractor.js';
-import { buildSectionIndex, findSection } from './outline-resolver.js';
+import { buildSectionIndex, collectSubtree, findSection } from './outline-resolver.js';
 import { getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.js';
 import { enrichSpecInfo, getSpecPath, resolveSpecId } from './pdf-registry.js';
 import { extractRequirementsFromContent } from './requirement-extractor.js';
@@ -134,10 +134,52 @@ class PDFSpecService {
   // ========================================
 
   /**
-   * Get section content by section identifier
+   * Get section content by section identifier.
+   *
+   * A parent section returns its entire subtree — its own preamble followed by every
+   * descendant's content in document order (SV-1). The pieces are the partitioned
+   * per-section contents, which are disjoint by construction (S-9), so concatenation
+   * introduces no duplication. Before this, a parent returned only its preamble, and
+   * spec-first checks that queried a clause by its parent number never saw normative
+   * content that lives only in a child — get_section("12.8.2.2") had no trace of
+   * Table 257, whose P entry alone states that DSS/DocTimeStamp incremental updates
+   * "shall not be considered as changes".
    */
   public async getSectionContent(sectionId: string, specId?: string): Promise<SectionResult> {
     const id = this.registry.resolveSpecId(specId);
+    const index = await this.getSectionIndex(id);
+
+    const own = await this.getOwnSectionContent(sectionId, id);
+    const subtree = collectSubtree(index, own.sectionNumber);
+    if (subtree.length <= 1) return own;
+
+    // mapConcurrent preserves input order, so descendants stay in document order.
+    const descendants = await mapConcurrent(
+      subtree.slice(1),
+      (sec) => this.getOwnSectionContent(sec.sectionNumber, id),
+      CONCURRENCY.requirementsIndex,
+    );
+
+    const parts = [own, ...descendants];
+    return {
+      sectionNumber: own.sectionNumber,
+      title: own.title,
+      pageRange: {
+        start: own.pageRange.start,
+        end: Math.max(...parts.map((p) => p.pageRange.end)),
+      },
+      content: parts.flatMap((p) => p.content),
+    };
+  }
+
+  /**
+   * This section's OWN content: its pages, cut at its heading (start), at the next
+   * section's heading when they share a page (end, S-9), plus its strip on the seam
+   * page (S-5). These pieces partition the document; the requirements and search
+   * indexes are built from them, and getSectionContent concatenates them per subtree.
+   */
+  private async getOwnSectionContent(sectionId: string, specId: string): Promise<SectionResult> {
+    const id = specId;
     const index = await this.getSectionIndex(id);
     const section = findSection(index, sectionId);
 
@@ -262,35 +304,32 @@ class PDFSpecService {
     let allRequirements: Requirement[];
 
     if (section) {
-      // Fast path: extract from specific section + subsections
+      // Fast path: extract from the section's subtree. Resolved through the outline's
+      // children links (SV-1) — string-prefix matching never reached Annex subsections,
+      // whose keys are full titles ("A.1 General"). Each piece is the section's OWN
+      // content: since S-9 these partition the document, so walking every node (parents
+      // included, for their preambles) cannot double-count. The old code walked leaves
+      // only, which was the pre-S-9 workaround for overlapping parents.
       const index = await this.getSectionIndex(id);
-      const matchingSections = index.flatOrder.filter(
-        (s) => s.sectionNumber === section || s.sectionNumber.startsWith(`${section}.`),
-      );
+      const root = findSection(index, section);
 
-      if (matchingSections.length === 0) {
+      if (!root) {
         throw new ContentError(
           `Section "${section}" not found. Use get_structure to see available sections.`,
           { next_actions: [NEXT_ACTIONS.getStructure()], retryable: true },
         );
       }
 
-      // Only extract from leaf sections to avoid duplicates
-      const matchingNumbers = new Set(matchingSections.map((s) => s.sectionNumber));
-      const leafSections = matchingSections.filter(
-        (s) => !s.children.some((child) => matchingNumbers.has(child)),
+      const subtree = collectSubtree(index, root.sectionNumber);
+      const perSection = await mapConcurrent(
+        subtree,
+        async (sec) => {
+          const result = await this.getOwnSectionContent(sec.sectionNumber, id);
+          return extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
+        },
+        CONCURRENCY.requirementsIndex,
       );
-
-      allRequirements = [];
-      for (const sec of leafSections) {
-        const result = await this.getSectionContent(sec.sectionNumber, id);
-        const reqs = extractRequirementsFromContent(
-          result.content,
-          sec.sectionNumber,
-          result.title,
-        );
-        allRequirements.push(...reqs);
-      }
+      allRequirements = perSection.flat();
     } else {
       // Full scan: build or reuse cached index
       let requirementsPromise = this.requirementsIndexMap.get(id);
@@ -330,7 +369,9 @@ class PDFSpecService {
       index.flatOrder,
       async (sec) => {
         try {
-          const result = await this.getSectionContent(sec.sectionNumber, specId);
+          // Own content, not the subtree: aggregating parents here would double-count
+          // every requirement once per ancestor.
+          const result = await this.getOwnSectionContent(sec.sectionNumber, specId);
           return extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
         } catch {
           // Skip sections that fail to extract

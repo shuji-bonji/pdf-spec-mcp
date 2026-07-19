@@ -353,6 +353,115 @@ describe('getSectionContent — pageRange reflects the spill (S-10)', () => {
   });
 });
 
+describe('getSectionContent — a parent returns its subtree (SV-1)', () => {
+  /**
+   * The Table 257 shape: the parent's last descendant spills onto the next page.
+   * Before SV-1 the parent returned only its preamble; querying the clause by its
+   * parent number never showed normative content living only in a child.
+   */
+  function parentDoc() {
+    const doc = createDoc([
+      [
+        headingFixture('1 Parent'),
+        paragraphFixture('Parent preamble.'),
+        headingFixture('1.1 First child'),
+        paragraphFixture('Child one body.'),
+      ],
+      [
+        headingFixture('1.2 Second child'),
+        paragraphFixture('Child two body.'),
+        paragraphFixture('Table 257 — Entries in the DocMDP transform parameters dictionary'),
+        tableFixture(['Key', 'Type', 'Value'], [['V', 'name', 'The DocMDP transform version.']]),
+      ],
+      [
+        tableFixture(
+          ['Key', 'Type', 'Value'],
+          [['P', 'number', 'DSS updates shall not be considered as changes.']],
+        ),
+        headingFixture('2 Next'),
+        paragraphFixture('Next clause.'),
+      ],
+    ]);
+    const outline: OutlineEntry[] = [
+      {
+        title: '1 Parent',
+        page: 1,
+        sectionNumber: '1',
+        children: [
+          { title: '1.1 First child', page: 1, sectionNumber: '1.1', children: [] },
+          { title: '1.2 Second child', page: 2, sectionNumber: '1.2', children: [] },
+        ],
+      },
+      { title: '2 Next', page: 3, sectionNumber: '2', children: [] },
+    ];
+    return createService(doc, outline);
+  }
+
+  it('aggregates the whole subtree in document order, spill included', async () => {
+    const svc = parentDoc();
+
+    const parent = await svc.getSectionContent('1', 'test-spec');
+
+    const texts = parent.content.map((e) => ('text' in e ? (e as { text: string }).text : ''));
+    expect(texts).toContain('Parent preamble.');
+    expect(texts).toContain('Child one body.');
+    expect(texts).toContain('Child two body.');
+    // The strip on page 3 — reachable only through 1.2's seam — must be there too.
+    const cells = parent.content
+      .filter(
+        (e): e is { type: 'table'; headers: string[]; rows: string[][] } => e.type === 'table',
+      )
+      .flatMap((t) => t.rows.flat());
+    expect(cells.some((c) => c.includes('shall not be considered as changes'))).toBe(true);
+  });
+
+  it('reports the subtree page range, not the preamble’s', async () => {
+    const svc = parentDoc();
+
+    const parent = await svc.getSectionContent('1', 'test-spec');
+
+    // 1.2 spills onto page 3 (strip adopted, S-10), so the parent spans 1–3.
+    expect(parent.pageRange).toEqual({ start: 1, end: 3 });
+  });
+
+  it('surfaces a descendant’s tables through get_tables on the parent (SV-1b)', async () => {
+    const svc = parentDoc();
+
+    const tables = await svc.getTables('1', undefined, 'test-spec');
+
+    expect(tables.totalTables).toBeGreaterThanOrEqual(1);
+    const cells = tables.tables.flatMap((t) => t.rows.flat());
+    expect(cells.some((c) => c.includes('shall not be considered as changes'))).toBe(true);
+  });
+
+  it('does not double-count requirements: parent query = subtree of disjoint pieces', async () => {
+    const svc = parentDoc();
+
+    const parent = await svc.getRequirements('1', undefined, 'test-spec');
+    const leaf = await svc.getRequirements('1.2', undefined, 'test-spec');
+
+    // "shall not be considered as changes" lives once in 1.2's table; the parent
+    // aggregation must contain it exactly once, not once per ancestor.
+    const count = (reqs: { text: string }[]) =>
+      reqs.filter((r) => r.text.includes('shall not be considered as changes')).length;
+    expect(count(leaf.requirements)).toBe(1);
+    expect(count(parent.requirements)).toBe(1);
+  });
+
+  it('keeps the full requirements index on own content — subtree wiring would double-count', async () => {
+    // The index iterates flatOrder (parents included). If it were wired to the public
+    // getSectionContent, every requirement would be counted once per ancestor.
+    const svc = parentDoc();
+
+    const all = await svc.getRequirements(undefined, undefined, 'test-spec');
+
+    const hits = all.requirements.filter((r) =>
+      r.text.includes('shall not be considered as changes'),
+    );
+    expect(hits).toHaveLength(1);
+  });
+});
+
 describe('get_tables / get_requirements — fixed by the same seam', () => {
   it('merges table rows stranded past the section’s last page', async () => {
     // Table 182: the QuadPoints row sits on the next section's first page. The strip

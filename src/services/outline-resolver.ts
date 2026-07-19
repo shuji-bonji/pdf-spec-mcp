@@ -77,6 +77,31 @@ function extractTitle(fullTitle: string, sectionNumber: string | null): string {
 }
 
 /**
+ * A section and all its descendants, in document order (SV-1).
+ *
+ * Resolved through the outline's children links, NOT by string prefix: Annex subsections
+ * carry no section number, so their keys are full titles ("A.1 General") that no prefix
+ * of "Annex A" would ever match. flatOrder filtering keeps document order.
+ */
+export function collectSubtree(index: SectionIndex, rootKey: string): SectionInfo[] {
+  const root = index.sections.get(rootKey);
+  if (!root) return [];
+
+  const keys = new Set<string>();
+  const walk = (info: SectionInfo): void => {
+    if (keys.has(info.sectionNumber)) return;
+    keys.add(info.sectionNumber);
+    for (const childKey of info.children) {
+      const child = index.sections.get(childKey);
+      if (child) walk(child);
+    }
+  };
+  walk(root);
+
+  return index.flatOrder.filter((s) => keys.has(s.sectionNumber));
+}
+
+/**
  * Find a section by flexible matching
  */
 export function findSection(index: SectionIndex, query: string): SectionInfo | undefined {

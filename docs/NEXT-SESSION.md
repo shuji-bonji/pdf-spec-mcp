@@ -162,7 +162,30 @@ walker）+ pdf-lib 生ダンプを oracle に、0.4.2 の残穴が 2 件見つ�
   全数差分で「すべて正確に end+1」を確認。§14.9.4 は 815–816 に
 - **#6（起動時キャッシュ DB）は今回のスコープ外**（独立の機能提案。ユーザー判断）
 
-次: S-9 + S-10 を 0.4.3 としてリリース → npx 公開版検証 → Issue #9 / #10 をクローズ。
+次: S-9 + S-10 を 0.4.3 としてリリース → npx 公開版検証 → Issue #9 / #10 をクローズ。✅ 完了
+
+## 2026-07-19（続々）: spec ⇄ verify 相互チェックからの SV-1 (#11)（未リリース）
+
+出典: `Document-Note/mcps/PDFfamily/reviews/spec-verify-cross-check-2026-07-19.md` /
+`spec-full-audit-and-verify-witness-2026-07-19.md`。verify v0.7.0 の依拠条文 12 領域は
+すべて spec と一致（乖離なし）。逆方向で spec の実バグ SV-1 を検出。
+
+- ~~**SV-1 (#11). 親セクション取得が子の跨ぎページ分（Table 257 等）を落とす**（🔴）~~ —
+  ✅ **完了（2026-07-19・未リリース）**。実測では v0.4.3 の親は「前文のみ」（S-9 の帰結）で、
+  子孫が一切見えないのが本質だった。公開 get_section / get_tables を**サブツリー集約**
+  （children リンク DFS・文書順・分割済み own-content の連結）に変更。
+  get_requirements の親指定も prefix → children リンクに移行（Annex の子に届かなかった）。
+  1. **根本 1（意味論）**: own-content（索引用・互いに素）と公開応答（サブツリー）を分離。
+     **索引を公開側に繋ぐと祖先の数だけ二重計上**（変異で 6934 → 25068 を確認）
+  2. **根本 2（境界）**: findSectionHeadingIndex の「キー + 空白」前方一致が
+     Annex 見出し（改行続き）とタイトル全体キー（A.1 General）を取りこぼし、
+     **51 セクションが親と先頭ページを二重保持**していた。境界一致（空白/改行/終端）で解消。
+     要件 7183 → 6934（除去 319 全てに生存者・再帰属 70・新規 0・要素喪失 0）
+  - 固定ケース: get_section("12.8.2.2") に Table 257 の「shall not be considered as
+    changes」（e2e C-14）。親サブツリー = C-6b。ユニットは pdf-service.test.ts の
+    SV-1 describe + outline-resolver / content-extractor の境界テスト
+
+次: SV-1 を 0.4.4 としてリリース → npx 公開版検証 → Issue #11 をクローズ。
 
 > ただし **spec より先に writer の B-10a**（ページ操作が文書レベル情報を黙って破棄）を推奨。
 > データが実際に失われており、実測済みで有界。`pdf-writer-mcp/docs/TASKS.md` を参照。

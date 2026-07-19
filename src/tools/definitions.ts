@@ -79,7 +79,10 @@ export const tools: ToolDefinition[] = [
     title: 'Get section content',
     description:
       'Get the content of a specific section from the PDF specification (ISO 32000-2). ' +
-      'Returns structured content including headings, paragraphs, lists, tables, and notes.',
+      'Returns structured content including headings, paragraphs, lists, tables, and notes. ' +
+      'A parent section returns its entire subtree (all subsections, in document order); ' +
+      'top-level clauses can therefore return very large responses — prefer the most ' +
+      'specific section number you know.',
     shape: getSectionShape,
     annotations: READ_ONLY,
   },
@@ -120,7 +123,8 @@ export const tools: ToolDefinition[] = [
     title: 'Extract tables',
     description:
       'Extract table structures from a specified section of the PDF specification (ISO 32000-2). ' +
-      'Returns tables with headers, rows, and optional captions.',
+      'Returns tables with headers, rows, and optional captions. ' +
+      'A parent section returns the tables of its entire subtree (all subsections).',
     shape: getTablesShape,
     annotations: READ_ONLY,
   },

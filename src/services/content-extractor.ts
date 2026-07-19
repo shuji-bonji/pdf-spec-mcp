@@ -66,17 +66,20 @@ export async function extractSectionContent(
  * extractOrphanedStrip stay exact complements of each other — see extractOrphanedStrip.
  */
 function findSectionHeadingIndex(elements: ContentElement[], sectionNumber: string): number {
-  const idx = elements.findIndex(
-    (el) => el.type === 'heading' && el.text.startsWith(`${sectionNumber} `),
-  );
-  if (idx !== -1) return idx;
-
-  // Also try matching "Annex X" format, where the heading may be exactly the section number
-  if (sectionNumber.startsWith('Annex ')) {
-    return elements.findIndex((el) => el.type === 'heading' && el.text.startsWith(sectionNumber));
-  }
-
-  return -1;
+  // The key must be followed by a boundary (space, line break, or end of text), not by an
+  // arbitrary character: "7.3" must not match "7.3.4 String objects". The old rule
+  // demanded a trailing space, which silently failed for two shapes (SV-1):
+  //   - "Annex A" headings render as "Annex A\n(informative)\n…" (line break, not space)
+  //   - Annex subsections have no section number in the outline, so their key is the full
+  //     title ("A.1 General") and the heading text equals it exactly (end of text).
+  // A miss here means trimToSectionStart keeps the whole shared page for BOTH the parent
+  // and the child — 51 sections of ISO 32000-2 double-held their first page this way.
+  return elements.findIndex((el) => {
+    if (el.type !== 'heading') return false;
+    if (!el.text.startsWith(sectionNumber)) return false;
+    const after = el.text.charAt(sectionNumber.length);
+    return after === '' || after === ' ' || after === '\n';
+  });
 }
 
 /**

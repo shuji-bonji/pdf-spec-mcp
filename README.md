@@ -282,7 +282,7 @@ Get the section hierarchy (TOC tree) of a specification.
 
 Get structured content (headings, paragraphs, lists, tables, notes) of a specific section.
 
-A parent section returns only its own preamble (often just the heading); its content lives in the subsections.
+A parent section returns its entire subtree (its preamble followed by all subsections, in document order). Top-level clauses can be very large — prefer the most specific section number.
 
 ```jsonc
 // PDF 2.0 Section 7.3.4.2 (Literal Strings)

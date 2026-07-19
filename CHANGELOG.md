@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-07-19
+
+### Fixed
+
+- **SV-1 (#11): 親セクション指定で子孫の内容が見えなかった問題を修正 — 親はサブツリー全体を返す**。
+  `get_section("12.8.2.2")` は前文（見出しのみ）しか返さず、子 12.8.2.2.2 の Table 257 に
+  しか無い規範（P=1/2/3 の意味・**DSS/DocTimeStamp の増分更新は変更とみなさない**）が
+  親経由の仕様確認から見えなかった。`get_tables("12.8.2.2")` も 0 表だった（SV-1b）。
+
+  修正: 公開の `get_section` / `get_tables` は **outline の children リンクを DFS** して
+  サブツリー全体（自身の前文 + 全子孫、文書順）を返す。連結する断片は S-9 で分割済みの
+  own-content（互いに素）なので重複は生じない。requirements / search 索引は従来どおり
+  own-content から構築（サブツリーを繋ぐと祖先の数だけ二重計上になる — 変異テストで
+  6934 → 25068 に爆発することを確認済み）。`get_requirements` の親指定も prefix 文字列
+  一致から children リンクへ移行し、Annex の子（キーがタイトル全体）に届くようになった。
+  `pageRange` はサブツリーの実範囲（12.8.2.2 = 588–589）。
+  最上位の節は応答が大きくなる（節 12 で約 500KB）ため、ツール説明に
+  「なるべく具体的な節番号を」と明記した。
+
+- **見出し判定の境界条件を修正**（SV-1 の根本の一つ）: `findSectionHeadingIndex` は
+  「キー + 空白」の前方一致だったため、(a) 改行が続く Annex 見出し
+  （`Annex A\n(informative)…`）と (b) 節番号を持たず**タイトル全体がキー**になる Annex 子
+  セクション（`A.1 General`）で見出しを見つけられず、**51 セクションが親と先頭ページを
+  二重保持**していた。境界（空白・改行・終端）一致に変更。`trimToSectionStart` /
+  `extractOrphanedStrip` / `trimAfterNextSectionStart` / `extractPageSegments` の
+  4 経路すべてが同じ関数を通るため一括で直る。
+  要件インデックスは 7183 → **6934 件**（除去 319 件はすべて同一文の生存者あり =
+  二重保持の解消、再帰属 70 件、新規テキスト 0、全数検証でコーパス全体の要素喪失ゼロ）。
+
 ## [0.4.3] - 2026-07-19
 
 ### Fixed

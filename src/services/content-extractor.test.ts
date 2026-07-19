@@ -508,6 +508,34 @@ describe('trimAfterNextSectionStart (S-9)', () => {
     // "1.2 " does not prefix "1.2.1 Grandchild" — no cut.
     expect(trimAfterNextSectionStart(elements, '1.2')).toEqual(elements);
   });
+
+  // ---- SV-1: heading keys that the trailing-space rule silently missed ----
+
+  it('matches a title-key heading exactly (Annex subsections: "A.1 General")', () => {
+    // Annex subsections carry no section number in the outline, so the key is the full
+    // title and the heading text equals it — no trailing space to match on. Missing it
+    // left the shared page double-held by parent and child (51 sections).
+    const elements = [
+      heading('Annex A\n(informative)\nOperator Summary'),
+      para('Intro.'),
+      heading('A.1 General'),
+      para('Body.'),
+    ];
+
+    expect(trimAfterNextSectionStart(elements, 'A.1 General')).toEqual([
+      heading('Annex A\n(informative)\nOperator Summary'),
+      para('Intro.'),
+    ]);
+  });
+
+  it('matches a heading whose key is followed by a line break ("Annex A\\n(informative)…")', () => {
+    const elements = [
+      para('Tail of previous.'),
+      heading('Annex A\n(informative)\nOperator Summary'),
+    ];
+
+    expect(trimAfterNextSectionStart(elements, 'Annex A')).toEqual([para('Tail of previous.')]);
+  });
 });
 
 describe('extractPageSegments (S-8)', () => {

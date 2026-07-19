@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OutlineEntry } from '../types/index.js';
-import { buildSectionIndex, findSection } from './outline-resolver.js';
+import { buildSectionIndex, collectSubtree, findSection } from './outline-resolver.js';
 
 function makeOutline(): OutlineEntry[] {
   return [
@@ -171,5 +171,41 @@ describe('findSection', () => {
 
   it('returns undefined for non-existent section', () => {
     expect(findSection(index, '99.99')).toBeUndefined();
+  });
+});
+
+describe('collectSubtree (SV-1)', () => {
+  // Annex-style: children have no section number, so their keys are full titles that
+  // no string prefix of the parent key would match.
+  const outline: OutlineEntry[] = [
+    {
+      title: 'Annex A (informative) Operator Summary',
+      page: 10,
+      sectionNumber: 'Annex A',
+      children: [
+        { title: 'A.1 General', page: 10, sectionNumber: null, children: [] },
+        { title: 'A.2 Operators', page: 11, sectionNumber: null, children: [] },
+      ],
+    },
+    { title: 'Annex B (informative) Something', page: 12, sectionNumber: 'Annex B', children: [] },
+  ];
+  const index = buildSectionIndex(outline, 20);
+
+  it('collects the root and its descendants through children links, in document order', () => {
+    const subtree = collectSubtree(index, 'Annex A');
+    expect(subtree.map((s) => s.sectionNumber)).toEqual([
+      'Annex A',
+      'A.1 General',
+      'A.2 Operators',
+    ]);
+  });
+
+  it('returns just the section itself for a leaf', () => {
+    const subtree = collectSubtree(index, 'Annex B');
+    expect(subtree.map((s) => s.sectionNumber)).toEqual(['Annex B']);
+  });
+
+  it('returns empty for an unknown key', () => {
+    expect(collectSubtree(index, 'nope')).toEqual([]);
   });
 });
