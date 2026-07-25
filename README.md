@@ -7,13 +7,30 @@
 
 An MCP (Model Context Protocol) server that provides structured access to ISO 32000 (PDF) specification documents. Enables LLMs to navigate, search, and analyze PDF specifications through well-defined tools.
 
-### PDF family
+> [!IMPORTANT]
+> **This is a specification *reference*, not a rule engine.**
+> It retrieves and structures the text of ISO 32000 — clauses, tables, definitions, and
+> `shall`/`should`/`may` requirements. It does **not** examine a PDF file, and it cannot tell
+> you whether a document conforms to anything. Conformance verdicts come from
+> [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp)
+> (`validate_conformance` / `evaluate_policy`).
+>
+> The distinction matters because three different things get conflated:
+> **declaration** (what the producer claims about itself) / **conformance** (which nobody can
+> prove) / **validation** (valid only within the rules a validator actually implements).
+> Reading a `shall` here tells you what the standard requires — not whether your file meets it.
+>
+> **A search that returns nothing means "cannot answer", not "no such requirement."**
+> ISO 19005 (PDF/A) and ETSI PAdES are outside this corpus; see `list_specs` → `coverage.gaps`.
 
-| Server | Role |
-|--------|------|
-| **pdf-spec-mcp** (this) | PDF specification knowledge (ISO 32000, PDF/A, PDF/UA) |
-| [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) | Read and inspect PDF internal structure — *what is in* a PDF |
-| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | Authenticity verification — *whether it is genuine*: cryptographic signature verification, tamper detection, PAdES level, PDF/A validation, encrypted-PDF decryption |
+### What each PDF family server does — and does not do
+
+| Server | Does | **Does not** |
+|---|---|---|
+| **pdf-spec-mcp** (this) | Search, retrieve and extract requirements from 17 PDF-related documents | **Is not a rule engine.** Does not define business rules, inspect PDF files, or validate schemas. ISO 19005 (PDF/A) is not part of the corpus |
+| [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) | Extract text / tables / structure tree / fonts / annotations / images / signature *fields* | **Does not verify cryptography.** Does not read the incremental-update history, does not map object IDs to coordinates, does not OCR |
+| [pdf-writer-mcp](https://github.com/shuji-bonji/pdf-writer-mcp) | Create, page operations, tagging, forms, annotations, metadata, attachments, PDF/A-3b scaffolding | **Does not sign.** Does not guarantee conformance — it can write a *claim*, not conformance |
+| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | Conformance validation (delegated to veraPDF), cryptographic signature verification, tamper detection, policy verdicts | **Does not prove conformance** (only disproves it). Does not vouch for the signer's identity. Does not judge whether the content is true |
 
 > [!IMPORTANT]
 > **PDF specification files are NOT included in this package.**

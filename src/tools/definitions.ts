@@ -56,7 +56,9 @@ export const tools: ToolDefinition[] = [
     title: 'List available specifications',
     description:
       'List all available PDF specification documents. ' +
-      'Returns document IDs, titles, page counts, and categories. ' +
+      'Returns document IDs, titles, page counts, and categories, plus `coverage.gaps` — ' +
+      'the normative areas this corpus does NOT contain (PDF/A, PAdES). ' +
+      'Read the gaps before concluding that a requirement does not exist. ' +
       'Use the returned IDs as the `spec` parameter in other tools.',
     shape: listSpecsShape,
     annotations: READ_ONLY,
@@ -92,7 +94,9 @@ export const tools: ToolDefinition[] = [
     description:
       'Search the PDF specification (ISO 32000-2) for a keyword or phrase. ' +
       'Returns matching sections with context snippets. ' +
-      'The first call may take a few seconds to build the search index.',
+      'The first call may take a few seconds to build the search index. ' +
+      'No hits means "this corpus cannot answer", NOT "no such requirement exists" — ' +
+      'ISO 19005 (PDF/A) and ETSI PAdES are outside it (see list_specs -> coverage.gaps).',
     shape: searchSpecShape,
     annotations: READ_ONLY,
   },
@@ -104,8 +108,11 @@ export const tools: ToolDefinition[] = [
     name: 'get_requirements',
     title: 'Extract normative requirements',
     description:
+      'Reads the STANDARD, not your file. ' +
       'Extract normative requirements (shall/must/may) from the PDF specification (ISO 32000-2). ' +
-      'Returns structured requirements with the sentence context, section, and requirement level.',
+      'Returns structured requirements with the sentence context, section, and requirement level. ' +
+      'It tells you what the specification requires, never whether a given PDF satisfies it — ' +
+      'to check a file, use pdf-verify-mcp (validate_conformance / evaluate_policy).',
     shape: getRequirementsShape,
     annotations: READ_ONLY,
   },

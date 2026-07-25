@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-07-25
+
+### Documentation
+
+- **Say plainly that this is a reference, not a rule engine ([#13](https://github.com/shuji-bonji/pdf-spec-mcp/issues/13)).**
+  The server kept being read as a conformance checker. It is not: it retrieves and structures
+  the *text* of ISO 32000 and never looks at a PDF file. Verdicts belong to pdf-verify-mcp.
+
+  Both READMEs now open with that statement, followed by a table of what each of the four PDF
+  family servers does **and does not** do — on the principle that the "does not" column is what
+  prevents the misreading, so it goes first.
+
+  The confusion is not academic. It collapses three distinct things: **declaration** (what a
+  producer claims about itself), **conformance** (which nobody can prove), and **verification**
+  (valid only within the rules a validator actually implements). A `shall` retrieved here tells
+  you what the standard demands, never whether your file meets it.
+
+  **The server now sends `instructions` on `initialize`** — the same statement, delivered where
+  a client loads it into its system context before calling a single tool. That is the earliest
+  point at which the misreading can be cut off, earlier than any README or tool description.
+  (No other server in the family sets `instructions` yet; this one goes first.)
+
+  Three tool descriptions were tightened for the same reason (behaviour unchanged):
+
+  - `get_requirements` — states that it reads the standard, not your file
+  - `search_spec` — no hits means "this corpus cannot answer", not "no such requirement";
+    ISO 19005 (PDF/A) and ETSI PAdES are outside it
+  - `list_specs` — points at `coverage.gaps` before you conclude a requirement does not exist
+
 ## [0.4.4] - 2026-07-19
 
 ### Fixed

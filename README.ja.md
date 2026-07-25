@@ -7,13 +7,31 @@
 
 ISO 32000（PDF）仕様書への構造化アクセスを提供する MCP（Model Context Protocol）サーバーです。LLM が PDF 仕様書をナビゲート・検索・分析するためのツールを提供します。
 
-### PDF family
+> [!IMPORTANT]
+> **これは仕様の「参照」であって、ルールエンジンではありません。**
+> 本サーバーが行うのは ISO 32000 の**条文を取り出して構造化すること**です
+> （節・表・用語定義・`shall`/`should`/`may` の要件抽出）。
+> **PDF ファイルを検査しません**し、ある文書が規格に適合しているかどうかも答えられません。
+> 適合判定は [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) の
+> `validate_conformance` / `evaluate_policy` が下します。
+>
+> この区別が要るのは、**3 つの別物が混同されやすい**からです:
+> **宣言**（生成者の自称）／ **適合**（誰も証明できず、反証のみ可能）／
+> **検証**（バリデータが実装した規則の範囲でのみ有効）。
+> ここで `shall` を読むと「規格が何を要求しているか」は分かりますが、
+> 「あなたのファイルがそれを満たしているか」は分かりません。
+>
+> **検索がヒットしないことは「要件が存在しない」証拠ではなく「答えられない」を意味します。**
+> ISO 19005（PDF/A）と ETSI PAdES は本コーパスの対象外です（`list_specs` の `coverage.gaps` を参照）。
 
-| サーバー | 役割 |
-|---------|------|
-| **pdf-spec-mcp**（本サーバー） | PDF 仕様知識（ISO 32000・PDF/A・PDF/UA） |
-| [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) | PDF 内部構造の読取・検査 — 「何があるか」 |
-| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | 真正性検証 — 「それが本物か」: 電子署名の暗号学的検証・改ざん検知・PAdES レベル判定・PDF/A 検証・暗号化PDF復号 |
+### PDF family の各サーバーが「すること」と「しないこと」
+
+| サーバー | すること | **しないこと** |
+|---|---|---|
+| **pdf-spec-mcp**（本サーバー） | PDF 関連 17 文書の条文検索・取得・要件抽出 | **ルールエンジンではない。** 業務ルールの定義・PDF ファイルの検査・スキーマ検証は一切しない。ISO 19005（PDF/A）本文は非収録 |
+| [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) | テキスト / 表 / 構造木 / フォント / 注釈 / 画像 / 署名**フィールドの構造**の抽出 | **暗号検証をしない。** 増分更新の履歴を読まない。オブジェクト ID → 描画座標を返さない。OCR しない |
+| [pdf-writer-mcp](https://github.com/shuji-bonji/pdf-writer-mcp) | 生成・ページ操作・タグ付け・フォーム・注釈・メタデータ・添付・PDF/A-3b の器付け | **署名を付与しない。** 仕様適合を保証しない — 書けるのは**宣言**であって適合ではない |
+| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | 適合性検証（veraPDF 委譲）・署名の暗号検証・改ざん検知・4 値ポリシー判定 | **適合を証明しない**（反証のみ）。署名者の身元を保証しない（trust anchor 必須）。内容の真偽を判定しない |
 
 > [!IMPORTANT]
 > **PDF 仕様書ファイルは同梱されていません。**

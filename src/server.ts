@@ -21,11 +21,38 @@ import { logger } from './utils/logger.js';
  * Build the MCP server with all tools registered.
  * Does not connect a transport — the caller decides how it is driven.
  */
+/**
+ * `initialize` の応答としてクライアントへ返す説明（Issue #13 / family specs/12 §5 D-2）。
+ *
+ * **本サーバは「適合判定器」と繰り返し誤解されてきた。** README とツール説明にも同じことを
+ * 書いてあるが、`instructions` はクライアントのシステムコンテキストに直接載るため、
+ * ツールを 1 つも呼ばないうちに読まれる — 誤解を断つ位置としてはここが最も早い。
+ */
+const INSTRUCTIONS = `This server is a REFERENCE to the PDF specification, not a rule engine.
+
+It retrieves and structures the *text* of ISO 32000 (clauses, tables, definitions, and
+shall/should/may requirements). It never opens or inspects a PDF file, and it cannot decide
+whether a document conforms to anything. Conformance verdicts come from pdf-verify-mcp
+(validate_conformance / evaluate_policy).
+
+Keep three things apart:
+  - declaration  — what a producer claims about itself (XMP pdfaid / pdfuaid). Proves nothing.
+  - conformance  — nobody can prove it; it can only be disproved.
+  - validation   — valid only within the rules a validator actually implements.
+Reading a "shall" here tells you what the standard demands, never whether a file meets it.
+
+A search that returns nothing means "this corpus cannot answer", NOT "no such requirement
+exists". ISO 19005 (PDF/A) and ETSI PAdES are outside the corpus — call list_specs and read
+coverage.gaps before concluding that a requirement is absent.`;
+
 export function buildServer(): McpServer {
-  const server = new McpServer({
-    name: PACKAGE_INFO.name,
-    version: PACKAGE_INFO.version,
-  });
+  const server = new McpServer(
+    {
+      name: PACKAGE_INFO.name,
+      version: PACKAGE_INFO.version,
+    },
+    { instructions: INSTRUCTIONS },
+  );
 
   for (const tool of tools) {
     const handler = toolHandlers[tool.name as ToolName];
