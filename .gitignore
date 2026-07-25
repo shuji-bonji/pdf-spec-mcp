@@ -6,6 +6,11 @@ dist/
 pdf-spec/
 pdf-spec-archive/
 
+# Reference PDFs (keep binaries out of the repo).
+# NOTE: TechNote 0010 itself is CC-BY 4.0 (redistributable) — this is a
+# "no binaries in the repo" policy, not a copyright restriction.
+docs/reference/*.pdf
+
 .claude/
 
 # Vitest temp files (残存する一時トランスパイル成果物)
