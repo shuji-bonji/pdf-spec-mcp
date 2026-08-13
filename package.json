@@ -1,6 +1,6 @@
 {
   "name": "@shuji-bonji/pdf-spec-mcp",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "MCP server for structured understanding of ISO 32000 (PDF) specifications. A specification reference, not a conformance checker — it never inspects PDF files",
   "keywords": [
     "mcp",
@@ -40,8 +40,9 @@
     "format:fix": "biome format --write ./src ./tests",
     "check": "biome check ./src ./tests",
     "check:fix": "biome check --fix ./src ./tests",
-    "prepublishOnly": "npm run build",
-    "check:imports": "node scripts/check-import-order.mjs"
+    "prepublishOnly": "node scripts/sync-plugin-version.mjs --check && npm run build",
+    "check:imports": "node scripts/check-import-order.mjs",
+    "version": "node scripts/sync-plugin-version.mjs && git add .claude-plugin/plugin.json"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",

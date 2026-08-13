@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] - 2026-08-13
+
+### Changed
+
+- **`instructions` now open with the running build's name and version.** The text is returned
+  from `initialize` and lands in the client's system context before any tool is considered,
+  which makes it the one place where a stale install can be noticed without spending a call.
+  The line names the package and points at `npm view` for comparison.
+
+  This server is installed through `npx -y @shuji-bonji/pdf-spec-mcp@latest`, and npx caches a
+  resolved tree — so a client can run a build several releases behind while every document
+  about it describes the newest one. The risk here is specific: 0.4.5 exists to stop this
+  server being read as a conformance checker, and **a client on an older build gets none of
+  that text** while the README says it does.
+
+  pdf-verify-mcp did this in 0.15.0, pdf-writer-mcp in 0.19.0 and pdf-reader-mcp in 0.11.2;
+  this release completes the family. A half-applied diagnostic is worse than none — a reader
+  who sees no version line cannot tell "old build" from "build that never had the line".
+
+  No tool, schema or behaviour changed.
+
+### Build
+
+- `scripts/sync-plugin-version.mjs` keeps `.claude-plugin/plugin.json` in step with
+  `package.json`, wired to the `npm version` hook so the release commit — the tree the tag
+  points at — carries the right plugin manifest, and to `prepublishOnly --check` as a
+  backstop. Preventive: the drift has happened twice in pdf-verify-mcp and once in
+  pdf-writer-mcp, never here, and in each case the fix landed in a commit *after* the tag,
+  leaving the tagged tree wrong.
+
 ## [0.4.5] - 2026-07-25
 
 ### Documentation

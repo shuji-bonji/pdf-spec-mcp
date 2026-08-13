@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/.claude-plugin/plugin.schema.json",
   "name": "pdf-spec-mcp",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "ISO 32000 (PDF 仕様) の構造化参照 MCP server。条項検索・要求事項 (MUST/SHOULD) 抽出・定義取得・版間比較を提供。ISO 仕様 PDF は利用者が用意し PDF_SPEC_DIR で指定する。**本サーバは条文の参照であって適合判定器ではありません** — PDF ファイルの検査や適合判定は行わず、それは pdf-verify-mcp の役割です。",
   "author": {
     "name": "shuji-bonji",

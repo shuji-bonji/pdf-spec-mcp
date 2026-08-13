@@ -28,7 +28,9 @@ import { logger } from './utils/logger.js';
  * 書いてあるが、`instructions` はクライアントのシステムコンテキストに直接載るため、
  * ツールを 1 つも呼ばないうちに読まれる — 誤解を断つ位置としてはここが最も早い。
  */
-const INSTRUCTIONS = `This server is a REFERENCE to the PDF specification, not a rule engine.
+const INSTRUCTIONS = `${PACKAGE_INFO.name} v${PACKAGE_INFO.version} — the running build identifies itself here so a stale install is visible without a tool call; compare against \`npm view ${PACKAGE_INFO.name} version\` when freshness matters.
+
+This server is a REFERENCE to the PDF specification, not a rule engine.
 
 It retrieves and structures the *text* of ISO 32000 (clauses, tables, definitions, and
 shall/should/may requirements). It never opens or inspects a PDF file, and it cannot decide
