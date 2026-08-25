@@ -1,6 +1,6 @@
 # Issue #6: 索引の永続化（IndexStore）実装計画
 
-> Status: ✅ 実装済み（2026-08-25・未リリース）。§8 に実測結果。リリースは 0.5.0 として host 側で
+> Status: ✅ 0.5.0 として 2026-08-25 に公開・npx 検証 PASS・Issue #6 クローズ。§8 に実測結果
 > 対象: [Issue #6](https://github.com/shuji-bonji/pdf-spec-mcp/issues/6) / 起点バージョン 0.4.6 / 目標バージョン 0.5.0
 
 ## Context
