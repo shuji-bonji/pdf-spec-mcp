@@ -94,7 +94,8 @@ export const tools: ToolDefinition[] = [
     description:
       'Search the PDF specification (ISO 32000-2) for a keyword or phrase. ' +
       'Returns matching sections with context snippets. ' +
-      'The first call may take a few seconds to build the search index. ' +
+      'The first call may take a few seconds to build the search index; it is then cached on disk, ' +
+      'so later processes start warm. ' +
       'No hits means "this corpus cannot answer", NOT "no such requirement exists" — ' +
       'ISO 19005 (PDF/A) and ETSI PAdES are outside it (see list_specs -> coverage.gaps).',
     shape: searchSpecShape,

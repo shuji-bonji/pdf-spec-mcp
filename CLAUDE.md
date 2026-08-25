@@ -174,6 +174,30 @@ pdfjs-dist v5 の実際の経路は `warn()` → `console.warn`（stderr・**std
 `src/utils/stdout-guard.ts` が log / info / warn を stderr へ転送する。
 ESM は import を巻き上げるため、ガードは `index.ts` の**最初の import** でなければ意味がない。
 
+### 7. ディスク上の索引キャッシュは「版」がキーに入っていないと古い切り方を読み続ける（Issue #6 / 2026-08-25）
+
+`search_spec` の索引と `get_requirements` の全走査は `services/index-store.ts` が
+`~/.cache/pdf-spec-mcp/v1/<版>/<spec>.<kind>.<sha16>.json` に保存し、次のプロセスが読む。
+キーは **package 版 + pdfjs-dist 版 + specId + PDF の SHA-256**。0.4.2 / 0.4.3 / 0.4.5 は
+どれも索引の切り方を変えた修正で、PDF のハッシュだけをキーにしていたら版を上げても
+直す前の索引を読み続け、症状は「検索結果が少し違う」だけなので気づけない。
+
+- **開発中は版が変わらない。** 抽出ロジック（content-extractor / search-index /
+  requirement-extractor / outline-resolver）を直したあと手動で dist を叩くときは
+  `--clear-cache` するか `PDF_SPEC_CACHE=off` で回す。e2e は `tests/e2e/setup.ts` が
+  既定の store を off にしているので常にコールド（P-6 が構築時間を測り続けるため。
+  キャッシュの検証は `12-index-store.test.ts` が一時ディレクトリの store を注入して行う）。
+  ユニットは `vitest.config.ts` の env で off。
+- **保存形式を変えたら `INDEX_SCHEMA_VERSION` を上げる。** 構築ロジックの変更はリリースの
+  版上げで自然に外れるが、形式の変更は同じ版のまま起きうる。
+- `load` / `save` は throw しない契約だが、service 側も try で包む（PS-C3）。キャッシュ起因で
+  ツールが失敗する経路を作らない。
+- キャッシュから読んだ配列は in-memory の索引と同じ扱い（0.4.0 の参照汚染と同じ形が
+  再来しうる）。C-5 / PS-C4 が順序と回数で結果が変わらないことを固定している。
+- `--build-cache` は仕様を**直列**に回す。`PagesMapper` の制約（pdf-loader.ts）で並列化できない。
+- ユニットの「壊して落ちる」確認済み（2026-08-25）: キーから packageVersion を外す → IS-2 が落ちる。
+  形の検査を外す → IS-7 / IS-7b。service が cache を無視 → PS-C1。rename を直書きに → IS-10 / IS-11。
+
 ## テスト
 
 ```bash

@@ -33,6 +33,13 @@ import {
   trimAfterNextSectionStart,
 } from './content-extractor.js';
 import { extractAllDefinitions } from './definition-extractor.js';
+import {
+  defaultIndexStore,
+  type IndexKind,
+  type IndexPayload,
+  type IndexStore,
+  type LoadedIndex,
+} from './index-store.js';
 import { buildSectionIndex, collectSubtree, findSection } from './outline-resolver.js';
 import { getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.js';
 import { enrichSpecInfo, getSpecPath, resolveSpecId } from './pdf-registry.js';
@@ -81,6 +88,12 @@ class PDFSpecService {
       reloadDocument(path: string): Promise<PDFDocumentProxy>;
       getOutlineWithPages(doc: PDFDocumentProxy): Promise<OutlineEntry[]>;
     },
+    /**
+     * On-disk persistence for the search and requirements indexes (Issue #6). Injected so
+     * tests can share one store between two service instances and prove the second never
+     * touches the loader.
+     */
+    private store: IndexStore = defaultIndexStore,
   ) {
     this.sectionIndexMap = new Map();
     this.searchIndexMap = new Map();
@@ -273,17 +286,73 @@ class PDFSpecService {
 
     let searchIndexPromise = this.searchIndexMap.get(id);
     if (!searchIndexPromise) {
-      const pdfPath = this.registry.getSpecPath(id);
-      // Force-reload to reset pdfjs-dist PagesMapper singleton state.
-      // Without this, getPage() fails for pages beyond the LAST-loaded document's numPages.
-      const doc = await this.loader.reloadDocument(pdfPath);
-      logger.info('PDFService', `[${id}] Building search index (this may take a few seconds)...`);
-      searchIndexPromise = buildSearchIndex(doc, index);
+      searchIndexPromise = this.loadOrBuildSearchIndex(id, index);
       this.searchIndexMap.set(id, searchIndexPromise);
     }
 
     const searchIdx = await searchIndexPromise;
     return searchTextIndex(searchIdx, query, maxResults, index);
+  }
+
+  /**
+   * The search index from disk if this exact PDF was indexed by this exact version before,
+   * otherwise built and saved (Issue #6).
+   *
+   * A hit skips `reloadDocument` entirely — no pdfjs page walk, and no PagesMapper reset —
+   * so the cached path never depends on which document was loaded last. Nothing downstream
+   * can tell the two apart: `searchTextIndex` walks the same `pages` array either way.
+   */
+  private async loadOrBuildSearchIndex(specId: string, index: SectionIndex): Promise<TextIndex> {
+    const pdfPath = this.registry.getSpecPath(specId);
+
+    const cached = await this.loadIndex('search', specId, pdfPath);
+    if (cached) {
+      logger.info(
+        'PDFService',
+        `[${specId}] Search index loaded from cache in ${cached.loadTimeMs}ms (${cached.path})`,
+      );
+      return { pages: cached.data.pages, buildTime: cached.loadTimeMs };
+    }
+
+    // Force-reload to reset pdfjs-dist PagesMapper singleton state.
+    // Without this, getPage() fails for pages beyond the LAST-loaded document's numPages.
+    const doc = await this.loader.reloadDocument(pdfPath);
+    logger.info('PDFService', `[${specId}] Building search index (this may take a few seconds)...`);
+    const built = await buildSearchIndex(doc, index);
+    await this.saveIndex('search', specId, pdfPath, { pages: built.pages }, built.buildTime);
+    return built;
+  }
+
+  /**
+   * `store.load` / `store.save` are specified never to throw, but the service does not
+   * depend on that: a store that does throw is still just a miss (or a lost write). The
+   * cache must not be able to fail a tool — PS-C3 pins this for both directions.
+   */
+  private async loadIndex<K extends IndexKind>(
+    kind: K,
+    specId: string,
+    pdfPath: string,
+  ): Promise<LoadedIndex<K> | null> {
+    try {
+      return await this.store.load(kind, specId, pdfPath);
+    } catch (err) {
+      logger.warn('PDFService', `[${specId}] ${kind} index cache read failed, rebuilding: ${err}`);
+      return null;
+    }
+  }
+
+  private async saveIndex<K extends IndexKind>(
+    kind: K,
+    specId: string,
+    pdfPath: string,
+    data: IndexPayload[K],
+    buildTimeMs: number,
+  ): Promise<void> {
+    try {
+      await this.store.save(kind, specId, pdfPath, data, buildTimeMs);
+    } catch (err) {
+      logger.warn('PDFService', `[${specId}] ${kind} index cache write failed: ${err}`);
+    }
   }
 
   // ========================================
@@ -363,6 +432,17 @@ class PDFSpecService {
    */
   private async buildRequirementsIndex(specId: string): Promise<Requirement[]> {
     const index = await this.getSectionIndex(specId);
+    const pdfPath = this.registry.getSpecPath(specId);
+
+    const cached = await this.loadIndex('requirements', specId, pdfPath);
+    if (cached) {
+      logger.info(
+        'PDFService',
+        `[${specId}] Requirements index loaded from cache in ${cached.loadTimeMs}ms (${cached.path})`,
+      );
+      return cached.data;
+    }
+    const start = Date.now();
 
     // Process sections in parallel with bounded concurrency
     const results = await mapConcurrent(
@@ -387,6 +467,7 @@ class PDFSpecService {
       'PDFService',
       `[${specId}] Requirements index built: ${allRequirements.length} requirements`,
     );
+    await this.saveIndex('requirements', specId, pdfPath, allRequirements, Date.now() - start);
     return allRequirements;
   }
 

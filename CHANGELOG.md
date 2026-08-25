@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-25
+
+### Added
+
+- **On-disk index cache (Issue #6).** The two whole-document operations — the search index
+  built by the first `search_spec` on a spec, and the full scan behind `get_requirements`
+  without a `section` — are now written to disk after they are built and read back by every
+  later process. Measured on ISO 32000-2 (1023 pages) in a 2-CPU sandbox: search 24.3 s →
+  0.16 s, requirements 51.0 s → 0.02 s, with the index byte-for-byte identical (a laptop is
+  roughly 4× faster on both sides). Nothing about searching changed: the same in-memory
+  structure is walked by the same code; only where it comes from does.
+
+  - Location: `${PDF_SPEC_CACHE_DIR:-${XDG_CACHE_HOME:-~/.cache}/pdf-spec-mcp}/v1/<version>/<spec>.<kind>.<sha16>.json`,
+    ~18 MB for the 17-spec corpus. Plain JSON of the existing `TextIndex.pages` and
+    `Requirement[]` — no new dependency, no database.
+  - Key: package version, `pdfjs-dist` version, spec id, SHA-256 of the PDF. The package
+    version is in the key on purpose — 0.4.2, 0.4.3 and 0.4.5 each changed how pages are cut
+    into sections, and a cache keyed on the PDF alone would have kept serving the pre-fix
+    index after every one of those upgrades. The pdfjs version is there because the installed
+    pdfjs drifts from `package.json`'s range between installs.
+  - Any failure is a miss, never an error: absent, truncated, foreign-version or
+    wrong-shaped files are rebuilt; an unwritable directory is reported once and the server
+    runs without a cache. Writes are tmp + rename, so concurrent processes cannot corrupt
+    each other. `PDF_SPEC_CACHE=off` disables it.
+  - `PDFSpecService` takes the store as a third constructor argument (`IndexStore`), so tests
+    share one store between two instances and prove the second never touches the loader.
+- **CLI:** `pdf-spec-mcp --build-cache [--spec=a,b] [--force]` builds every spec's indexes
+  sequentially through the same code path the tools use and exits (about a minute for the
+  corpus on a laptop); `--cache-info` lists the directory, the current key and the entries;
+  `--clear-cache` removes the directory. Without a flag the binary starts the MCP server as
+  before.
+
+### Changed
+
+- `search_spec`'s description now says the index is cached on disk after the first build.
+- e2e runs with the cache off by default (`tests/e2e/setup.ts`), so P-6 keeps measuring a cold
+  build and `npm run test:e2e` never touches the developer's `~/.cache`. The cache itself is
+  exercised by the new `12-index-store` file through explicitly injected stores.
+- New performance baseline P-12: `get_requirements` full scan, cold (previously unmeasured).
+
 ## [0.4.6] - 2026-08-13
 
 ### Changed

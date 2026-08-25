@@ -10,11 +10,17 @@
 import './utils/stdout-guard.js';
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { isCliInvocation, runCli } from './cli.js';
 import { PACKAGE_INFO } from './config.js';
 import { buildServer } from './server.js';
 
-// Start server
+// Start server — or run the cache maintenance CLI when asked to (Issue #6).
 async function main() {
+  const argv = process.argv.slice(2);
+  if (isCliInvocation(argv)) {
+    process.exit(await runCli(argv));
+  }
+
   const server = buildServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);

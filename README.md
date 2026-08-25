@@ -16,8 +16,9 @@ An MCP (Model Context Protocol) server that provides structured access to ISO 32
 > (`validate_conformance` / `evaluate_policy`).
 >
 > The distinction matters because three different things get conflated:
-> **declaration** (what the producer claims about itself) / **conformance** (which nobody can
-> prove) / **validation** (valid only within the rules a validator actually implements).
+> **declaration** — a label the file wrote about itself ("I am PDF/A" in the metadata). Writing it is not evidence /
+> **conformance** — whether the file actually meets the standard. There is no way to prove it in full; you can only find where it breaks the rules /
+> **validation** — what a validator (veraPDF and the like) reports against the checks it implements. A pass means "this inspection did not fail", not "the file conforms to the standard".
 > Reading a `shall` here tells you what the standard requires — not whether your file meets it.
 >
 > **A search that returns nothing means "cannot answer", not "no such requirement."**
@@ -29,8 +30,8 @@ An MCP (Model Context Protocol) server that provides structured access to ISO 32
 |---|---|---|
 | **pdf-spec-mcp** (this) | Search, retrieve and extract requirements from 17 PDF-related documents | **Is not a rule engine.** Does not define business rules, inspect PDF files, or validate schemas. ISO 19005 (PDF/A) is not part of the corpus |
 | [pdf-reader-mcp](https://github.com/shuji-bonji/pdf-reader-mcp) | Extract text / tables / structure tree / fonts / annotations / images / signature *fields* | **Does not verify cryptography.** Does not read the incremental-update history, does not map object IDs to coordinates, does not OCR |
-| [pdf-writer-mcp](https://github.com/shuji-bonji/pdf-writer-mcp) | Create, page operations, tagging, forms, annotations, metadata, attachments, PDF/A-3b scaffolding | **Does not sign.** Does not guarantee conformance — it can write a *claim*, not conformance |
-| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | Conformance validation (delegated to veraPDF), cryptographic signature verification, tamper detection, policy verdicts | **Does not prove conformance** (only disproves it). Does not vouch for the signer's identity. Does not judge whether the content is true |
+| [pdf-writer-mcp](https://github.com/shuji-bonji/pdf-writer-mcp) | Create, page operations, tagging, forms, annotations, metadata, attachments, PDF/A-3b scaffolding | **Does not sign.** Does not make the file meet the standard — it can write a *label*, not conformance |
+| [pdf-verify-mcp](https://github.com/shuji-bonji/pdf-verify-mcp) | Conformance validation (delegated to veraPDF), cryptographic signature verification, tamper detection, policy verdicts | **Does not prove the file meets the standard** (it can only find where it breaks the rules). Does not vouch for the signer's identity. Does not judge whether the content is true |
 
 > [!IMPORTANT]
 > **PDF specification files are NOT included in this package.**
@@ -50,6 +51,7 @@ An MCP (Model Context Protocol) server that provides structured access to ISO 32
 - **Table extraction** — Multi-page table detection with header merging
 - **Version comparison** — Diff PDF 1.7 vs PDF 2.0 section structures
 - **Bounded-concurrency processing** — Parallel page processing for large documents
+- **On-disk index cache** — The search index and the full requirements scan are built once per PDF and reused by every later process (ISO 32000-2: ~6 s → ~0.2 s)
 
 ## Architecture
 
@@ -201,9 +203,11 @@ PDF_SPEC_DIR=/path/to/pdf-specs pdf-spec-mcp
 
 #### Environment Variable
 
-| Variable       | Description                                  | Default    |
-| -------------- | -------------------------------------------- | ---------- |
-| `PDF_SPEC_DIR` | Directory containing PDF specification files | (required) |
+| Variable             | Description                                                           | Default                                    |
+| -------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
+| `PDF_SPEC_DIR`       | Directory containing PDF specification files                          | (required)                                 |
+| `PDF_SPEC_CACHE_DIR` | Where the on-disk index cache lives (see [Index cache](#index-cache)) | `${XDG_CACHE_HOME:-~/.cache}/pdf-spec-mcp` |
+| `PDF_SPEC_CACHE`     | Set to `off` to neither read nor write the index cache                | on                                         |
 
 #### Claude Desktop
 
@@ -247,6 +251,48 @@ Add to `.cursor/mcp.json` or VS Code MCP settings:
   }
 }
 ```
+
+## Index cache
+
+Two operations walk every page of a specification: the first `search_spec` on a spec builds
+its full-text index (ISO 32000-2, 1023 pages: about 6 s on a laptop), and `get_requirements`
+without a `section` scans every section (about 11 s). Everything else opens only the pages it
+needs and answers in well under a second.
+
+Since 0.5.0 those two results are written to disk after the first build and read back by every
+later process — an MCP client that starts one server per session no longer pays the build each
+time. The second process answers the same `search_spec` in about 0.2 s and the full
+requirements scan in about 0.02 s, from byte-for-byte the same index.
+
+- **Location:** `${PDF_SPEC_CACHE_DIR:-${XDG_CACHE_HOME:-~/.cache}/pdf-spec-mcp}/v1/<version>/<spec>.<kind>.<sha256[0:16]>.json`.
+  The whole 17-spec corpus is about 18 MB per package version.
+- **Key:** package version, `pdfjs-dist` version, spec id, and the SHA-256 of the PDF. A
+  replaced PDF, an upgraded server, or an upgraded pdfjs all miss and rebuild. Entries of
+  older versions are left in place (another install may still use them); `--clear-cache`
+  removes everything.
+- **Failure is a miss, never an error:** an unreadable, truncated, or foreign file is rebuilt;
+  an unwritable directory is reported once on stderr and the server carries on without a cache.
+- **It is derived from *your* copy of the PDFs and stays on your machine.** It is not part of
+  the package and must not be redistributed — the specifications are copyrighted.
+
+Nothing about searching changes: the same in-memory structure is searched by the same code.
+Only where it comes from (built vs. read) does.
+
+### Pre-building the cache
+
+The cache fills lazily, one spec at a time as tools touch it. To warm every spec up front — after
+installing, after upgrading, or from cron — run the CLI (it uses the same code path as the tools,
+processes specs sequentially, and exits):
+
+```bash
+PDF_SPEC_DIR=/path/to/pdf-specs npx -y @shuji-bonji/pdf-spec-mcp@latest --build-cache
+#   --spec=iso32000-2,pdf17   only these specs
+#   --force                   rebuild even when a valid entry exists
+npx -y @shuji-bonji/pdf-spec-mcp@latest --cache-info     # directory, key, entries
+npx -y @shuji-bonji/pdf-spec-mcp@latest --clear-cache    # remove the directory
+```
+
+A full build of the 17-spec corpus takes about a minute on a laptop.
 
 ## Available Tools
 
@@ -317,7 +363,8 @@ A parent section returns its entire subtree (its preamble followed by all subsec
 
 ### `search_spec` — Full-text Search
 
-Search across a specification with section-aware context snippets.
+Search across a specification with section-aware context snippets. The first call on a spec
+builds its index (a few seconds); the index is then cached on disk (see [Index cache](#index-cache)).
 
 ```jsonc
 // Search PDF 2.0 for "digital signature"
@@ -409,14 +456,15 @@ The server auto-discovers PDF files in `PDF_SPEC_DIR` by filename pattern matchi
 
 ```
 src/
-├── index.ts              # MCP server entry point
+├── index.ts              # Entry point: MCP server on stdio, or the cache CLI
+├── cli.ts                # --build-cache / --clear-cache / --cache-info
 ├── config.ts             # Configuration & spec patterns
 ├── errors.ts             # Error hierarchy (PDFSpecError → sub-classes)
-├── container.ts          # Service container (DI wiring)
 ├── services/
 │   ├── pdf-registry.ts       # Auto-discovery of PDF files
 │   ├── pdf-loader.ts         # PDF loading with LRU cache
 │   ├── pdf-service.ts        # Orchestration layer
+│   ├── index-store.ts        # On-disk cache for the search / requirements indexes
 │   ├── compare-service.ts    # Version comparison
 │   ├── outline-resolver.ts   # Section index builder
 │   ├── content-extractor.ts  # Structured content extraction
@@ -432,6 +480,7 @@ src/
     ├── concurrency.ts    # mapConcurrent (bounded Promise.all)
     ├── text.ts           # Text normalization
     ├── cache.ts          # LRU cache
+    ├── file-hash.ts      # SHA-256 of a PDF (index cache key)
     ├── validation.ts     # Input validation
     └── logger.ts         # Structured logger
 ```

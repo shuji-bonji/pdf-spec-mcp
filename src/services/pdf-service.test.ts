@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { OutlineEntry } from '../types/index.js';
+import { type IndexStore, NullIndexStore } from './index-store.js';
 import type { PDFDocumentProxy } from './pdf-loader.js';
 import { PDFSpecService } from './pdf-service.js';
 
@@ -94,18 +95,31 @@ function createDoc(pages: PageFixture[][]): PDFDocumentProxy {
 }
 
 /** Wire a service around a fake doc and outline. */
-function createService(doc: PDFDocumentProxy, outline: OutlineEntry[]) {
+function createService(
+  doc: PDFDocumentProxy,
+  outline: OutlineEntry[],
+  store: IndexStore = new NullIndexStore(),
+) {
+  return createServiceWithLoader(doc, outline, store).service;
+}
+
+/** Same, but hands back the (spied) loader so a test can prove it was — or was not — called. */
+function createServiceWithLoader(
+  doc: PDFDocumentProxy,
+  outline: OutlineEntry[],
+  store: IndexStore = new NullIndexStore(),
+) {
   const registry = {
     getSpecPath: () => '/fake/spec.pdf',
     resolveSpecId: (id?: string) => id ?? 'test-spec',
     enrichSpecInfo: () => {},
   };
   const loader = {
-    loadDocument: async () => doc,
-    reloadDocument: async () => doc,
+    loadDocument: vi.fn(async () => doc),
+    reloadDocument: vi.fn(async () => doc),
     getOutlineWithPages: async () => outline,
   };
-  return new PDFSpecService(registry, loader);
+  return { service: new PDFSpecService(registry, loader, store), loader };
 }
 
 /** Flat outline: ['1.1 First', 1] → section "1.1" starting on page 1. */
@@ -601,5 +615,111 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
 
     expect(result.totalRequirements).toBe(1);
     expect(result.requirements[0].text).toContain('shall be a positive integer');
+  });
+});
+
+// ========================================
+// Issue #6 — the on-disk index store
+// ========================================
+
+describe('index store (Issue #6) — a second service reads what the first built', () => {
+  /** A store that remembers what was saved, shared between two service instances. */
+  class MemoryStore implements IndexStore {
+    saved = new Map<string, unknown>();
+    loads = 0;
+    async load(kind: string, specId: string) {
+      this.loads++;
+      const data = this.saved.get(`${specId}:${kind}`);
+      if (data === undefined) return null;
+      return {
+        data,
+        meta: {} as never,
+        path: `memory:${specId}:${kind}`,
+        loadTimeMs: 0,
+      } as never;
+    }
+    async save(kind: string, specId: string, _pdfPath: string, data: unknown) {
+      this.saved.set(`${specId}:${kind}`, data);
+      return `memory:${specId}:${kind}`;
+    }
+  }
+
+  const twoSectionDoc = () =>
+    createDoc([
+      [headingFixture('1.1 First'), paragraphFixture('The reader shall accept the first body.')],
+      [headingFixture('1.2 Second'), paragraphFixture('The writer should emit the second body.')],
+    ]);
+  const twoSectionOutline = () =>
+    outline([
+      ['1.1 First', 1],
+      ['1.2 Second', 2],
+    ]);
+
+  it('PS-C1: search — the second service never reloads the document, and answers identically', async () => {
+    const store = new MemoryStore();
+    const first = createServiceWithLoader(twoSectionDoc(), twoSectionOutline(), store);
+    const cold = await first.service.searchSpec('body', 10, 'test-spec');
+    expect(first.loader.reloadDocument).toHaveBeenCalledTimes(1);
+    expect(store.saved.has('test-spec:search')).toBe(true);
+
+    const second = createServiceWithLoader(twoSectionDoc(), twoSectionOutline(), store);
+    const warm = await second.service.searchSpec('body', 10, 'test-spec');
+
+    expect(second.loader.reloadDocument).not.toHaveBeenCalled();
+    expect(warm).toEqual(cold);
+    expect(warm.length).toBe(2);
+  });
+
+  it('PS-C2: requirements (full scan) — the second service reads the index instead of scanning', async () => {
+    const store = new MemoryStore();
+    const first = createServiceWithLoader(twoSectionDoc(), twoSectionOutline(), store);
+    const cold = await first.service.getRequirements(undefined, undefined, 'test-spec');
+    expect(cold.totalRequirements).toBe(2);
+    expect(store.saved.has('test-spec:requirements')).toBe(true);
+
+    const second = createServiceWithLoader(twoSectionDoc(), twoSectionOutline(), store);
+    const warm = await second.service.getRequirements(undefined, undefined, 'test-spec');
+
+    // A full scan reads every section's pages; a hit reads none.
+    const pagesRead = (second.loader.loadDocument as ReturnType<typeof vi.fn>).mock.calls.length;
+    expect(warm).toEqual(cold);
+    // getSectionIndex still opens the document once (for titles); nothing beyond that.
+    expect(pagesRead).toBeLessThanOrEqual(1);
+  });
+
+  it('PS-C3: a store whose load throws is a miss, not a tool failure', async () => {
+    const broken: IndexStore = {
+      async load() {
+        throw new Error('disk on fire');
+      },
+      async save() {
+        throw new Error('disk on fire');
+      },
+    };
+    const { service, loader } = createServiceWithLoader(
+      twoSectionDoc(),
+      twoSectionOutline(),
+      broken,
+    );
+
+    const hits = await service.searchSpec('body', 10, 'test-spec');
+
+    expect(hits.length).toBe(2);
+    expect(loader.reloadDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('PS-C4: a caller mutating a cached answer does not change the next answer', async () => {
+    const store = new MemoryStore();
+    const { service } = createServiceWithLoader(twoSectionDoc(), twoSectionOutline(), store);
+    await service.searchSpec('body', 10, 'test-spec');
+
+    const second = createServiceWithLoader(twoSectionDoc(), twoSectionOutline(), store).service;
+    const before = JSON.stringify(await second.searchSpec('body', 10, 'test-spec'));
+    const hits = await second.searchSpec('body', 10, 'test-spec');
+    hits[0].snippet = 'vandalised';
+    hits.length = 0;
+    const after = JSON.stringify(await second.searchSpec('body', 10, 'test-spec'));
+
+    expect(after).toBe(before);
   });
 });

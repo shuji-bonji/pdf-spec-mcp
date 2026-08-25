@@ -13,6 +13,17 @@ export const PDF_SPEC_DIR = process.env.PDF_SPEC_DIR ?? './pdf-spec';
 export const HAS_PDFS = existsSync(PDF_SPEC_DIR);
 
 /**
+ * e2e はディスク上の索引キャッシュ（Issue #6）を既定で無効にして回す。
+ *
+ * 理由は 2 つ。P-6（search コールド）は構築時間を測る計測であり、前のファイルが同じワーカーで
+ * 作ったキャッシュを拾うと 2 回目以降の実行が構築を測らなくなる。また `npm run test:e2e` が
+ * 開発者の ~/.cache を読み書きしてはいけない。キャッシュの検証は `12-index-store.test.ts` が
+ * 明示的な一時ディレクトリの store を注入して行う。
+ * この import はすべての e2e ファイルの先頭で評価されるので、最初のツール呼び出しより前に効く。
+ */
+process.env.PDF_SPEC_CACHE ??= 'off';
+
+/**
  * beforeAll で呼び出す共通初期化。
  * 環境変数を設定し、レジストリを初期化する。
  */

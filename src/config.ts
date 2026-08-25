@@ -13,6 +13,40 @@ export const PACKAGE_INFO = {
   version: packageJson.version,
 } as const;
 
+// pdfjs-dist ships no `exports` map, so its package.json is reachable this way. The legacy
+// build also exports `version`, but it has no type declarations and would need the same
+// cast pdf-loader.ts uses; reading the manifest is shorter.
+const pdfjsPackageJson = require('pdfjs-dist/package.json') as { version: string };
+
+/**
+ * The installed pdfjs-dist version — part of the on-disk index cache key (Issue #6).
+ *
+ * package.json pins `^5.4.624`, but what is actually installed depends on when `npm install`
+ * ran (5.7.284 on one machine, 5.4.x on another). Text extraction is pdfjs's, so two
+ * installs of the *same* pdf-spec-mcp version can build different indexes; the package
+ * version alone cannot tell them apart.
+ */
+export const PDFJS_VERSION = pdfjsPackageJson.version;
+
+/**
+ * On-disk index cache (Issue #6).
+ *
+ * `schemaVersion` names the *file format* — bump it when the shape of what is stored
+ * changes. Changes to how the index is *built* (extractor / splitter fixes) are covered by
+ * PACKAGE_INFO.version, which is also in the key: 0.4.2, 0.4.3 and 0.4.5 all changed how
+ * pages are cut into sections, and a cache keyed on the PDF alone would have kept serving
+ * the pre-fix index after every one of those upgrades.
+ */
+export const INDEX_SCHEMA_VERSION = 1;
+
+/** Environment variables that control the on-disk index cache. */
+export const CACHE_ENV = {
+  /** Directory override. Default: ${XDG_CACHE_HOME:-~/.cache}/pdf-spec-mcp */
+  dir: 'PDF_SPEC_CACHE_DIR',
+  /** Set to "off" to neither read nor write the cache. */
+  toggle: 'PDF_SPEC_CACHE',
+} as const;
+
 export const PDF_CONFIG = {
   envVar: 'PDF_SPEC_DIR',
   primaryPdf: 'ISO_32000-2_sponsored_EC3.pdf',

@@ -119,6 +119,18 @@ describe.skipIf(!HAS_PDFS)('11 - Performance Baseline', () => {
     expect(durationMs).toBeLessThan(500);
   });
 
+  // P-12: get_requirements（section 無し = 全走査、コールド）
+  it('P-12: get_requirements 全走査 iso32000-2 (コールド) < 60000ms', async () => {
+    // Issue #6 で永続化の対象にした操作。0.4.6 までは未計測だった（"may take a while"）。
+    // 実測: サンドボックス（2 CPU）53 秒、Mac 推定 11 秒。上限は Mac 推定の約 5 倍
+    const { durationMs, result } = await withTiming(() =>
+      toolHandlers.get_requirements({ spec: 'iso32000-2' }),
+    );
+    recordPerformance('get_requirements-full-cold', durationMs);
+    expect(result.totalRequirements).toBeGreaterThan(5000);
+    expect(durationMs).toBeLessThan(60000);
+  });
+
   // P-11: 全17仕様の get_structure 合計
   it('P-11: 全17仕様の get_structure 合計 < 30000ms', async () => {
     const { durationMs } = await withTiming(async () => {
