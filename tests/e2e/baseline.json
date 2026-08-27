@@ -4,62 +4,62 @@
     {
       "operation": "registry-init-cold",
       "durationMs": 1,
-      "timestamp": "2026-08-25T21:06:15.068Z"
+      "timestamp": "2026-08-27T16:55:51.578Z"
     },
     {
       "operation": "get_structure-cold",
-      "durationMs": 216,
-      "timestamp": "2026-08-25T21:06:15.285Z"
+      "durationMs": 178,
+      "timestamp": "2026-08-27T16:55:51.757Z"
     },
     {
       "operation": "get_structure-cached",
       "durationMs": 0,
-      "timestamp": "2026-08-25T21:06:15.286Z"
+      "timestamp": "2026-08-27T16:55:51.757Z"
     },
     {
       "operation": "get_section-cold",
-      "durationMs": 324,
-      "timestamp": "2026-08-25T21:06:15.609Z"
+      "durationMs": 290,
+      "timestamp": "2026-08-27T16:55:52.047Z"
     },
     {
       "operation": "get_section-cached",
       "durationMs": 0,
-      "timestamp": "2026-08-25T21:06:15.610Z"
+      "timestamp": "2026-08-27T16:55:52.047Z"
     },
     {
       "operation": "search_spec-cold",
-      "durationMs": 6475,
-      "timestamp": "2026-08-25T21:06:22.085Z"
+      "durationMs": 6415,
+      "timestamp": "2026-08-27T16:55:58.463Z"
     },
     {
       "operation": "search_spec-cached",
-      "durationMs": 28,
-      "timestamp": "2026-08-25T21:06:22.113Z"
+      "durationMs": 29,
+      "timestamp": "2026-08-27T16:55:58.492Z"
     },
     {
       "operation": "get_requirements-section",
-      "durationMs": 501,
-      "timestamp": "2026-08-25T21:06:22.614Z"
+      "durationMs": 473,
+      "timestamp": "2026-08-27T16:55:58.965Z"
     },
     {
       "operation": "get_definitions-cold",
-      "durationMs": 64,
-      "timestamp": "2026-08-25T21:06:22.678Z"
+      "durationMs": 68,
+      "timestamp": "2026-08-27T16:55:59.033Z"
     },
     {
       "operation": "compare_versions-cold",
-      "durationMs": 89,
-      "timestamp": "2026-08-25T21:06:22.768Z"
+      "durationMs": 90,
+      "timestamp": "2026-08-27T16:55:59.123Z"
     },
     {
       "operation": "get_requirements-full-cold",
-      "durationMs": 13914,
-      "timestamp": "2026-08-25T21:06:36.682Z"
+      "durationMs": 13971,
+      "timestamp": "2026-08-27T16:56:13.095Z"
     },
     {
       "operation": "get_structure-all-17",
-      "durationMs": 217,
-      "timestamp": "2026-08-25T21:06:36.898Z"
+      "durationMs": 187,
+      "timestamp": "2026-08-27T16:56:13.282Z"
     }
   ]
 }

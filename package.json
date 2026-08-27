@@ -25,6 +25,7 @@
     "dist"
   ],
   "scripts": {
+    "check:engines": "node scripts/check-engines.mjs",
     "build": "tsc && chmod +x dist/index.js",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
@@ -52,11 +53,22 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.4",
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.0",
+    "typescript": "^7.0.2",
     "vitest": "^2.1.0"
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "engineExceptions": {
+    "pdfjs-dist": {
+      "reason": "pdfjs-dist は package 全体に >=22.13.0 || >=24 を宣言するが、これは modern ビルド（build/pdf.mjs）と pdfjs 自身の開発環境の要求である。このサーバが読むのは legacy ビルドで、core-js を同梱し Promise.withResolvers を自前定義している（legacy/build/pdf.mjs:5550・使用 27 箇所）。Node 20.20.2 と 22.22.2 で getDocument / numPages / getOutline / getTextContent / getStructTree / getPageIndex を実走し同結果。modern ビルドは Node 22 でも DOMMatrix is not defined で落ち、pdfjs 自身が legacy を使えと警告する",
+      "measuredOn": "2026-08-27",
+      "entryPoints": [
+        "pdfjs-dist/legacy/build/pdf.mjs",
+        "pdfjs-dist/types/src/display/api.js",
+        "pdfjs-dist/package.json"
+      ]
+    }
   },
   "bugs": {
     "url": "https://github.com/shuji-bonji/pdf-spec-mcp/issues"
