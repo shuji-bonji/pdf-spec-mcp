@@ -61,9 +61,11 @@ export const REQUIREMENT_LEVELS: [ISORequirementLevel, ...ISORequirementLevel[]]
 // ---------------------------------------------------------------------------
 // Per-tool shapes
 //
-// Exported as raw shapes (not full schemas) because registerTool takes a shape and turns
-// it into the published JSON Schema. The matching full schema is exported alongside for
-// handlers to parse with.
+// 生の shape と、それを包んだ `.strict()` 付きの ZodObject を両方 export する。
+// registerTool に渡すのは ZodObject のほう（SDK v2 は raw shape を受け付けない）。
+// handlers も同じ ZodObject で parse するので、公開する JSON Schema と実行時の検査は
+// 1 つの定義から出る。`.strict()` により、宣言に無いキーは JSON Schema 上も
+// （additionalProperties: false）実行時も拒否される。
 // ---------------------------------------------------------------------------
 
 export const listSpecsShape = {
@@ -72,7 +74,7 @@ export const listSpecsShape = {
     .optional()
     .describe('Filter by category (standard, ts, pdfua, guide, appnote).'),
 };
-export const ListSpecsSchema = z.object(listSpecsShape);
+export const ListSpecsSchema = z.object(listSpecsShape).strict();
 
 export const getStructureShape = {
   spec: zSpec,
@@ -84,13 +86,13 @@ export const getStructureShape = {
     .optional()
     .describe(`Maximum heading depth to return (${maxDepthRange.min}-${maxDepthRange.max}).`),
 };
-export const GetStructureSchema = z.object(getStructureShape);
+export const GetStructureSchema = z.object(getStructureShape).strict();
 
 export const getSectionShape = {
   spec: zSpec,
   section: zSection.describe('Section number, e.g. "12.5.6.10" or "Annex A".'),
 };
-export const GetSectionSchema = z.object(getSectionShape);
+export const GetSectionSchema = z.object(getSectionShape).strict();
 
 export const searchSpecShape = {
   spec: zSpec,
@@ -108,7 +110,7 @@ export const searchSpecShape = {
     .optional()
     .describe(`Maximum hits to return (${maxResultsRange.min}-${maxResultsRange.max}).`),
 };
-export const SearchSpecSchema = z.object(searchSpecShape);
+export const SearchSpecSchema = z.object(searchSpecShape).strict();
 
 export const getRequirementsShape = {
   spec: zSpec,
@@ -118,7 +120,7 @@ export const getRequirementsShape = {
     .optional()
     .describe(`Filter by requirement level (${REQUIREMENT_LEVELS.join(', ')}).`),
 };
-export const GetRequirementsSchema = z.object(getRequirementsShape);
+export const GetRequirementsSchema = z.object(getRequirementsShape).strict();
 
 export const getDefinitionsShape = {
   spec: zSpec,
@@ -130,7 +132,7 @@ export const getDefinitionsShape = {
     .optional()
     .describe('Filter to definitions matching this term.'),
 };
-export const GetDefinitionsSchema = z.object(getDefinitionsShape);
+export const GetDefinitionsSchema = z.object(getDefinitionsShape).strict();
 
 export const getTablesShape = {
   spec: zSpec,
@@ -142,12 +144,12 @@ export const getTablesShape = {
     .optional()
     .describe('Return only this table (0-based). Omit for all tables in the section.'),
 };
-export const GetTablesSchema = z.object(getTablesShape);
+export const GetTablesSchema = z.object(getTablesShape).strict();
 
 export const compareVersionsShape = {
   section: zSection.optional().describe('Limit the comparison to this section subtree.'),
 };
-export const CompareVersionsSchema = z.object(compareVersionsShape);
+export const CompareVersionsSchema = z.object(compareVersionsShape).strict();
 
 // ---------------------------------------------------------------------------
 // Parsing

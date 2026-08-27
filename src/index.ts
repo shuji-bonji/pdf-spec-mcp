@@ -8,8 +8,7 @@
 // MUST be the first import: installs the stdout guard before any dependency
 // (notably pdfjs-dist) is evaluated. See utils/stdout-guard.ts.
 import './utils/stdout-guard.js';
-
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { isCliInvocation, runCli } from './cli.js';
 import { PACKAGE_INFO } from './config.js';
 import { buildServer } from './server.js';

@@ -12,16 +12,16 @@
  *   - openWorldHint: false. Answers come from PDFs on disk, not from the network.
  */
 
-import type { ZodRawShape } from 'zod';
+import type { ZodObject } from 'zod';
 import {
-  compareVersionsShape,
-  getDefinitionsShape,
-  getRequirementsShape,
-  getSectionShape,
-  getStructureShape,
-  getTablesShape,
-  listSpecsShape,
-  searchSpecShape,
+  CompareVersionsSchema,
+  GetDefinitionsSchema,
+  GetRequirementsSchema,
+  GetSectionSchema,
+  GetStructureSchema,
+  GetTablesSchema,
+  ListSpecsSchema,
+  SearchSpecSchema,
 } from '../utils/validation.js';
 
 export interface ToolAnnotations {
@@ -35,7 +35,14 @@ export interface ToolDefinition {
   name: string;
   title: string;
   description: string;
-  shape: ZodRawShape;
+  /**
+   * `registerTool` に渡す入力スキーマ。
+   *
+   * SDK v2 は raw shape を受け付けない（型が合わず、移行ガイドも非推奨としている）。
+   * ZodObject をそのまま渡す。
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: ツールごとに形が違う ZodObject をまとめて持つ
+  inputSchema: ZodObject<any>;
   annotations: ToolAnnotations;
 }
 
@@ -60,7 +67,7 @@ export const tools: ToolDefinition[] = [
       'the normative areas this corpus does NOT contain (PDF/A, PAdES). ' +
       'Read the gaps before concluding that a requirement does not exist. ' +
       'Use the returned IDs as the `spec` parameter in other tools.',
-    shape: listSpecsShape,
+    inputSchema: ListSpecsSchema,
     annotations: READ_ONLY,
   },
   {
@@ -69,7 +76,7 @@ export const tools: ToolDefinition[] = [
     description:
       'Get the section hierarchy of the PDF specification (ISO 32000-2). ' +
       'Returns the table of contents with section numbers, titles, and page numbers.',
-    shape: getStructureShape,
+    inputSchema: GetStructureSchema,
     annotations: READ_ONLY,
   },
 
@@ -85,7 +92,7 @@ export const tools: ToolDefinition[] = [
       'A parent section returns its entire subtree (all subsections, in document order); ' +
       'top-level clauses can therefore return very large responses — prefer the most ' +
       'specific section number you know.',
-    shape: getSectionShape,
+    inputSchema: GetSectionSchema,
     annotations: READ_ONLY,
   },
   {
@@ -98,7 +105,7 @@ export const tools: ToolDefinition[] = [
       'so later processes start warm. ' +
       'No hits means "this corpus cannot answer", NOT "no such requirement exists" — ' +
       'ISO 19005 (PDF/A) and ETSI PAdES are outside it (see list_specs -> coverage.gaps).',
-    shape: searchSpecShape,
+    inputSchema: SearchSpecSchema,
     annotations: READ_ONLY,
   },
 
@@ -114,7 +121,7 @@ export const tools: ToolDefinition[] = [
       'Returns structured requirements with the sentence context, section, and requirement level. ' +
       'It tells you what the specification requires, never whether a given PDF satisfies it — ' +
       'to check a file, use pdf-verify-mcp (validate_conformance / evaluate_policy).',
-    shape: getRequirementsShape,
+    inputSchema: GetRequirementsSchema,
     annotations: READ_ONLY,
   },
   {
@@ -123,7 +130,7 @@ export const tools: ToolDefinition[] = [
     description:
       'Get term definitions from Section 3 of the PDF specification (ISO 32000-2). ' +
       'Returns structured definitions with term, definition text, notes, and sources.',
-    shape: getDefinitionsShape,
+    inputSchema: GetDefinitionsSchema,
     annotations: READ_ONLY,
   },
   {
@@ -133,7 +140,7 @@ export const tools: ToolDefinition[] = [
       'Extract table structures from a specified section of the PDF specification (ISO 32000-2). ' +
       'Returns tables with headers, rows, and optional captions. ' +
       'A parent section returns the tables of its entire subtree (all subsections).',
-    shape: getTablesShape,
+    inputSchema: GetTablesSchema,
     annotations: READ_ONLY,
   },
 
@@ -147,7 +154,7 @@ export const tools: ToolDefinition[] = [
       'Compare sections between PDF 1.7 (ISO 32000-1) and PDF 2.0 (ISO 32000-2). ' +
       'Returns matched sections (same or moved), added sections (new in 2.0), ' +
       'and removed sections (absent in 2.0). Uses title-based automatic matching.',
-    shape: compareVersionsShape,
+    inputSchema: CompareVersionsSchema,
     annotations: READ_ONLY,
   },
 ];

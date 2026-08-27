@@ -9,8 +9,7 @@
  * so "what this server exposes" is one list rather than a sequence of calls, and a tool
  * defined without a handler fails loudly at startup instead of at first use.
  */
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { PACKAGE_INFO } from './config.js';
 import { toStructuredError } from './errors.js';
 import { tools } from './tools/definitions.js';
@@ -67,7 +66,7 @@ export function buildServer(): McpServer {
       {
         title: tool.title,
         description: tool.description,
-        inputSchema: tool.shape,
+        inputSchema: tool.inputSchema,
         annotations: tool.annotations,
       },
       async (args: unknown) => {

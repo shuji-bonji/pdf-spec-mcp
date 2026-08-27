@@ -46,12 +46,13 @@
     "version": "node scripts/sync-plugin-version.mjs && git add .claude-plugin/plugin.json"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "pdfjs-dist": "^5.4.624",
     "zod": "^4.2.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.4",
+    "@modelcontextprotocol/client": "^2.0.0",
     "@types/node": "^22.0.0",
     "typescript": "^7.0.2",
     "vitest": "^2.1.0"

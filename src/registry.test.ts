@@ -14,9 +14,7 @@
  * now rejects them before the handler runs), which this caught. That boundary is asserted
  * below rather than left implicit.
  */
-
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { buildServer } from './server.js';
 
@@ -101,13 +99,21 @@ describe('tool registry (external spec)', () => {
     }
   });
 
-  it('rejects an unknown tool without killing the server', async () => {
-    // The dispatcher's fallback: an error result rather than throwing out of the transport.
+  it('知らないツール名は JSON-RPC エラーとして返り、サーバは動き続ける', async () => {
+    // SDK v2 で失敗の届け先が変わった（2026-08-27 に生の JSON-RPC で実測）。
+    //   v1: ツール結果 { isError: true, content: [{ text: 'MCP error -32602: Tool ... not found' }] }
+    //   v2: JSON-RPC の error（code -32602）。ツール結果は返らない
+    // 入力検証の失敗は v1 / v2 とも isError: true のまま（次のテスト）。移ったのは
+    // 「ツール名が無い」場合だけである。
     const client = await connect();
 
-    const res = await client.callTool({ name: 'no_such_tool', arguments: {} });
+    await expect(client.callTool({ name: 'no_such_tool', arguments: {} })).rejects.toThrow(
+      /no_such_tool/,
+    );
 
-    expect(res.isError).toBe(true);
+    // 同じクライアントで次の呼び出しが通ることを見る（サーバが動き続けている）。
+    const ok = await client.listTools();
+    expect(ok.tools.length).toBe(Object.keys(EXPECTED_TOOLS).length);
   });
 
   it('rejects arguments that violate the published schema', async () => {
