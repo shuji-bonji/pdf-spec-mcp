@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-27
+
+Infrastructure only: no tool gained or lost a capability, and no tool's output
+changed. Three things reach callers — read **Changed** before upgrading.
+
+### Changed
+
+- **MCP SDK v1 → v2** (`@modelcontextprotocol/sdk@^1.26.0` →
+  `@modelcontextprotocol/server@^2.0.0`). One difference reaches callers: a
+  `tools/call` naming a tool this server does not have now comes back as a
+  **JSON-RPC error** (code `-32602`), where v1 returned a tool result with
+  `isError: true`. Client code that only reads `isError` will not see it, and
+  `await client.callTool(...)` throws instead of resolving. Failures of input
+  validation — a missing required argument, a key the schema does not declare —
+  still arrive as `isError: true`.
+- **Arguments the input schema does not declare are now rejected.** All 8 tools
+  take a `.strict()` object, so an undeclared key fails the call with
+  `-32602 Unrecognized key`. Until now such a key was silently dropped and the
+  call ran (zod's default for an object is *strip*, not *strict*).
+- **`inputSchema` in `tools/list` changed in two ways, for all 8 tools**:
+  `$schema` is now `https://json-schema.org/draft/2020-12/schema` (was
+  draft-07), and `additionalProperties: false` is now stated (it was absent).
+  Tool names, descriptions and `required` are unchanged — measured tool by tool
+  against 0.5.0 with `scripts/tools-list-snapshot.mjs`, which speaks raw
+  JSON-RPC over stdio rather than using an SDK client.
+- `zod` is declared as `^4.2.0` — the version all four servers in the family
+  now share. `typescript` moves to `^7.0.2` (a devDependency).
+
+### Added
+
+- `npm run check:public-types` fails if a type from the MCP SDK or from zod
+  appears in the published `.d.ts`. The published surface must not force a
+  consumer onto our versions of those.
+- `npm run check:engines` compares `engines.node` against what the dependency
+  tree asks for. `pdfjs-dist` is recorded in `engineExceptions` with the
+  measurement behind the exception: it declares `>=22.13.0 || >=24` for the
+  whole package, but this server reads the legacy build, which ships core-js
+  and defines `Promise.withResolvers` itself. Measured on Node 20.20.2 and
+  22.22.2 across `getDocument` / `numPages` / `getOutline` / `getTextContent` /
+  `getStructTree` / `getPageIndex`, same results.
+
+### Notes
+
+- `engines.node` is unchanged: `>=20.0.0`.
+
 ## [0.5.0] - 2026-08-25
 
 ### Added
