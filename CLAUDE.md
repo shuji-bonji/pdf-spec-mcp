@@ -8,7 +8,7 @@ family 規約 §2.0 により **writer / reader / verify の実装判断はこ�
 
 - 残タスク / 次セッションの指示: [`docs/NEXT-SESSION.md`](./docs/NEXT-SESSION.md)
 - family 規約への整合状況: [`docs/family-standards-alignment.md`](./docs/family-standards-alignment.md)
-- 規約本体: `Document-Note/mcps/PDFfamily/specs/06-family-implementation-standards.md`
+- 規約本体: `pdf-agent-stack/docs/specs/06-family-implementation-standards.md`
 
 仕様 PDF は著作物のため配布しない。`PDF_SPEC_DIR` で置き場所を指定する（`.gitignore` 済み）。
 
