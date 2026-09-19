@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-09-19
+
+ツールの動作は変わりません。MCP Registry へ登録するためのメタデータを足しただけの版です。
+
+### Added
+
+- `package.json` に `mcpName`（`io.github.shuji-bonji/pdf-spec-mcp`）を追加しました。
+  MCP Registry は、この値を公開済み npm パッケージから読んで、登録者がそのパッケージの
+  持ち主であることを確認します。
+- リポジトリ直下に `server.json` を追加しました。MCP Registry へ登録する内容（サーバー名・
+  説明・npm パッケージへの参照）を持ちます。`files` に含めていないので、npm パッケージには
+  同梱されません。
+
 ## [0.6.0] - 2026-08-27
 
 Infrastructure only: no tool gained or lost a capability, and no tool's output
