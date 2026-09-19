@@ -1,5 +1,6 @@
 {
   "name": "@shuji-bonji/pdf-spec-mcp",
+  "mcpName": "io.github.shuji-bonji/pdf-spec-mcp",
   "version": "0.6.0",
   "description": "MCP server for structured understanding of ISO 32000 (PDF) specifications. A specification reference, not a conformance checker — it never inspects PDF files",
   "keywords": [
