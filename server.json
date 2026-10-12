@@ -8,13 +8,15 @@
     "url": "https://github.com/shuji-bonji/pdf-spec-mcp",
     "source": "github"
   },
-  "version": "0.6.1",
+  "version": "0.6.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@shuji-bonji/pdf-spec-mcp",
-      "version": "0.6.1",
-      "transport": { "type": "stdio" }
+      "version": "0.6.2",
+      "transport": {
+        "type": "stdio"
+      }
     }
   ]
 }

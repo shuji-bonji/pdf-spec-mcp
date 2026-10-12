@@ -20,22 +20,40 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PLUGIN = join(ROOT, '.claude-plugin', 'plugin.json');
+const SERVER = join(ROOT, 'server.json'); // MCP Registry 用。version は 2 箇所（server と packages[].version）
 
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const plugin = JSON.parse(readFileSync(PLUGIN, 'utf8'));
+const server = JSON.parse(readFileSync(SERVER, 'utf8'));
 
-if (plugin.version === pkg.version) {
-  console.log(`plugin.json は同期済み (${pkg.version})`);
+const serverVersions = [server.version, ...(server.packages ?? []).map((p) => p.version)];
+const pluginInSync = plugin.version === pkg.version;
+const serverInSync = serverVersions.every((v) => v === pkg.version);
+
+if (pluginInSync && serverInSync) {
+  console.log(`plugin.json / server.json は同期済み (${pkg.version})`);
   process.exit(0);
 }
 
 if (process.argv.includes('--check')) {
-  console.error(
-    `plugin.json ${plugin.version} ≠ package.json ${pkg.version} — node scripts/sync-plugin-version.mjs で同期してください`,
-  );
+  if (!pluginInSync) {
+    console.error(`plugin.json ${plugin.version} ≠ package.json ${pkg.version}`);
+  }
+  if (!serverInSync) {
+    console.error(`server.json ${serverVersions.join(' / ')} ≠ package.json ${pkg.version}`);
+  }
+  console.error('node scripts/sync-plugin-version.mjs で同期してください');
   process.exit(1);
 }
 
-plugin.version = pkg.version;
-writeFileSync(PLUGIN, `${JSON.stringify(plugin, null, 2)}\n`);
-console.log(`plugin.json: ${plugin.version} に同期しました`);
+if (!pluginInSync) {
+  plugin.version = pkg.version;
+  writeFileSync(PLUGIN, `${JSON.stringify(plugin, null, 2)}\n`);
+  console.log(`plugin.json: ${pkg.version} に同期しました`);
+}
+if (!serverInSync) {
+  server.version = pkg.version;
+  for (const p of server.packages ?? []) p.version = pkg.version;
+  writeFileSync(SERVER, `${JSON.stringify(server, null, 2)}\n`);
+  console.log(`server.json: ${pkg.version} に同期しました`);
+}

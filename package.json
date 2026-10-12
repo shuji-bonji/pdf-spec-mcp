@@ -45,7 +45,7 @@
     "check:fix": "biome check --fix ./src ./tests",
     "prepublishOnly": "node scripts/sync-plugin-version.mjs --check && npm run build",
     "check:imports": "node scripts/check-import-order.mjs",
-    "version": "node scripts/sync-plugin-version.mjs && git add .claude-plugin/plugin.json"
+    "version": "node scripts/sync-plugin-version.mjs && git add .claude-plugin/plugin.json server.json"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
