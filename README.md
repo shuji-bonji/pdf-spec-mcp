@@ -252,6 +252,23 @@ Add to `.cursor/mcp.json` or VS Code MCP settings:
 }
 ```
 
+#### Installed as a Claude Code plugin
+
+The plugin manifest (`.claude-plugin/plugin.json`) declares `"PDF_SPEC_DIR": "${PDF_SPEC_DIR}"`
+and relies on the host to substitute the reference. Not every host does:
+
+| Host | Expands `${VAR}` in a plugin's `env` | Where to put the absolute path instead |
+| --- | --- | --- |
+| Claude Code (terminal) | yes | — |
+| Grok Build 1.0.30 | no | `~/.grok/config.toml`, `[mcp_servers.pdf-spec]` |
+| Claude Desktop, cloud session linked to this computer (plugin tools) | no | the local MCP configuration the desktop app reads |
+
+When the reference is passed through verbatim, every tool answers with `REGISTRY_ERROR` whose
+message starts with `PDF_SPEC_DIR is the unexpanded text "${PDF_SPEC_DIR}"` and whose first
+`next_actions` entry is `set_absolute_path_in_host_config`. That is a host-configuration problem,
+not a missing directory — write the absolute path into the host's own configuration and restart.
+Host-by-host steps: <https://shuji-bonji.github.io/pdf-agent-stack/reference/env-vars>.
+
 ## Index cache
 
 Two operations walk every page of a specification: the first `search_spec` on a spec builds

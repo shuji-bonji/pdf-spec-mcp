@@ -16,10 +16,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   enrichSpecInfo,
   ensureRegistryInitialized,
+  findUnexpandedEnvReference,
   getSpecInfo,
   getSpecPath,
   isSpecAvailable,
   listSpecs,
+  RegistryService,
   resolveSpecId,
 } from './pdf-registry.js';
 
@@ -185,5 +187,69 @@ describe('enrichSpecInfo', () => {
 
   it('should handle unknown specId gracefully (no throw)', () => {
     expect(() => enrichSpecInfo('nonexistent', { pages: 1 })).not.toThrow();
+  });
+});
+
+// ========================================
+// Unexpanded ${VAR} in PDF_SPEC_DIR (Issue #14)
+// ========================================
+
+// Build `${NAME}` without writing the placeholder into a string literal (biome's
+// noTemplateCurlyInString would flag the literal form).
+const ref = (name: string) => `$\{${name}}`;
+
+describe('findUnexpandedEnvReference', () => {
+  it('returns the first braced reference left in the value', () => {
+    expect(findUnexpandedEnvReference(ref('PDF_SPEC_DIR'))).toBe(ref('PDF_SPEC_DIR'));
+    expect(findUnexpandedEnvReference(`/home/x/${ref('HOME')}/specs`)).toBe(ref('HOME'));
+  });
+
+  it('returns null for a plain path, including one with a bare $', () => {
+    expect(findUnexpandedEnvReference('/Users/x/pdf-spec')).toBeNull();
+    expect(findUnexpandedEnvReference('/tmp/$weird/dir')).toBeNull();
+    expect(findUnexpandedEnvReference(`$\{not a name}`)).toBeNull();
+  });
+});
+
+describe('discoverSpecs with an unexpanded PDF_SPEC_DIR reference', () => {
+  // A fresh instance: the module singleton was initialised with tempDir in beforeAll.
+  const withEnv = async (value: string, run: () => Promise<unknown>) => {
+    const saved = process.env.PDF_SPEC_DIR;
+    process.env.PDF_SPEC_DIR = value;
+    try {
+      return await run();
+    } finally {
+      process.env.PDF_SPEC_DIR = saved;
+    }
+  };
+
+  it('names the host, not the directory, as the thing to fix', async () => {
+    const registry = new RegistryService();
+    const err = (await withEnv(ref('PDF_SPEC_DIR'), () =>
+      registry.ensureInitialized().then(
+        () => null,
+        (e: unknown) => e,
+      ),
+    )) as { code: string; message: string; hint?: string; next_actions?: { action: string }[] };
+
+    expect(err).not.toBeNull();
+    expect(err.code).toBe('REGISTRY_ERROR');
+    expect(err.message).toContain('unexpanded');
+    expect(err.message).toContain(ref('PDF_SPEC_DIR'));
+    // The old message said "Cannot read PDF_SPEC_DIR" and sent the reader to check the directory.
+    expect(err.message).not.toContain('Cannot read');
+    expect(err.hint).toContain('host');
+    expect(err.next_actions?.[0]?.action).toBe('set_absolute_path_in_host_config');
+  });
+
+  it('still reports a genuinely missing directory as unreadable', async () => {
+    const registry = new RegistryService();
+    const err = (await withEnv('/nonexistent/pdf-spec-mcp-test-dir', () =>
+      registry.ensureInitialized().then(
+        () => null,
+        (e: unknown) => e,
+      ),
+    )) as { message: string };
+    expect(err.message).toContain('Cannot read PDF_SPEC_DIR');
   });
 });

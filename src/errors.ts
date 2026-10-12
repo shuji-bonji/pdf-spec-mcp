@@ -137,6 +137,20 @@ export const NEXT_ACTIONS = {
       `Set the ${envVar} environment variable to the directory holding the specification PDFs, ` +
       'then restart the MCP server. The PDFs are copyrighted and are not distributed with this package.',
   }),
+  /**
+   * The value reached us as the literal text `${VAR}` — the host that spawned the server
+   * did not expand the reference written in the plugin's `env`. Nothing on the server side
+   * can recover the intended path; the fix is in the host's own configuration file.
+   */
+  expandEnvInHostConfig: (envVar: string, literal: string): NextAction => ({
+    action: 'set_absolute_path_in_host_config',
+    reason:
+      `${envVar} was received as the unexpanded text "${literal}". The host that started this ` +
+      "server does not expand the plugin's env references. Write the absolute path " +
+      "into the host's own configuration instead (Claude Code: settings.json or ~/.claude.json; " +
+      'Grok Build: ~/.grok/config.toml [mcp_servers.pdf-spec]; Claude Desktop: ' +
+      'claude_desktop_config.json). See https://shuji-bonji.github.io/pdf-agent-stack/reference/env-vars',
+  }),
   downloadSpec: (file: string, url: string): NextAction => ({
     action: 'download_spec_pdf',
     reason: `Place "${file}" in PDF_SPEC_DIR. Download it from ${url}`,

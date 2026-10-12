@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- When `PDF_SPEC_DIR` reaches the server as the literal text `${PDF_SPEC_DIR}` (a host that
+  does not expand `${VAR}` in a plugin's `env` — Grok Build 1.0.30, and the plugin route of a
+  Claude Desktop-linked cloud session), the `REGISTRY_ERROR` now says so. Before, `readdir`
+  failed on the text and the error read "Cannot read PDF_SPEC_DIR ... check that it exists",
+  which sent the reader to look for a directory that was never named. The message now starts
+  with `PDF_SPEC_DIR is the unexpanded text "${PDF_SPEC_DIR}"`, and the first `next_actions`
+  entry is `set_absolute_path_in_host_config`, pointing at the host's own configuration file.
+  A genuinely missing directory still reports as before. (#14)
+- README / README.ja: a table of hosts that do and do not expand `${VAR}` in a plugin's `env`,
+  with where to write the absolute path for each.
+
 ## [0.6.1] - 2026-09-19
 
 ツールの動作は変わりません。MCP Registry へ登録するためのメタデータを足しただけの版です。

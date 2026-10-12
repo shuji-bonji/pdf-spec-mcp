@@ -20,6 +20,19 @@ interface RegistryEntry {
 }
 
 /**
+ * Return the first `${NAME}` reference left in an environment value, or `null` when the
+ * value contains none. A shell or a well-behaved host substitutes these before the process
+ * starts; when one survives, the value is text, not a path, whatever `readdir` says.
+ *
+ * `$NAME` without braces is deliberately not matched: a literal `$` is legal in a path, and
+ * plugin manifests only ever write the braced form.
+ */
+export function findUnexpandedEnvReference(value: string): string | null {
+  const match = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/.exec(value);
+  return match ? match[0] : null;
+}
+
+/**
  * RegistryService encapsulates all PDF spec registry functionality
  */
 export class RegistryService {
@@ -51,6 +64,28 @@ export class RegistryService {
         {
           hint: 'The server cannot locate any specification PDF without this.',
           next_actions: [NEXT_ACTIONS.setSpecDir(PDF_CONFIG.envVar)],
+          retryable: false,
+        },
+      );
+    }
+
+    // The value is the text `${PDF_SPEC_DIR}` itself (or contains such a reference). The host
+    // that spawned us copied the plugin's env verbatim without expanding it. `readdir` would
+    // fail on this too, but with "no such directory" — which sends the reader off to check
+    // the directory, when the thing to fix is the host configuration (Issue #14).
+    const unexpanded = findUnexpandedEnvReference(dir);
+    if (unexpanded) {
+      throw new RegistryError(
+        `${PDF_CONFIG.envVar} is the unexpanded text "${dir}" — the host did not substitute ` +
+          `the ${unexpanded} reference, so no directory was named.`,
+        {
+          hint:
+            `Not a missing directory: the plugin env declares "${dir}" and this host passed ` +
+            "that text through verbatim. Put the absolute path in the host's own configuration.",
+          next_actions: [
+            NEXT_ACTIONS.expandEnvInHostConfig(PDF_CONFIG.envVar, dir),
+            NEXT_ACTIONS.setSpecDir(PDF_CONFIG.envVar),
+          ],
           retryable: false,
         },
       );

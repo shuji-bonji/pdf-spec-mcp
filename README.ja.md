@@ -253,6 +253,23 @@ PDF_SPEC_DIR=/path/to/pdf-specs pdf-spec-mcp
 }
 ```
 
+#### Claude Code のプラグインとして入れた場合
+
+プラグインの設定（`.claude-plugin/plugin.json`）は `"PDF_SPEC_DIR": "${PDF_SPEC_DIR}"` と書いており、
+`${VAR}` の置き換えはサーバーを起動するホストに任せています。ホストによっては置き換えません。
+
+| ホスト | プラグインの `env` の `${VAR}` を置き換えるか | 代わりに絶対パスを書く場所 |
+| --- | --- | --- |
+| Claude Code（ターミナル） | 置き換える | — |
+| Grok Build 1.0.30 | 置き換えない | `~/.grok/config.toml` の `[mcp_servers.pdf-spec]` |
+| Claude デスクトップアプリから「このコンピュータにリンク」したクラウドセッション（プラグインのツール） | 置き換えない | デスクトップアプリが読むローカル MCP 設定 |
+
+置き換えられずに渡ると、全ツールが `REGISTRY_ERROR` を返します。メッセージは
+`PDF_SPEC_DIR is the unexpanded text "${PDF_SPEC_DIR}"` で始まり、`next_actions` の先頭は
+`set_absolute_path_in_host_config` です。ディレクトリが無いのではなく、ホストの設定の問題です。
+ホスト側の設定ファイルに絶対パスを書いて、サーバーを再起動してください。
+ホストごとの手順: <https://shuji-bonji.github.io/pdf-agent-stack/ja/reference/env-vars>
+
 ## 索引キャッシュ
 
 仕様書の全ページを走査する操作が 2 つあります。仕様ごとの初回の `search_spec`（全文検索索引の構築。
