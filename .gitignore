@@ -16,3 +16,4 @@ docs/reference/*.pdf
 # Vitest temp files (残存する一時トランスパイル成果物)
 *.timestamp-*
 .DS_Store
+.dump/

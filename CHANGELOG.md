@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A committed full-corpus baseline for `pdf17` and `iso32000-2` (#21).
+  `scripts/dump-sections.mjs` runs `get_section`, `get_tables` and `get_requirements` over
+  every section of a spec and writes a per-section digest (element counts, table count and
+  row counts, captions, requirement counts, `boundary`, and a SHA-256 of the content — never
+  the text itself) to `.golden/<spec>.digest.json`; `scripts/diff-dumps.mjs` compares two
+  digests and reports, before any difference, how many sections it read and compared, so
+  "no differences" can be told from "not measured". `npm run golden:check` /
+  `golden:update`. Until now the full diff that found #15 / #16 was a one-off temporary
+  file, and `pdf17` was pinned by the e2e suite in a handful of sections only. Baseline at
+  0.8.0: `pdf17` 823 sections, 816 start with their own heading, 11 are page-cut
+  (Bibliography entries), 1,413 tables including parent aggregation (390 in leaf sections),
+  41 with a `null` caption, 23,327 requirements; `iso32000-2` 987 (988 outline entries; 14.8.4.7.3 appears twice, once under the errata entry Issue #133) / 979 / 12 / 1,657 (457) /
+  110 / 25,068.
+
 ## [0.8.0] - 2026-10-21
 
 ### Added

@@ -45,6 +45,9 @@
     "check:fix": "biome check --fix ./src ./tests",
     "prepublishOnly": "node scripts/sync-plugin-version.mjs --check && npm run build",
     "check:imports": "node scripts/check-import-order.mjs",
+    "golden:dump": "PDF_SPEC_DIR=./pdf-spec node scripts/dump-sections.mjs pdf17 && PDF_SPEC_DIR=./pdf-spec node scripts/dump-sections.mjs iso32000-2",
+    "golden:check": "npm run -s golden:dump && node scripts/diff-dumps.mjs .golden/pdf17.digest.json .dump/pdf17.digest.json --fail-on-diff && node scripts/diff-dumps.mjs .golden/iso32000-2.digest.json .dump/iso32000-2.digest.json --fail-on-diff",
+    "golden:update": "PDF_SPEC_DIR=./pdf-spec node scripts/dump-sections.mjs pdf17 --golden && PDF_SPEC_DIR=./pdf-spec node scripts/dump-sections.mjs iso32000-2 --golden",
     "version": "node scripts/sync-plugin-version.mjs && git add .claude-plugin/plugin.json server.json"
   },
   "dependencies": {

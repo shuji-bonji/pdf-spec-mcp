@@ -225,7 +225,7 @@ extractPageSegments）は 1 行も変えていない。** 見出し要素を作�
 受入: iso32000-2 の 987 節で content / tables / requirements / pageRange が 0.6.2 と同一、
 pdf17 の 823 節中 816 節が自節の見出しで始まる（残り 7 は Bibliography の項目）。
 全数差分の取り方は `tests/e2e` ではなく、旧 dist と新 dist で全節を JSON に落として比較する
-（CHANGELOG の数字はそれ）。
+（CHANGELOG の数字はそれ）。手順は下の「全数差分（.golden）」。
 
 **応答は切り方を申告する（#17 / 0.8.0）**: `getOwnSectionContent` が `boundary: { start, end }` を
 決める。`start` は「自見出しが見つかったか」、`end` は「次の見出しで切れたか / ページ共有で
@@ -265,9 +265,33 @@ npm run check:imports    # import 順（biome なしで動く。サンドボッ�
 - pdfjs は import 時に `DOMMatrix` を要求する（本来 `@napi-rs/canvas` が供給）。LRU のように
   pdfjs が無関係なロジックを素の node で回したいときは `globalThis.DOMMatrix ??= class {}` で
   import を通せる
-- 抽出ロジックを変えたら、**旧実装を `git worktree` で並べてビルドし、全セクションに
-  `get_tables` 等を流して JSON 差分を取る**。「行を失った表 0 / 表の個数が変わった表 0」を
-  機械的に示せる。8.7.4.5.5 の退行はこの全数差分でしか見つからなかった
+- 抽出ロジックを変えたら、**全セクションに `get_section` / `get_tables` / `get_requirements` を
+  流して基準線と差分を取る**（下の「全数差分（.golden）」）。「行を失った表 0 / 表の個数が
+  変わった表 0」を機械的に示せる。8.7.4.5.5 の退行も pdf17 の #15 / #16 もこれでしか
+  見つからなかった
+
+### 全数差分（.golden）— pdf17 と iso32000-2 の両方で取る（#21）
+
+```bash
+npm run golden:check    # .dump/ に全節を落とし、.golden/ と比べる。差があれば exit 1
+npm run golden:update   # 意図した変更を受け入れたあと、基準線を今の dist で書き直す
+node scripts/diff-dumps.mjs .golden/pdf17.digest.json .dump/pdf17.digest.json   # 差の本文を読む
+```
+
+- `.golden/<spec>.digest.json` がコミットする基準線。節ごとに要素数・表の個数と行数・
+  キャプション・要件の件数・`boundary` と、内容の SHA-256 を持つ。**本文は持たない**
+  （仕様 PDF は著作物）。全文は `.dump/<spec>/{section,tables,requirements}.json` に落ちる
+  （.gitignore 済み）。差が出た節は、全文 dump 同士を開いて何が変わったかを読む
+- 旧 dist と比べたいときは `--dist <旧 dist> --out /tmp/old` で旧側のダイジェストを作って
+  `diff-dumps.mjs` に渡す（`git worktree add /tmp/old v0.8.0 && (cd /tmp/old && npm ci && npm run build)`）
+- diff の出力は先頭に **読んだ節数と比べた節数** を出す。「差 0 件」はその節数に対してだけ
+  言える。e2e が通っても pdf17 の 823 節は 5 節分しか測れていなかった（#21）
+- 基準値（0.8.0・2026-10-21・`summary` から転記）: **pdf17** 823 節 / 自見出しで始まる 816 /
+  ページ切り 11（Bibliography の項目）/ 表 1,413（親の集約込み・葉だけなら 390）/
+  キャプション null の表 41 / 要件 23,327。**iso32000-2** 987 節（outline は 988 項目。14.8.4.7.3 が本文と正誤表 Issue #133 の 2 回）/ 979 / 12 / 表 1,657（葉 457）/
+  null 110 / 要件 25,068
+- `.golden` を更新するコミットは、**何を意図して差を受け入れたか**を CHANGELOG に書く。
+  基準線のバグは差分では見えない（落とし穴 2b の 🔴）。新しい形の差は oracle で確かめる
 - **ツールは必ず複数回・順序を変えて呼ぶ**。1 回ずつしか呼ばないテストは、キャッシュ破壊も
   順序依存も検知しない（0.4.0 がそれで出た）。リリース後は
   **npx で公開版を隔離環境に落として叩く**（`npm init -y` した空ディレクトリで
