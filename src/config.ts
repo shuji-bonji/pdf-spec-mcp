@@ -74,8 +74,17 @@ export const VALIDATION_LIMITS = {
   defaultMaxResults: 10,
 } as const;
 
-/** Matches a table caption paragraph ("Table 182 — Additional entries...") */
-export const TABLE_CAPTION_START_RE = /^Table\s+\d+/;
+/**
+ * Matches a table caption paragraph: "Table 182 — Additional entries…" in the body,
+ * "Table F.5 – Shared object hint table…" in an annex, and ISO 32000-2's
+ * "Table Annex L.1 — Legend…" (Annexes L and O only). Tables in an annex are numbered by
+ * the annex letter, not a plain integer; `^Table\s+\d+` missed every one of them, so
+ * they came back `caption: null` and the repeated-header rule in table-collector then
+ * merged consecutive annex tables that share a header (#22: Annex F = 12 tables returned
+ * as 7). A sentence that merely begins with "Table" ("Table entries shall…") still does
+ * not match — a number must follow.
+ */
+export const TABLE_CAPTION_START_RE = /^Table\s+(?:Annex\s+)?(?:[A-Z]\.)?\d+/;
 
 /** Concurrency limits for chunked parallel processing */
 export const CONCURRENCY = {

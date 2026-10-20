@@ -124,6 +124,40 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
     expect(result.tables[0].caption).toMatch(/^Table 28/);
   });
 
+  // T-6c / T-6d: Annex の表はキャプションが英字付き（#22）
+  it('T-6c: pdf17 Annex F → Table F.1〜F.12 の 12 表、caption はすべて非 null（#22: 0.8.0 は 7 表・全部 null）', async () => {
+    // F.3〜F.12 はヘッダが Item / Size (bits) / Description で共通。キャプションが取れないと
+    // ヘッダ再掲の連結規則が別々の表を 1 つに畳む。
+    const result = await toolHandlers.get_tables({ section: 'Annex F', spec: 'pdf17' });
+    expect(result.totalTables).toBe(12);
+    expect(result.tables.map((t) => t.caption?.match(/^Table F\.(\d+)/)?.[1])).toEqual(
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+    );
+    // 行は 1 本も増減しない（0.8.0 の 7 表の合計と同じ 88 行）
+    expect(result.tables.reduce((n, t) => n + t.rows.length, 0)).toBe(88);
+
+    const leaf = await toolHandlers.get_tables({
+      section: 'F.4.1 Page Offset Hint Table', // Annex の子はキーがタイトル全体（落とし穴 8）
+      spec: 'pdf17',
+    });
+    expect(leaf.totalTables).toBe(2);
+    expect(leaf.tables.map((t) => t.rows.length)).toEqual([13, 7]);
+  });
+
+  it('T-6d: iso32000-2 Annex A → Table A.1 が 73 行 1 表で caption あり / Annex O の "Table Annex O.n" も取れる', async () => {
+    const a = await toolHandlers.get_tables({ section: 'Annex A', spec: 'iso32000-2' });
+    expect(a.totalTables).toBe(1);
+    expect(a.tables[0].caption).toMatch(/^Table A\.1 — PDF content stream operators/);
+    expect(a.tables[0].rows).toHaveLength(73);
+
+    const o = await toolHandlers.get_tables({ section: 'Annex O', spec: 'iso32000-2' });
+    expect(o.totalTables).toBe(2);
+    expect(o.tables.map((t) => t.caption?.slice(0, 16))).toEqual([
+      'Table Annex O.3 ',
+      'Table Annex O.4 ',
+    ]);
+  });
+
   // T-7: 小規模PDF (ts32002)
   it('T-7: ts32002 → 正常動作', async () => {
     const structure = await toolHandlers.get_structure({ spec: 'ts32002' });

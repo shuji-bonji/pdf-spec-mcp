@@ -667,7 +667,10 @@ function isCutByPage(b: SectionBoundary): boolean {
  */
 function detectTablesFromText(content: ContentElement[]): TableInfo[] {
   const tables: TableInfo[] = [];
-  const TABLE_CAPTION_RE = /^(Table\s+\d+)\s*[—–-]\s*(.+)/;
+  // Same caption shapes as TABLE_CAPTION_START_RE (config.ts): body "Table 182", annex
+  // "Table F.5", and "Table Annex L.1" (#22). Kept in step so the two paths agree on
+  // what a caption is.
+  const TABLE_CAPTION_RE = /^(Table\s+(?:Annex\s+)?(?:[A-Z]\.)?\d+)\s*[—–-]\s*(.+)/;
 
   for (let i = 0; i < content.length; i++) {
     const el = content[i];

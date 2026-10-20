@@ -146,7 +146,9 @@ if (JSON_OUT) {
   for (const k of Object.keys(B.summary ?? {})) {
     const o = A.summary?.[k];
     const n = B.summary?.[k];
-    console.log(`  ${k.padEnd(24)} ${String(o).padStart(6)} → ${String(n).padStart(6)}${o !== n ? '  *' : ''}`);
+    const show = (v) => (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v));
+    const same = JSON.stringify(o) === JSON.stringify(n);
+    console.log(`  ${k.padEnd(24)} ${show(o).padStart(6)} → ${show(n).padStart(6)}${same ? '' : '  *'}`);
   }
   console.log('differences by kind:');
   for (const [k, n] of Object.entries(counts)) console.log(`  ${k.padEnd(24)} ${n}`);

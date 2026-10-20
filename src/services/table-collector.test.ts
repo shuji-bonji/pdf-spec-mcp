@@ -178,6 +178,41 @@ describe('collectStructTreeTables', () => {
     expect(collectStructTreeTables(content)).toHaveLength(2);
   });
 
+  // ---- #22: Annex captions are lettered ("Table F.5", "Table Annex L.1") ----
+
+  it('recognises a lettered Annex caption and keeps same-header Annex tables apart (#22)', () => {
+    // Annex F of ISO 32000-1 / -2: F.3 to F.12 all have the header Item / Size / Description.
+    // With the caption unrecognised, every one of them merged into the first by the
+    // repeated-header rule: get_tables("Annex F", pdf17) returned 7 tables, all `caption:
+    // null`, where the source has 12.
+    const content: ContentElement[] = [
+      caption('Table F.3 – Page offset hint table, header section'),
+      table(['Item', 'Size (bits)', 'Description'], [['1', '32', 'least number of objects']]),
+      caption('Table F.4 – Page offset hint table, per-page entry'),
+      table(['Item', 'Size (bits)', 'Description'], [['1', 'See Table F.3, item 3', 'delta']]),
+      caption('Table Annex L.1 — Legend for Table L.2'),
+      table(['Symbol', 'Meaning'], [['✓', 'allowed']]),
+    ];
+
+    const tables = collectStructTreeTables(content);
+
+    expect(tables.map((t) => t.caption)).toEqual([
+      'Table F.3 – Page offset hint table, header section',
+      'Table F.4 – Page offset hint table, per-page entry',
+      'Table Annex L.1 — Legend for Table L.2',
+    ]);
+    expect(tables.map((t) => t.rows.length)).toEqual([1, 1, 1]);
+  });
+
+  it('does not take a sentence that merely begins with "Table" for a caption', () => {
+    const content: ContentElement[] = [
+      caption('Table entries shall be sorted by key.'),
+      table(['Key', 'Value'], [['A', 'a']]),
+    ];
+
+    expect(collectStructTreeTables(content)[0].caption).toBeNull();
+  });
+
   /**
    * The caller's content must come back untouched.
    *

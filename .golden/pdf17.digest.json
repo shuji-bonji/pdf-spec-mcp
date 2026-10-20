@@ -26,9 +26,9 @@
    "heading/page_shared": 2,
    "page/page_shared": 3
   },
-  "tablesTotal": 1413,
-  "tablesTotalLeafOnly": 390,
-  "tablesWithNullCaption": 41,
+  "tablesTotal": 1432,
+  "tablesTotalLeafOnly": 393,
+  "tablesWithNullCaption": 1,
   "requirementsTotal": 23327,
   "errors": 0
  },
@@ -28660,12 +28660,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table A.1 – PDF content stream operators"
     ],
     "rows": [
      73
     ],
-    "sha": "aeac2c482694d33f"
+    "sha": "67ebc85b62e4a56b"
    },
    "requirements": {
     "total": 1,
@@ -28731,12 +28731,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table A.1 – PDF content stream operators"
     ],
     "rows": [
      73
     ],
-    "sha": "aeac2c482694d33f"
+    "sha": "67ebc85b62e4a56b"
    },
    "requirements": {
     "total": 0,
@@ -28958,12 +28958,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table C.1 – Architectural limits"
     ],
     "rows": [
      11
     ],
-    "sha": "c5b7df80060fca74"
+    "sha": "0341f8ab4a5428a7"
    },
    "requirements": {
     "total": 12,
@@ -29032,12 +29032,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table C.1 – Architectural limits"
     ],
     "rows": [
      11
     ],
-    "sha": "c5b7df80060fca74"
+    "sha": "0341f8ab4a5428a7"
    },
    "requirements": {
     "total": 12,
@@ -29106,14 +29106,14 @@
    "tables": {
     "total": 2,
     "captions": [
-     null,
-     null
+     "Table D.1 – Latin-text encodings",
+     "Table D.2 – PDFDocEncoding Character Set"
     ],
     "rows": [
      5,
      256
     ],
-    "sha": "e7e392892346b6d9"
+    "sha": "d6601ffbfb81f6a3"
    },
    "requirements": {
     "total": 20,
@@ -29123,7 +29123,7 @@
      "shall not": 1
     },
     "cutByPage": [],
-    "sha": "4f5a1abdcdb74f67"
+    "sha": "0df6fb34d9e9bc2a"
    }
   },
   "D.1 General": {
@@ -29149,12 +29149,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table D.1 – Latin-text encodings"
     ],
     "rows": [
      5
     ],
-    "sha": "8c62b376e27c9432"
+    "sha": "161b1a74f588ceb5"
    },
    "requirements": {
     "total": 12,
@@ -29164,7 +29164,7 @@
      "shall not": 1
     },
     "cutByPage": [],
-    "sha": "fc4d41cbd0edbe29"
+    "sha": "6da7b87f16640bf7"
    }
   },
   "D.2 Latin Character Set and Encodings": {
@@ -29223,12 +29223,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table D.2 – PDFDocEncoding Character Set"
     ],
     "rows": [
      256
     ],
-    "sha": "5aefd664a1a25cfd"
+    "sha": "5cd11be4502334a1"
    },
    "requirements": {
     "total": 1,
@@ -29453,26 +29453,36 @@
     "sha": "a473ef17b20b772b"
    },
    "tables": {
-    "total": 7,
+    "total": 12,
     "captions": [
-     null,
-     null,
-     null,
-     null,
-     null,
-     null,
-     null
+     "Table F.1 – Entries in the linearization parameter dictionary",
+     "Table F.2 – Standard hint tables",
+     "Table F.3 – Page offset hint table, header section",
+     "Table F.4 – Page offset hint table, per-page entry",
+     "Table F.5 – Shared object hint table, header section",
+     "Table F.6 – Shared object hint table, shared object group entry",
+     "Table F.7 – Thumbnail hint table, header section",
+     "Table F.8 – Thumbnail hint table, per-page entry",
+     "Table F.9 – Generic hint table",
+     "Table F.10 – Extended generic hint table",
+     "Table F.11 – Embedded file stream hint table, header section",
+     "Table F.12 – Embedded file stream hint table, per-embedded file stream group entries"
     ],
     "rows": [
      8,
      11,
-     20,
+     13,
      7,
-     19,
+     7,
      4,
-     19
+     12,
+     3,
+     4,
+     7,
+     7,
+     5
     ],
-    "sha": "e61c23f144ef1611"
+    "sha": "8e69ff0a91a04887"
    },
    "requirements": {
     "total": 231,
@@ -29484,7 +29494,7 @@
      "shall not": 11
     },
     "cutByPage": [],
-    "sha": "17699698cfcd7026"
+    "sha": "fec3ba0427306f4d"
    }
   },
   "F.1 General": {
@@ -29581,14 +29591,14 @@
    "tables": {
     "total": 2,
     "captions": [
-     null,
-     null
+     "Table F.1 – Entries in the linearization parameter dictionary",
+     "Table F.2 – Standard hint tables"
     ],
     "rows": [
      8,
      11
     ],
-    "sha": "f26090c77c484aac"
+    "sha": "19ed95a9b779ca0d"
    },
    "requirements": {
     "total": 129,
@@ -29600,7 +29610,7 @@
      "should": 8
     },
     "cutByPage": [],
-    "sha": "9a511df897410d38"
+    "sha": "2c63ae8a284035bd"
    }
   },
   "F.3.1 General": {
@@ -29695,12 +29705,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table F.1 – Entries in the linearization parameter dictionary"
     ],
     "rows": [
      8
     ],
-    "sha": "a6ec522eaa73ab54"
+    "sha": "25dc2eaba3d2d2e8"
    },
    "requirements": {
     "total": 13,
@@ -29709,7 +29719,7 @@
      "may": 1
     },
     "cutByPage": [],
-    "sha": "dbb8505689f4c68a"
+    "sha": "5911060febadc584"
    }
   },
   "F.3.4 First-Page Cross-Reference Table and Trailer (Part 3)": {
@@ -29805,12 +29815,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table F.2 – Standard hint tables"
     ],
     "rows": [
      11
     ],
-    "sha": "64cce80356d20436"
+    "sha": "d260c75e879efc02"
    },
    "requirements": {
     "total": 24,
@@ -30019,22 +30029,32 @@
     "sha": "cddc726c574644fe"
    },
    "tables": {
-    "total": 5,
+    "total": 10,
     "captions": [
-     null,
-     null,
-     null,
-     null,
-     null
+     "Table F.3 – Page offset hint table, header section",
+     "Table F.4 – Page offset hint table, per-page entry",
+     "Table F.5 – Shared object hint table, header section",
+     "Table F.6 – Shared object hint table, shared object group entry",
+     "Table F.7 – Thumbnail hint table, header section",
+     "Table F.8 – Thumbnail hint table, per-page entry",
+     "Table F.9 – Generic hint table",
+     "Table F.10 – Extended generic hint table",
+     "Table F.11 – Embedded file stream hint table, header section",
+     "Table F.12 – Embedded file stream hint table, per-embedded file stream group entries"
     ],
     "rows": [
-     20,
+     13,
      7,
-     19,
+     7,
      4,
-     19
+     12,
+     3,
+     4,
+     7,
+     7,
+     5
     ],
-    "sha": "7b371697a8ac708d"
+    "sha": "5d4eac6fd29ea9e7"
    },
    "requirements": {
     "total": 86,
@@ -30045,7 +30065,7 @@
      "should": 2
     },
     "cutByPage": [],
-    "sha": "758dff97aef6ed85"
+    "sha": "1676810d53186201"
    }
   },
   "F.4.1 Page Offset Hint Table": {
@@ -30069,14 +30089,16 @@
     "sha": "74575c254e3e2480"
    },
    "tables": {
-    "total": 1,
+    "total": 2,
     "captions": [
-     null
+     "Table F.3 – Page offset hint table, header section",
+     "Table F.4 – Page offset hint table, per-page entry"
     ],
     "rows": [
-     20
+     13,
+     7
     ],
-    "sha": "f97bd281c5e7db29"
+    "sha": "92a4a1f9fd942183"
    },
    "requirements": {
     "total": 27,
@@ -30086,7 +30108,7 @@
      "shall not": 1
     },
     "cutByPage": [],
-    "sha": "fe5a6101ea9369a0"
+    "sha": "c3889345a7a86979"
    }
   },
   "F.4.2 Shared Object Hint Table": {
@@ -30112,14 +30134,14 @@
    "tables": {
     "total": 2,
     "captions": [
-     null,
-     null
+     "Table F.5 – Shared object hint table, header section",
+     "Table F.6 – Shared object hint table, shared object group entry"
     ],
     "rows": [
      7,
      4
     ],
-    "sha": "494d51b854548703"
+    "sha": "b9fd9b6e929ef787"
    },
    "requirements": {
     "total": 19,
@@ -30129,7 +30151,7 @@
      "shall not": 1
     },
     "cutByPage": [],
-    "sha": "42d87c9de73ea6fc"
+    "sha": "ae84d8cbb4b824bd"
    }
   },
   "F.4.3 Thumbnail Hint Table": {
@@ -30152,14 +30174,16 @@
     "sha": "8ec19148ceb0ee2e"
    },
    "tables": {
-    "total": 1,
+    "total": 2,
     "captions": [
-     null
+     "Table F.7 – Thumbnail hint table, header section",
+     "Table F.8 – Thumbnail hint table, per-page entry"
     ],
     "rows": [
-     15
+     12,
+     3
     ],
-    "sha": "9001460affbcb0e3"
+    "sha": "ce3479b97140918b"
    },
    "requirements": {
     "total": 5,
@@ -30168,7 +30192,7 @@
      "may": 1
     },
     "cutByPage": [],
-    "sha": "6021ef1940044bb5"
+    "sha": "adba738eaacfb3fc"
    }
   },
   "F.4.4 Generic Hint Tables": {
@@ -30194,12 +30218,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table F.9 – Generic hint table"
     ],
     "rows": [
      4
     ],
-    "sha": "01843ebbbd7de27b"
+    "sha": "84a223439cee3996"
    },
    "requirements": {
     "total": 5,
@@ -30234,12 +30258,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table F.10 – Extended generic hint table"
     ],
     "rows": [
      7
     ],
-    "sha": "56c6e72fb15c893f"
+    "sha": "3a183fb7e537c606"
    },
    "requirements": {
     "total": 5,
@@ -30248,7 +30272,7 @@
      "shall not": 1
     },
     "cutByPage": [],
-    "sha": "ba2de2f2715d66c5"
+    "sha": "cd60488bb7ee8047"
    }
   },
   "F.4.6 Embedded File Stream Hint Tables": {
@@ -30271,14 +30295,16 @@
     "sha": "79ef47dea4d651f1"
    },
    "tables": {
-    "total": 1,
+    "total": 2,
     "captions": [
-     null
+     "Table F.11 – Embedded file stream hint table, header section",
+     "Table F.12 – Embedded file stream hint table, per-embedded file stream group entries"
     ],
     "rows": [
-     12
+     7,
+     5
     ],
-    "sha": "770db6a7acb95037"
+    "sha": "7dbb8549b1dc5758"
    },
    "requirements": {
     "total": 13,
@@ -30287,7 +30313,7 @@
      "shall": 10
     },
     "cutByPage": [],
-    "sha": "00d14247c342caf7"
+    "sha": "52bc49e5e25a258d"
    }
   },
   "Annex G": {
@@ -30573,16 +30599,24 @@
     "sha": "74725d8a93ff2a79"
    },
    "tables": {
-    "total": 2,
+    "total": 6,
     "captions": [
-     null,
-     null
+     "Table H.1 – Objects in minimal example",
+     "Table H.2 – Objects in simple text string example",
+     "Table H.3 – Objects in simple graphics example",
+     "Table H.4 – Object usage after adding four text annotations",
+     "Table H.5 – Object usage after deleting two text annotations",
+     "Table H.6 – Object usage after adding three text annotations"
     ],
     "rows": [
-     19,
-     13
+     6,
+     7,
+     6,
+     6,
+     3,
+     4
     ],
-    "sha": "c08dc66a508a3ae1"
+    "sha": "87a6374872c19ee0"
    },
    "requirements": {
     "total": 3,
@@ -30648,12 +30682,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table H.1 – Objects in minimal example"
     ],
     "rows": [
      6
     ],
-    "sha": "b08978e501191096"
+    "sha": "5d6862ddf2df62e5"
    },
    "requirements": {
     "total": 1,
@@ -30687,12 +30721,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table H.2 – Objects in simple text string example"
     ],
     "rows": [
      7
     ],
-    "sha": "94e8492e8dc524d8"
+    "sha": "9d9332024bf784db"
    },
    "requirements": {
     "total": 0,
@@ -30724,12 +30758,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table H.3 – Objects in simple graphics example"
     ],
     "rows": [
      6
     ],
-    "sha": "b08978e501191096"
+    "sha": "3bc634249fba4f9c"
    },
    "requirements": {
     "total": 0,
@@ -30823,14 +30857,18 @@
     "sha": "67fda8dd51da39f3"
    },
    "tables": {
-    "total": 1,
+    "total": 3,
     "captions": [
-     null
+     "Table H.4 – Object usage after adding four text annotations",
+     "Table H.5 – Object usage after deleting two text annotations",
+     "Table H.6 – Object usage after adding three text annotations"
     ],
     "rows": [
-     13
+     6,
+     3,
+     4
     ],
-    "sha": "f3343b454d198438"
+    "sha": "5d33f07af78f6a7f"
    },
    "requirements": {
     "total": 0,
@@ -30862,12 +30900,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table H.4 – Object usage after adding four text annotations"
     ],
     "rows": [
      6
     ],
-    "sha": "10640e26ca6b8f61"
+    "sha": "aeb9e1aa848a282c"
    },
    "requirements": {
     "total": 0,
@@ -30931,12 +30969,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table H.5 – Object usage after deleting two text annotations"
     ],
     "rows": [
      3
     ],
-    "sha": "2bfb2ea381053b19"
+    "sha": "68b666d052a8fad5"
    },
    "requirements": {
     "total": 0,
@@ -30968,12 +31006,12 @@
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table H.6 – Object usage after adding three text annotations"
     ],
     "rows": [
      4
     ],
-    "sha": "c1b345b614522f76"
+    "sha": "21c25b162d0ca80f"
    },
    "requirements": {
     "total": 0,

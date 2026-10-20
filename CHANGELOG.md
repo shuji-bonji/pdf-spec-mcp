@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `get_tables` did not recognise lettered table captions, so every table in an annex came
+  back `caption: null`, and consecutive annex tables that share a header were then merged
+  by the repeated-header rule (#22). `get_tables("Annex F", spec: "pdf17")` returned 7
+  tables, all unnamed, for the 12 the annex holds (Table F.1 to F.12); `iso32000-2` had the
+  same shape in Annexes A, D, F, H and O, including the "Table Annex L.1" / "Table Annex
+  O.3" captions ISO 32000-2 uses there. `TABLE_CAPTION_START_RE` and the text-fallback
+  pattern now accept `Table F.5` and `Table Annex O.3`. Measured on the full corpus
+  (`npm run golden:check`): `pdf17` 1,413 → 1,432 tables, 41 → 1 with a `null` caption;
+  `iso32000-2` 1,657 → 1,681, 110 → 56; no section lost or gained a row, no requirement
+  count changed. The tables still unnamed are ones the specification prints without a
+  caption (Annex B operator lists, errata pages, the mesh and patch figures in 8.7.4.5).
+
 ### Added
 
 - A committed full-corpus baseline for `pdf17` and `iso32000-2` (#21).
