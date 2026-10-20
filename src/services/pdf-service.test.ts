@@ -622,28 +622,28 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
 // Issue #6 — the on-disk index store
 // ========================================
 
-describe('index store (Issue #6) — a second service reads what the first built', () => {
-  /** A store that remembers what was saved, shared between two service instances. */
-  class MemoryStore implements IndexStore {
-    saved = new Map<string, unknown>();
-    loads = 0;
-    async load(kind: string, specId: string) {
-      this.loads++;
-      const data = this.saved.get(`${specId}:${kind}`);
-      if (data === undefined) return null;
-      return {
-        data,
-        meta: {} as never,
-        path: `memory:${specId}:${kind}`,
-        loadTimeMs: 0,
-      } as never;
-    }
-    async save(kind: string, specId: string, _pdfPath: string, data: unknown) {
-      this.saved.set(`${specId}:${kind}`, data);
-      return `memory:${specId}:${kind}`;
-    }
+/** A store that remembers what was saved, shared between two service instances. */
+class MemoryStore implements IndexStore {
+  saved = new Map<string, unknown>();
+  loads = 0;
+  async load(kind: string, specId: string) {
+    this.loads++;
+    const data = this.saved.get(`${specId}:${kind}`);
+    if (data === undefined) return null;
+    return {
+      data,
+      meta: {} as never,
+      path: `memory:${specId}:${kind}`,
+      loadTimeMs: 0,
+    } as never;
   }
+  async save(kind: string, specId: string, _pdfPath: string, data: unknown) {
+    this.saved.set(`${specId}:${kind}`, data);
+    return `memory:${specId}:${kind}`;
+  }
+}
 
+describe('index store (Issue #6) — a second service reads what the first built', () => {
   const twoSectionDoc = () =>
     createDoc([
       [headingFixture('1.1 First'), paragraphFixture('The reader shall accept the first body.')],
@@ -721,5 +721,219 @@ describe('index store (Issue #6) — a second service reads what the first built
     const after = JSON.stringify(await second.searchSpec('body', 10, 'test-spec'));
 
     expect(after).toBe(before);
+  });
+});
+
+describe('boundary — how each end of a section was cut (#17)', () => {
+  /**
+   * Content is cut at headings when they are found. When one is not, the cut falls on a
+   * page edge and the content may carry a neighbour's text or miss its own tail — and
+   * until #17 nothing in the answer said which. (On pdf17 before 0.7.0 every section was
+   * page-cut, and get_tables answered "0 tables" as if that were an observation.)
+   */
+  it('heading / heading: own heading found, next heading found on the shared page', async () => {
+    const doc = createDoc([
+      [
+        headingFixture('1.1 First'),
+        paragraphFixture('Body of 1.1.'),
+        headingFixture('1.2 Second'),
+        paragraphFixture('Body of 1.2.'),
+      ],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 Second', 1],
+      ]),
+    );
+
+    expect((await svc.getSectionContent('1.1', 'test-spec')).boundary).toEqual({
+      start: 'heading',
+      end: 'heading',
+    });
+  });
+
+  it('heading / page: the next section starts on a later page', async () => {
+    const doc = createDoc([
+      [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
+      [paragraphFixture('Still 1.1.')],
+      [headingFixture('1.2 Second'), paragraphFixture('Body of 1.2.')],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 Second', 3],
+      ]),
+    );
+
+    const first = await svc.getSectionContent('1.1', 'test-spec');
+    expect(first.boundary).toEqual({ start: 'heading', end: 'page' });
+    expect(first.pageRange).toEqual({ start: 1, end: 2 });
+  });
+
+  it('heading / heading with a spill: the tail on the seam page was adopted', async () => {
+    const doc = createDoc([
+      [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
+      [paragraphFixture('Tail of 1.1.'), headingFixture('1.2 Second'), paragraphFixture('Body.')],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 Second', 2],
+      ]),
+    );
+
+    const first = await svc.getSectionContent('1.1', 'test-spec');
+    expect(first.boundary).toEqual({ start: 'heading', end: 'heading' });
+    expect(first.pageRange.end).toBe(2);
+  });
+
+  it('page / page_shared: no heading found at either end (the pdf17-before-0.7.0 shape)', async () => {
+    // Headings tagged as paragraphs and no hints to promote them: the whole page is
+    // held by both sections, and the boundary says so at both ends.
+    const doc = createDoc([
+      [
+        paragraphFixture('1.1 First'),
+        paragraphFixture('Body of 1.1.'),
+        paragraphFixture('1.2 Second'),
+        paragraphFixture('Body of 1.2.'),
+      ],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 FirstX', 1], // titles deliberately differ from the page text: no promotion
+        ['1.2 SecondX', 1],
+      ]),
+    );
+
+    expect((await svc.getSectionContent('1.1', 'test-spec')).boundary).toEqual({
+      start: 'page',
+      end: 'page_shared',
+    });
+    expect((await svc.getSectionContent('1.2', 'test-spec')).boundary).toEqual({
+      start: 'page',
+      end: 'document',
+    });
+  });
+
+  it('next_page_unclaimed: the next heading is missing from the seam page', async () => {
+    // The seam page is held whole by the next section (the "adopt nothing" arm), so any
+    // tail of 1.1 there is not in 1.1's content — and 1.1 says so.
+    const doc = createDoc([
+      [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
+      [paragraphFixture('Tail of 1.1, unclaimed.'), paragraphFixture('1.2 Second (untagged)')],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 First', 1],
+        ['1.2 SecondX', 2],
+      ]),
+    );
+
+    const first = await svc.getSectionContent('1.1', 'test-spec');
+    expect(first.boundary).toEqual({ start: 'heading', end: 'next_page_unclaimed' });
+    expect(first.pageRange.end).toBe(1);
+  });
+
+  it('document: the last section', async () => {
+    const doc = createDoc([[headingFixture('1.1 First'), paragraphFixture('Body.')]]);
+    const svc = createService(doc, outline([['1.1 First', 1]]));
+
+    expect((await svc.getSectionContent('1.1', 'test-spec')).boundary).toEqual({
+      start: 'heading',
+      end: 'document',
+    });
+  });
+
+  it('a parent reports its own start and its last descendant’s end', async () => {
+    const doc = createDoc([
+      [
+        headingFixture('1 Parent'),
+        paragraphFixture('Preamble.'),
+        headingFixture('1.1 Child'),
+        paragraphFixture('Child body.'),
+        paragraphFixture('2 Next (untagged)'),
+      ],
+    ]);
+    const outlineTree: OutlineEntry[] = [
+      {
+        title: '1 Parent',
+        page: 1,
+        sectionNumber: '1',
+        children: [{ title: '1.1 Child', page: 1, sectionNumber: '1.1', children: [] }],
+      },
+      { title: '2 NextX', page: 1, sectionNumber: '2', children: [] },
+    ];
+    const svc = createService(doc, outlineTree);
+
+    expect((await svc.getSectionContent('1', 'test-spec')).boundary).toEqual({
+      start: 'heading',
+      end: 'page_shared', // the child's end: 2's heading was not found
+    });
+  });
+
+  it('get_tables carries pageRange and boundary; 0 tables under a page cut is not "no table"', async () => {
+    const doc = createDoc([
+      [paragraphFixture('1.1 First'), paragraphFixture('Body.'), paragraphFixture('1.2 Second')],
+    ]);
+    const svc = createService(
+      doc,
+      outline([
+        ['1.1 FirstX', 1],
+        ['1.2 SecondX', 1],
+      ]),
+    );
+
+    const tables = await svc.getTables('1.1', undefined, 'test-spec');
+    expect(tables.totalTables).toBe(0);
+    expect(tables.pageRange).toEqual({ start: 1, end: 1 });
+    expect(tables.boundary).toEqual({ start: 'page', end: 'page_shared' });
+  });
+
+  it('get_requirements lists the sections in scope that were cut by page', async () => {
+    const doc = createDoc([
+      [
+        headingFixture('1 Parent'),
+        paragraphFixture('The parent shall hold.'),
+        headingFixture('1.1 Child'),
+        paragraphFixture('The child shall hold.'),
+        paragraphFixture('1.2 Other child (untagged)'),
+        paragraphFixture('The other child shall hold.'),
+      ],
+    ]);
+    const outlineTree: OutlineEntry[] = [
+      {
+        title: '1 Parent',
+        page: 1,
+        sectionNumber: '1',
+        children: [
+          { title: '1.1 Child', page: 1, sectionNumber: '1.1', children: [] },
+          { title: '1.2 OtherX', page: 1, sectionNumber: '1.2', children: [] },
+        ],
+      },
+    ];
+    const svc = createService(doc, outlineTree);
+
+    const scoped = await svc.getRequirements('1', undefined, 'test-spec');
+    expect(scoped.sectionsCutByPage).toEqual([
+      { section: '1.1', boundary: { start: 'heading', end: 'page_shared' } },
+      { section: '1.2', boundary: { start: 'page', end: 'document' } },
+    ]);
+
+    // The full scan reports the same list, and so does a second service reading the
+    // index that the first one wrote.
+    const store = new MemoryStore();
+    const a = createService(doc, outlineTree, store);
+    const full = await a.getRequirements(undefined, undefined, 'test-spec');
+    expect(full.sectionsCutByPage).toEqual(scoped.sectionsCutByPage);
+    const b = createService(doc, outlineTree, store);
+    expect((await b.getRequirements(undefined, undefined, 'test-spec')).sectionsCutByPage).toEqual(
+      scoped.sectionsCutByPage,
+    );
   });
 });

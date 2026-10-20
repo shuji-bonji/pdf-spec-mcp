@@ -364,6 +364,23 @@ Get structured content (headings, paragraphs, lists, tables, notes) of a specifi
 
 A parent section returns its entire subtree (its preamble followed by all subsections, in document order). Top-level clauses can be very large — prefer the most specific section number.
 
+Every answer carries `pageRange` and `boundary`. `boundary` says how each end of the content was cut:
+
+| `boundary.start` | Meaning |
+|---|---|
+| `heading` | The section's own heading was found; text before it on the first page was dropped |
+| `page` | The heading was not found; content starts at the top of the first page and may include the tail of the previous section |
+
+| `boundary.end` | Meaning |
+|---|---|
+| `heading` | Cut at the next section's heading |
+| `page` | Content ends with its last page; the next section starts on a later page |
+| `page_shared` | The next section starts on the last page but its heading was not found — content may include the next section's text |
+| `next_page_unclaimed` | The next section starts on the following page and its heading was not found there — any tail of this section on that page is not included |
+| `document` | Last section of the document |
+
+Anything other than `heading` / `heading`, `heading` / `page` or `heading` / `document` means the cut fell on a page edge: read the neighbouring section too before relying on the content. For a parent section, `start` is the parent's own and `end` is its last descendant's.
+
 ```jsonc
 // PDF 2.0 Section 7.3.4.2 (Literal Strings)
 { "section": "7.3.4.2" }
@@ -398,6 +415,8 @@ builds its index (a few seconds); the index is then cached on disk (see [Index c
 
 Extract normative requirements (shall / must / may) per ISO conventions.
 
+`sectionsCutByPage` lists the sections in scope whose content was cut at a page edge (see `boundary` under `get_section`); their requirements may include a neighbour's sentences or miss the tail. It is empty when every section in scope was cut at headings.
+
 ```jsonc
 // All requirements in section 12.8
 { "section": "12.8" }
@@ -430,6 +449,8 @@ Look up term definitions from the "Terms and definitions" clause — clause 3 of
 ### `get_tables` — Table Extraction
 
 Extract table structures (headers, rows, captions) from a section. Multi-page tables are automatically merged.
+
+The answer carries `pageRange` (the pages the tables were read from) and `boundary` (see `get_section`). `totalTables: 0` means no Table element was found in those pages — with a page-cut `boundary`, the pages themselves may not be the whole section.
 
 ```jsonc
 // All tables in section 7.3.4.2 (Table 3 — Escape sequences)

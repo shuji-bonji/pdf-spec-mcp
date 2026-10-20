@@ -163,10 +163,47 @@ export interface StructureResult {
   sections: OutlineEntry[];
 }
 
+/**
+ * How a section's content was cut at each end (#17).
+ *
+ * Content is cut at headings when they are found; when a heading is not found the cut
+ * falls on a page edge, and the content may then carry a neighbour's text or miss its
+ * own tail. The reader cannot tell the two cases apart from `content` and `pageRange`
+ * alone — for 0.6.2 on pdf17 every section was page-cut and nothing said so.
+ */
+export type SectionBoundaryStart =
+  /** Own heading found; text before it on the first page was dropped. */
+  | 'heading'
+  /** Own heading not found; content starts at the top of the first page and may include
+   *  the tail of the previous section. */
+  | 'page';
+
+export type SectionBoundaryEnd =
+  /** Cut at the next section's heading (on a shared page, or on the following page after
+   *  adopting this section's tail there). */
+  | 'heading'
+  /** Content ends with its last page and the next section starts on a later page. */
+  | 'page'
+  /** The next section starts on this section's last page but its heading was not found:
+   *  content may include the next section's text. */
+  | 'page_shared'
+  /** The next section starts on the following page and its heading was not found there:
+   *  any tail of this section on that page is held by the next section, not here. */
+  | 'next_page_unclaimed'
+  /** Last section of the outline; content runs to the end of the document range. */
+  | 'document';
+
+export interface SectionBoundary {
+  start: SectionBoundaryStart;
+  end: SectionBoundaryEnd;
+}
+
 export interface SectionResult {
   sectionNumber: string;
   title: string;
   pageRange: { start: number; end: number };
+  /** For a parent section: `start` of the section itself, `end` of its last descendant. */
+  boundary: SectionBoundary;
   content: ContentElement[];
 }
 
@@ -219,6 +256,12 @@ export interface RequirementsResult {
   filter: { section: string; level: string };
   totalRequirements: number;
   statistics: Record<string, number>;
+  /**
+   * Sections in scope whose own content was cut at a page edge rather than a heading
+   * (#17): their requirements may include a neighbour's sentences, or miss the tail.
+   * Empty when every section in scope was cut at headings.
+   */
+  sectionsCutByPage: Array<{ section: string; boundary: SectionBoundary }>;
   requirements: Requirement[];
 }
 
@@ -256,6 +299,11 @@ export interface TableInfo {
 export interface TablesResult {
   section: string;
   sectionTitle: string;
+  /** Pages the tables were read from — the section's (and its descendants') content. */
+  pageRange: { start: number; end: number };
+  /** How that content was cut; see SectionBoundary. 0 tables with a page-cut boundary
+   *  says only that no Table element was seen in these pages. */
+  boundary: SectionBoundary;
   totalTables: number;
   tables: TableInfo[];
 }

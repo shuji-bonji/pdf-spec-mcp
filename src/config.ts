@@ -37,7 +37,9 @@ export const PDFJS_VERSION = pdfjsPackageJson.version;
  * pages are cut into sections, and a cache keyed on the PDF alone would have kept serving
  * the pre-fix index after every one of those upgrades.
  */
-export const INDEX_SCHEMA_VERSION = 1;
+// 2: the requirements payload became { requirements, sectionsCutByPage } (#17). The
+// package version in the key would also miss a 0.7.x cache written by a dev build.
+export const INDEX_SCHEMA_VERSION = 2;
 
 /** Environment variables that control the on-disk index cache. */
 export const CACHE_ENV = {

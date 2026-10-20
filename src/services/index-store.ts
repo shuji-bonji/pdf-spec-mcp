@@ -34,16 +34,23 @@ import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/p
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { CACHE_ENV, INDEX_SCHEMA_VERSION, PACKAGE_INFO, PDFJS_VERSION } from '../config.js';
-import type { PageText, Requirement } from '../types/index.js';
+import type { PageText, Requirement, SectionBoundary } from '../types/index.js';
 import { type FileDigest, sha256File } from '../utils/file-hash.js';
 import { logger } from '../utils/logger.js';
 
 export type IndexKind = 'search' | 'requirements';
 
+/** The requirements index: every section's own requirements, plus which sections were
+ *  cut at a page edge (#17) — the full-scan path of get_requirements reports those. */
+export interface RequirementsIndex {
+  requirements: Requirement[];
+  sectionsCutByPage: Array<{ section: string; boundary: SectionBoundary }>;
+}
+
 /** Payload stored for each kind. Existing types, serialised as they are. */
 export interface IndexPayload {
   search: { pages: PageText[] };
-  requirements: Requirement[];
+  requirements: RequirementsIndex;
 }
 
 /** The cache key, plus provenance. Every key field must match for a hit. */
@@ -178,8 +185,22 @@ const PAYLOAD_CHECKS: { [K in IndexKind]: (data: unknown) => data is IndexPayloa
   search: (data): data is IndexPayload['search'] =>
     isRecord(data) && Array.isArray(data.pages) && data.pages.every(isPageText),
   requirements: (data): data is IndexPayload['requirements'] =>
-    Array.isArray(data) && data.every(isRequirement),
+    isRecord(data) &&
+    Array.isArray(data.requirements) &&
+    data.requirements.every(isRequirement) &&
+    Array.isArray(data.sectionsCutByPage) &&
+    data.sectionsCutByPage.every(isSectionCut),
 };
+
+function isSectionCut(value: unknown): value is { section: string; boundary: SectionBoundary } {
+  return (
+    isRecord(value) &&
+    typeof value.section === 'string' &&
+    isRecord(value.boundary) &&
+    typeof value.boundary.start === 'string' &&
+    typeof value.boundary.end === 'string'
+  );
+}
 
 const KEY_FIELDS = [
   'schemaVersion',

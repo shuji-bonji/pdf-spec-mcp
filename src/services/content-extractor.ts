@@ -93,7 +93,7 @@ export async function extractSectionContent(
  * Single source of truth for "this section starts here", so that trimToSectionStart and
  * extractOrphanedStrip stay exact complements of each other — see extractOrphanedStrip.
  */
-function findSectionHeadingIndex(elements: ContentElement[], sectionNumber: string): number {
+export function findSectionHeadingIndex(elements: ContentElement[], sectionNumber: string): number {
   // The key must be followed by a boundary (space, line break, or end of text), not by an
   // arbitrary character: "7.3" must not match "7.3.4 String objects". The old rule
   // demanded a trailing space, which silently failed for two shapes (SV-1):
@@ -169,17 +169,32 @@ export function trimAfterNextSectionStart(
  * the "not found → adopt nothing" arm, and that the heading is located the same way as in
  * trimToSectionStart. Both are pinned by tests.
  */
+export interface OrphanedStrip {
+  /** The strip: elements above the next section's heading. Empty unless the heading
+   *  was found at index > 0. */
+  elements: ContentElement[];
+  /** Whether the next section's heading was found on the seam page at all. False means
+   *  the next section holds the whole page, this section's tail included (#17 reports
+   *  it as `next_page_unclaimed`). */
+  headingFound: boolean;
+}
+
 export async function extractOrphanedStrip(
   doc: PDFDocumentProxy,
   seamPage: number,
   nextSectionNumber: string,
   hints?: HeadingHints,
-): Promise<ContentElement[]> {
-  if (seamPage < 1 || seamPage > (doc.numPages || 0)) return [];
+): Promise<OrphanedStrip> {
+  if (seamPage < 1 || seamPage > (doc.numPages || 0)) {
+    return { elements: [], headingFound: false };
+  }
 
   const elements = await extractPageContent(doc, seamPage, hints);
   const headingIdx = findSectionHeadingIndex(elements, nextSectionNumber);
-  return headingIdx > 0 ? elements.slice(0, headingIdx) : [];
+  return {
+    elements: headingIdx > 0 ? elements.slice(0, headingIdx) : [],
+    headingFound: headingIdx !== -1,
+  };
 }
 
 /**

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `get_section`, `get_tables` and `get_requirements` say how each section's content was
+  cut (#17). `get_section` and `get_tables` carry `boundary: { start, end }` — `start` is
+  `heading` or `page`; `end` is `heading`, `page`, `page_shared`, `next_page_unclaimed` or
+  `document` — and `get_tables` now also carries `pageRange`. `get_requirements` carries
+  `sectionsCutByPage`, the sections in scope whose content was cut at a page edge. Until
+  now a page-cut section looked exactly like a heading-cut one: on pdf17 before 0.7.0
+  every section was page-cut, and `get_tables` answered `totalTables: 0` as though that
+  were an observation. Measured on the corpus: 12 sections of `iso32000-2` are page-cut
+  (front and back matter, and clause 1), 11 of `pdf17` (all Bibliography entries that
+  the outline lists as sections); every body clause is cut at headings.
+
+### Changed
+
+- The on-disk requirements index now stores `{ requirements, sectionsCutByPage }` instead
+  of the bare array; `INDEX_SCHEMA_VERSION` is 2, so caches written by 0.7.0 are rebuilt
+  on first use (an old file is ignored, never misread).
+
 ## [0.7.0] - 2026-10-21
 
 ### Fixed

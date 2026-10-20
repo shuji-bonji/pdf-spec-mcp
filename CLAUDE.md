@@ -227,6 +227,15 @@ pdf17 の 823 節中 816 節が自節の見出しで始まる（残り 7 は Bib
 全数差分の取り方は `tests/e2e` ではなく、旧 dist と新 dist で全節を JSON に落として比較する
 （CHANGELOG の数字はそれ）。
 
+**応答は切り方を申告する（#17 / 0.8.0）**: `getOwnSectionContent` が `boundary: { start, end }` を
+決める。`start` は「自見出しが見つかったか」、`end` は「次の見出しで切れたか / ページ共有で
+見出し不在（`page_shared`）/ 継ぎ目ページで見出し不在（`next_page_unclaimed`）/ 最終節」。
+親は自分の `start` と最後の子孫の `end`。`get_requirements` は `sectionsCutByPage` に
+ページ切りの節を列挙し、全走査の分は索引に一緒に保存する（`RequirementsIndex`、
+`INDEX_SCHEMA_VERSION` 2）。実測ではページ切りは iso32000-2 で 12 節（前付・後付・第 1 節）、
+pdf17 で 11 節（Bibliography の項目）。**落とし穴 1 の「69 セクション」は SV-1 以前の数字**で、
+いまは 12。見出しの判定規則を変えたら `boundary` の集計（e2e 13 の B-5 / B-6）が動く。
+
 **同じ形の見落としがもう 1 つ**: `get_definitions` は「第 3 節」固定だったが、ISO 32000-1 の
 用語定義は**第 4 節**（第 3 節は Normative references）。`DEFINITIONS_SUPPORTED_SPECS` に
 pdf17 を入れて「対応済み」と宣言しながら 0 件を返していた（#18）。節番号は

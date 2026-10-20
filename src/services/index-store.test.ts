@@ -15,7 +15,6 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { INDEX_SCHEMA_VERSION, PACKAGE_INFO, PDFJS_VERSION } from '../config.js';
-import type { Requirement } from '../types/index.js';
 import { sha256File } from '../utils/file-hash.js';
 import { logger } from '../utils/logger.js';
 import {
@@ -24,6 +23,7 @@ import {
   type IndexVersions,
   isCacheEnabled,
   NullIndexStore,
+  type RequirementsIndex,
   resolveCacheDir,
 } from './index-store.js';
 
@@ -37,9 +37,18 @@ const searchData: IndexPayload['search'] = {
   ],
 };
 
-const requirementsData: Requirement[] = [
-  { id: 'r1', level: 'shall', text: 'The reader shall accept.', section: '1', sectionTitle: 'One' },
-];
+const requirementsData: RequirementsIndex = {
+  requirements: [
+    {
+      id: 'r1',
+      level: 'shall',
+      text: 'The reader shall accept.',
+      section: '1',
+      sectionTitle: 'One',
+    },
+  ],
+  sectionsCutByPage: [{ section: '1', boundary: { start: 'page', end: 'heading' } }],
+};
 
 const versions = (over: Partial<IndexVersions> = {}): IndexVersions => ({
   schema: INDEX_SCHEMA_VERSION,
@@ -198,12 +207,22 @@ describe('damage is a miss, never a throw', () => {
     await expect(s.load('search', 'spec', pdfPath)).resolves.toBeNull();
   });
 
-  it('IS-7b: requirements payload that is not an array', async () => {
+  it('IS-7b: requirements payload of the pre-#17 shape (a bare array) is not served', async () => {
     const s = store();
     const path = await s.save('requirements', 'spec', pdfPath, requirementsData, 1);
     if (!path) throw new Error('save failed in fixture');
     const file = JSON.parse(await readFile(path, 'utf8'));
-    file.data = { not: 'an array' };
+    file.data = requirementsData.requirements; // schema 1 wrote the array itself
+    await writeFile(path, JSON.stringify(file));
+    await expect(s.load('requirements', 'spec', pdfPath)).resolves.toBeNull();
+  });
+
+  it('IS-7c: requirements payload without sectionsCutByPage is not served', async () => {
+    const s = store();
+    const path = await s.save('requirements', 'spec', pdfPath, requirementsData, 1);
+    if (!path) throw new Error('save failed in fixture');
+    const file = JSON.parse(await readFile(path, 'utf8'));
+    file.data = { requirements: requirementsData.requirements };
     await writeFile(path, JSON.stringify(file));
     await expect(s.load('requirements', 'spec', pdfPath)).resolves.toBeNull();
   });

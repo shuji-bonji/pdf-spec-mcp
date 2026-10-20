@@ -153,6 +153,7 @@ describe('toolHandlers', () => {
         sectionNumber: '7.3.4',
         title: 'String objects',
         pageRange: { start: 62, end: 66 },
+        boundary: { start: 'heading', end: 'heading' },
         content: [{ type: 'paragraph', text: 'Test content' }],
       };
       mockGetSectionContent.mockResolvedValue(mockResult);
@@ -167,6 +168,7 @@ describe('toolHandlers', () => {
         sectionNumber: '5',
         title: 'Test',
         pageRange: { start: 1, end: 2 },
+        boundary: { start: 'heading', end: 'document' },
         content: [],
       });
       await toolHandlers.get_section({ section: '5', spec: 'ts32002' });
@@ -238,6 +240,7 @@ describe('toolHandlers', () => {
     const mockResult: RequirementsResult = {
       filter: { section: '7.3', level: 'all' },
       totalRequirements: 2,
+      sectionsCutByPage: [],
       statistics: { shall: 1, may: 1 },
       requirements: [
         {
@@ -340,6 +343,8 @@ describe('toolHandlers', () => {
     const mockResult: TablesResult = {
       section: '7.2.3',
       sectionTitle: 'White-space characters',
+      pageRange: { start: 20, end: 20 },
+      boundary: { start: 'heading', end: 'heading' },
       totalTables: 1,
       tables: [
         {

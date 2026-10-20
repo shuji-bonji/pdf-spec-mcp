@@ -18,6 +18,7 @@ import type {
   Requirement,
   RequirementsResult,
   SearchHit,
+  SectionBoundary,
   SectionIndex,
   SectionResult,
   TableInfo,
@@ -30,6 +31,7 @@ import { logger } from '../utils/logger.js';
 import {
   extractOrphanedStrip,
   extractSectionContent,
+  findSectionHeadingIndex,
   headingHintsFromIndex,
   trimAfterNextSectionStart,
 } from './content-extractor.js';
@@ -40,6 +42,7 @@ import {
   type IndexPayload,
   type IndexStore,
   type LoadedIndex,
+  type RequirementsIndex,
 } from './index-store.js';
 import { buildSectionIndex, collectSubtree, findSection } from './outline-resolver.js';
 import { getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.js';
@@ -60,11 +63,14 @@ class PDFSpecService {
   // Per-spec caches (Map<SpecId, Promise<T>>)
   private sectionIndexMap: Map<string, Promise<SectionIndex>>;
   private searchIndexMap: Map<string, Promise<TextIndex>>;
-  private requirementsIndexMap: Map<string, Promise<Requirement[]>>;
+  private requirementsIndexMap: Map<string, Promise<RequirementsIndex>>;
   private definitionsMap: Map<string, Promise<Definition[]>>;
 
   // Section content cache (shared across specs, keyed with specId prefix)
-  private sectionContentCache: LRUCache<string, { content: ContentElement[]; endPage: number }>;
+  private sectionContentCache: LRUCache<
+    string,
+    { content: ContentElement[]; endPage: number; boundary: SectionBoundary }
+  >;
 
   // Definition extraction is only supported for specs whose "Terms and definitions" clause
   // has the flat "n.m / term / definition" layout — and the clause number differs per
@@ -185,6 +191,9 @@ class PDFSpecService {
         start: own.pageRange.start,
         end: Math.max(...parts.map((p) => p.pageRange.end)),
       },
+      // The subtree is contiguous in document order, so its edges are the root's start
+      // and the last descendant's end (#17).
+      boundary: { start: own.boundary.start, end: parts[parts.length - 1].boundary.end },
       content: parts.flatMap((p) => p.content),
     };
   }
@@ -220,6 +229,7 @@ class PDFSpecService {
         sectionNumber: section.sectionNumber,
         title: section.title,
         pageRange: { start: section.page, end: cached.endPage },
+        boundary: cached.boundary,
         content: cached.content,
       };
     }
@@ -239,11 +249,20 @@ class PDFSpecService {
       hints,
     );
 
+    // Start boundary (#17): extractSectionContent drops what precedes the heading, so
+    // after it the heading, when found, is element 0. The same predicate as the trim.
+    const start: SectionBoundary['start'] =
+      findSectionHeadingIndex(content, section.sectionNumber) === 0 ? 'heading' : 'page';
+    let end: SectionBoundary['end'] = 'document';
+
     // When the next section starts on this section's last page, the range covers content
     // that belongs to it — cut at its heading (S-9, symptom 2; exact mirror of the start
     // trim, see trimAfterNextSectionStart).
     if (next && next.page === section.endPage) {
+      end = findSectionHeadingIndex(content, next.sectionNumber) === -1 ? 'page_shared' : 'heading';
       content = trimAfterNextSectionStart(content, next.sectionNumber);
+    } else if (next) {
+      end = 'page';
     }
 
     // This section's tail, stranded on the next section's first page.
@@ -256,21 +275,30 @@ class PDFSpecService {
     const strip =
       next && next.page === section.endPage + 1
         ? await extractOrphanedStrip(doc, next.page, next.sectionNumber, hints)
-        : [];
-    content = [...content, ...strip];
+        : null;
+    if (strip) {
+      // Seam page read: the end is exact when the next heading was found there (either
+      // above adopted tail text, or at the top of the page); otherwise the next section
+      // holds the whole seam page, this section's tail included.
+      if (!strip.headingFound) end = 'next_page_unclaimed';
+      else if (strip.elements.length > 0) end = 'heading';
+      content = [...content, ...strip.elements];
+    }
 
     // A non-empty strip means the section spills onto the next page (S-10): report the
     // page range the content actually spans, or page-based follow-ups (reader read_text,
     // veraPDF checks) stop one page short. The internal endPage is untouched — it drives
     // extraction ranges and cache keys, not what the caller reads.
-    const endPage = strip.length > 0 ? section.endPage + 1 : section.endPage;
+    const endPage = strip && strip.elements.length > 0 ? section.endPage + 1 : section.endPage;
+    const boundary: SectionBoundary = { start, end };
 
-    this.sectionContentCache.set(cacheKey, { content, endPage });
+    this.sectionContentCache.set(cacheKey, { content, endPage, boundary });
 
     return {
       sectionNumber: section.sectionNumber,
       title: section.title,
       pageRange: { start: section.page, end: endPage },
+      boundary,
       content,
     };
   }
@@ -377,6 +405,7 @@ class PDFSpecService {
   ): Promise<RequirementsResult> {
     const id = this.registry.resolveSpecId(specId);
     let allRequirements: Requirement[];
+    let sectionsCutByPage: RequirementsResult['sectionsCutByPage'];
 
     if (section) {
       // Fast path: extract from the section's subtree. Resolved through the outline's
@@ -400,11 +429,22 @@ class PDFSpecService {
         subtree,
         async (sec) => {
           const result = await this.getOwnSectionContent(sec.sectionNumber, id);
-          return extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
+          return {
+            section: sec.sectionNumber,
+            boundary: result.boundary,
+            requirements: extractRequirementsFromContent(
+              result.content,
+              sec.sectionNumber,
+              result.title,
+            ),
+          };
         },
         CONCURRENCY.requirementsIndex,
       );
-      allRequirements = perSection.flat();
+      allRequirements = perSection.flatMap((p) => p.requirements);
+      sectionsCutByPage = perSection
+        .filter((p) => isCutByPage(p.boundary))
+        .map((p) => ({ section: p.section, boundary: p.boundary }));
     } else {
       // Full scan: build or reuse cached index
       let requirementsPromise = this.requirementsIndexMap.get(id);
@@ -413,7 +453,9 @@ class PDFSpecService {
         requirementsPromise = this.buildRequirementsIndex(id);
         this.requirementsIndexMap.set(id, requirementsPromise);
       }
-      allRequirements = await requirementsPromise;
+      const built = await requirementsPromise;
+      allRequirements = built.requirements;
+      sectionsCutByPage = built.sectionsCutByPage;
     }
 
     // Apply level filter
@@ -429,6 +471,7 @@ class PDFSpecService {
       filter: { section: section || 'all', level: level || 'all' },
       totalRequirements: filtered.length,
       statistics,
+      sectionsCutByPage,
       requirements: filtered,
     };
   }
@@ -436,7 +479,7 @@ class PDFSpecService {
   /**
    * Build requirements index for all sections
    */
-  private async buildRequirementsIndex(specId: string): Promise<Requirement[]> {
+  private async buildRequirementsIndex(specId: string): Promise<RequirementsIndex> {
     const index = await this.getSectionIndex(specId);
     const pdfPath = this.registry.getSpecPath(specId);
 
@@ -458,23 +501,36 @@ class PDFSpecService {
           // Own content, not the subtree: aggregating parents here would double-count
           // every requirement once per ancestor.
           const result = await this.getOwnSectionContent(sec.sectionNumber, specId);
-          return extractRequirementsFromContent(result.content, sec.sectionNumber, result.title);
+          return {
+            section: sec.sectionNumber,
+            boundary: result.boundary,
+            requirements: extractRequirementsFromContent(
+              result.content,
+              sec.sectionNumber,
+              result.title,
+            ),
+          };
         } catch {
           // Skip sections that fail to extract
-          return [];
+          return null;
         }
       },
       CONCURRENCY.requirementsIndex,
     );
 
-    const allRequirements = results.flat();
+    const built: RequirementsIndex = {
+      requirements: results.flatMap((r) => r?.requirements ?? []),
+      sectionsCutByPage: results
+        .filter((r): r is NonNullable<typeof r> => r !== null && isCutByPage(r.boundary))
+        .map((r) => ({ section: r.section, boundary: r.boundary })),
+    };
 
     logger.info(
       'PDFService',
-      `[${specId}] Requirements index built: ${allRequirements.length} requirements`,
+      `[${specId}] Requirements index built: ${built.requirements.length} requirements`,
     );
-    await this.saveIndex('requirements', specId, pdfPath, allRequirements, Date.now() - start);
-    return allRequirements;
+    await this.saveIndex('requirements', specId, pdfPath, built, Date.now() - start);
+    return built;
   }
 
   // ========================================
@@ -579,6 +635,8 @@ class PDFSpecService {
       return {
         section: result.sectionNumber,
         sectionTitle: result.title,
+        pageRange: result.pageRange,
+        boundary: result.boundary,
         totalTables: 1,
         tables: [tables[tableIndex]],
       };
@@ -587,6 +645,8 @@ class PDFSpecService {
     return {
       section: result.sectionNumber,
       sectionTitle: result.title,
+      pageRange: result.pageRange,
+      boundary: result.boundary,
       totalTables: tables.length,
       tables,
     };
@@ -596,6 +656,11 @@ class PDFSpecService {
 // ========================================
 // Module-level helper functions (stateless)
 // ========================================
+
+/** A boundary that fell on a page edge at either end (#17). */
+function isCutByPage(b: SectionBoundary): boolean {
+  return b.start === 'page' || b.end === 'page_shared' || b.end === 'next_page_unclaimed';
+}
 
 /**
  * Text-based fallback: detect tables from paragraph patterns.
