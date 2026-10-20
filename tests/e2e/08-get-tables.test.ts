@@ -130,9 +130,20 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
     // ヘッダ再掲の連結規則が別々の表を 1 つに畳む。
     const result = await toolHandlers.get_tables({ section: 'Annex F', spec: 'pdf17' });
     expect(result.totalTables).toBe(12);
-    expect(result.tables.map((t) => t.caption?.match(/^Table F\.(\d+)/)?.[1])).toEqual(
-      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-    );
+    expect(result.tables.map((t) => t.caption?.match(/^Table F\.(\d+)/)?.[1])).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      '10',
+      '11',
+      '12',
+    ]);
     // 行は 1 本も増減しない（0.8.0 の 7 表の合計と同じ 88 行）
     expect(result.tables.reduce((n, t) => n + t.rows.length, 0)).toBe(88);
 
