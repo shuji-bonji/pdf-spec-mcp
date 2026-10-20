@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-21
+
 ### Fixed
 
 - `get_section` / `get_requirements` / `get_tables` / `search_spec` on `pdf17`
@@ -37,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - e2e: the pdf17 cases that only asserted `>= 0` (T-6, RQ-6, D-6) now pin the values
   above, plus C-15–C-17 (section boundaries), Q-16 (search attribution), RQ-6b/6c
   (requirement counts, including the Annex C triple count) and T-6b.
+- 開発依存の lockfile を更新（@modelcontextprotocol/server 2.3.1、zod 4.6.7）
 
 ## [0.6.2] - 2026-10-13
 
@@ -84,7 +87,7 @@ changed. Three things reach callers — read **Changed** before upgrading.
 - **Arguments the input schema does not declare are now rejected.** All 8 tools
   take a `.strict()` object, so an undeclared key fails the call with
   `-32602 Unrecognized key`. Until now such a key was silently dropped and the
-  call ran (zod's default for an object is *strip*, not *strict*).
+  call ran (zod's default for an object is _strip_, not _strict_).
 - **`inputSchema` in `tools/list` changed in two ways, for all 8 tools**:
   `$schema` is now `https://json-schema.org/draft/2020-12/schema` (was
   draft-07), and `additionalProperties: false` is now stated (it was absent).
@@ -122,7 +125,6 @@ changed. Three things reach callers — read **Changed** before upgrading.
   0.16 s, requirements 51.0 s → 0.02 s, with the index byte-for-byte identical (a laptop is
   roughly 4× faster on both sides). Nothing about searching changed: the same in-memory
   structure is walked by the same code; only where it comes from does.
-
   - Location: `${PDF_SPEC_CACHE_DIR:-${XDG_CACHE_HOME:-~/.cache}/pdf-spec-mcp}/v1/<version>/<spec>.<kind>.<sha16>.json`,
     ~18 MB for the 17-spec corpus. Plain JSON of the existing `TextIndex.pages` and
     `Requirement[]` — no new dependency, no database.
@@ -137,6 +139,7 @@ changed. Three things reach callers — read **Changed** before upgrading.
     each other. `PDF_SPEC_CACHE=off` disables it.
   - `PDFSpecService` takes the store as a third constructor argument (`IndexStore`), so tests
     share one store between two instances and prove the second never touches the loader.
+
 - **CLI:** `pdf-spec-mcp --build-cache [--spec=a,b] [--force]` builds every spec's indexes
   sequentially through the same code path the tools use and exits (about a minute for the
   corpus on a laptop); `--cache-info` lists the directory, the current key and the entries;
@@ -178,7 +181,7 @@ changed. Three things reach callers — read **Changed** before upgrading.
   `package.json`, wired to the `npm version` hook so the release commit — the tree the tag
   points at — carries the right plugin manifest, and to `prepublishOnly --check` as a
   backstop. Preventive: the drift has happened twice in pdf-verify-mcp and once in
-  pdf-writer-mcp, never here, and in each case the fix landed in a commit *after* the tag,
+  pdf-writer-mcp, never here, and in each case the fix landed in a commit _after_ the tag,
   leaving the tagged tree wrong.
 
 ## [0.4.5] - 2026-07-25
@@ -187,7 +190,7 @@ changed. Three things reach callers — read **Changed** before upgrading.
 
 - **Say plainly that this is a reference, not a rule engine ([#13](https://github.com/shuji-bonji/pdf-spec-mcp/issues/13)).**
   The server kept being read as a conformance checker. It is not: it retrieves and structures
-  the *text* of ISO 32000 and never looks at a PDF file. Verdicts belong to pdf-verify-mcp.
+  the _text_ of ISO 32000 and never looks at a PDF file. Verdicts belong to pdf-verify-mcp.
 
   Both READMEs now open with that statement, followed by a table of what each of the four PDF
   family servers does **and does not** do — on the principle that the "does not" column is what
@@ -204,7 +207,6 @@ changed. Three things reach callers — read **Changed** before upgrading.
   (No other server in the family sets `instructions` yet; this one goes first.)
 
   Three tool descriptions were tightened for the same reason (behaviour unchanged):
-
   - `get_requirements` — states that it reads the standard, not your file
   - `search_spec` — no hits means "this corpus cannot answer", not "no such requirement";
     ISO 19005 (PDF/A) and ETSI PAdES are outside it
