@@ -619,3 +619,255 @@ describe('extractPageSegments (S-8)', () => {
     expect(segments[2].text).toContain('Third body.');
   });
 });
+
+/**
+ * The tag shape of the Adobe-published ISO 32000-1 (PDF32000_2008.pdf), Issues #15 / #16:
+ * no H element anywhere, a whole page nested as Sect > P > P > …, headings as leaf Ps,
+ * the first body paragraph as a bare Span beside them, and tables as P > Span > Table
+ * with the caption inside the Table.
+ */
+describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
+  const leafP = (id: string): MockStructTreeNode => ({
+    role: 'P',
+    children: [{ role: 'Span', children: [{ type: 'content', id }] }],
+  });
+  const mc = (id: string, str: string): MockTextItem[] => [
+    { type: 'beginMarkedContentProps', id },
+    { str, hasEOL: true },
+    { type: 'endMarkedContent' },
+  ];
+
+  /** Page 266 of PDF32000_2008.pdf, reduced to one element per kind. */
+  function page266(): MockPageData {
+    return {
+      structTree: {
+        role: 'Sect',
+        children: [
+          {
+            role: 'P',
+            children: [
+              {
+                role: 'P',
+                children: [
+                  { role: 'P', children: [leafP('n4')] },
+                  leafP('h964'),
+                  leafP('p964'),
+                  leafP('h965'),
+                  {
+                    role: 'P',
+                    children: [
+                      { role: 'Span', children: [{ type: 'content', id: 'p965' }] },
+                      leafP('n965'),
+                    ],
+                  },
+                  {
+                    role: 'P',
+                    children: [
+                      {
+                        role: 'Span',
+                        children: [
+                          {
+                            role: 'Table',
+                            children: [
+                              { role: 'Caption', children: [leafP('cap')] },
+                              {
+                                role: 'THead',
+                                children: [
+                                  {
+                                    role: 'TR',
+                                    children: [
+                                      { role: 'TH', children: [leafP('th1')] },
+                                      { role: 'TH', children: [leafP('th2')] },
+                                    ],
+                                  },
+                                ],
+                              },
+                              {
+                                role: 'TBody',
+                                children: [
+                                  {
+                                    role: 'TR',
+                                    children: [
+                                      { role: 'TD', children: [leafP('td1')] },
+                                      { role: 'TD', children: [leafP('td2')] },
+                                    ],
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      textItems: [
+        ...mc('n4', 'NOTE 4 For CJK fonts, the host font name is often encoded.'),
+        ...mc('h964', '9.6.4 Font Subsets'),
+        ...mc('p964', 'PDF documents may include subsets of Type 1 and TrueType fonts.'),
+        ...mc('h965', '9.6.5 Type 3 Fonts'),
+        ...mc('p965', 'Type 3 fonts differ from the other fonts supported by PDF.'),
+        ...mc('n965', 'NOTE 1 Type 3 fonts are more flexible than Type 1 fonts.'),
+        ...mc('cap', 'Table 112 – Entries in a Type 3 font dictionary'),
+        ...mc('th1', 'Key'),
+        ...mc('th2', 'Type'),
+        ...mc('td1', 'Type'),
+        ...mc('td2', 'name'),
+      ],
+    };
+  }
+
+  const hints = new Map([
+    ['9.6.3', 'TrueType Fonts'],
+    ['9.6.4', 'Font Subsets'],
+    ['9.6.5', 'Type 3 Fonts'],
+  ]);
+
+  it('without hints, the page is still one element per block — not one per page', async () => {
+    // The container rule alone stops the page from melting into a single element.
+    const elements = await extractSectionContent(createMockDoc([page266()]), 1, 1);
+
+    expect(elements.map((e) => e.type)).toEqual([
+      'note',
+      'paragraph', // "9.6.4 Font Subsets" — a paragraph, since nothing says it is a heading
+      'paragraph',
+      'paragraph',
+      'paragraph',
+      'note',
+      'paragraph', // caption, emitted before the table for table-collector
+      'table',
+    ]);
+  });
+
+  it('promotes a leaf P that matches an outline entry to a heading', async () => {
+    const elements = await extractSectionContent(
+      createMockDoc([page266()]),
+      1,
+      1,
+      undefined,
+      hints,
+    );
+
+    expect(elements.filter((e) => e.type === 'heading')).toEqual([
+      { type: 'heading', level: 3, text: '9.6.4 Font Subsets' },
+      { type: 'heading', level: 3, text: '9.6.5 Type 3 Fonts' },
+    ]);
+  });
+
+  it('keeps the bare Span beside block children as a paragraph of its own', async () => {
+    const elements = await extractSectionContent(
+      createMockDoc([page266()]),
+      1,
+      1,
+      undefined,
+      hints,
+    );
+
+    expect(elements).toContainEqual({
+      type: 'paragraph',
+      text: 'Type 3 fonts differ from the other fonts supported by PDF.',
+    });
+  });
+
+  it('surfaces a Table nested under P > Span, with its in-table Caption as the preceding paragraph', async () => {
+    const elements = await extractSectionContent(
+      createMockDoc([page266()]),
+      1,
+      1,
+      undefined,
+      hints,
+    );
+
+    const tableIdx = elements.findIndex((e) => e.type === 'table');
+    expect(tableIdx).toBeGreaterThan(0);
+    expect(elements[tableIdx]).toEqual({
+      type: 'table',
+      headers: ['Key', 'Type'],
+      rows: [['Type', 'name']],
+    });
+    expect(elements[tableIdx - 1]).toEqual({
+      type: 'paragraph',
+      text: 'Table 112 – Entries in a Type 3 font dictionary',
+    });
+  });
+
+  it('cuts the section at the promoted headings (9.6.4 keeps neither 9.6.3’s NOTE nor 9.6.5)', async () => {
+    const elements = await extractSectionContent(createMockDoc([page266()]), 1, 1, '9.6.4', hints);
+
+    // Start trim: 9.6.3's NOTE is gone. (The end trim is pdf-service's, mirrored below.)
+    expect(elements[0]).toEqual({ type: 'heading', level: 3, text: '9.6.4 Font Subsets' });
+
+    const trimmed = trimAfterNextSectionStart(elements, '9.6.5');
+    expect(trimmed).toEqual([
+      { type: 'heading', level: 3, text: '9.6.4 Font Subsets' },
+      {
+        type: 'paragraph',
+        text: 'PDF documents may include subsets of Type 1 and TrueType fonts.',
+      },
+    ]);
+  });
+
+  it('splits the search segments at the promoted headings', async () => {
+    const segments = await extractPageSegments(
+      createMockDoc([page266()]),
+      1,
+      ['9.6.4', '9.6.5'],
+      hints,
+    );
+
+    expect(segments.map((s) => s.section)).toEqual([null, '9.6.4', '9.6.5']);
+    expect(segments[1].text).toContain('subsets of Type 1');
+    expect(segments[1].text).not.toContain('Type 3 fonts differ');
+    expect(segments[2].text).toContain('Type 3 fonts differ');
+  });
+
+  it('does not promote a paragraph that merely starts with a section number', async () => {
+    const doc = createMockDoc([
+      {
+        structTree: { role: 'Sect', children: [leafP('p')] },
+        textItems: mc('p', '9.6.4 is referenced by 9.8, "Font Descriptors", for subset tags.'),
+      },
+    ]);
+
+    const elements = await extractSectionContent(doc, 1, 1, undefined, hints);
+
+    expect(elements).toEqual([
+      {
+        type: 'paragraph',
+        text: '9.6.4 is referenced by 9.8, "Font Descriptors", for subset tags.',
+      },
+    ]);
+  });
+
+  it('matches Annex headings across line breaks and the (normative) marker', async () => {
+    const annexHints = new Map([
+      ['Annex C', 'Implementation Limits'],
+      ['C.1 General', 'C.1 General'],
+    ]);
+    const doc = createMockDoc([
+      {
+        structTree: { role: 'Sect', children: [leafP('a'), leafP('b')] },
+        textItems: [
+          { type: 'beginMarkedContentProps', id: 'a' },
+          { str: 'Annex C', hasEOL: true },
+          { str: '(normative)', hasEOL: true },
+          { str: 'Implementation Limits', hasEOL: true },
+          { type: 'endMarkedContent' },
+          ...mc('b', 'C.1 General'),
+        ],
+      },
+    ]);
+
+    const elements = await extractSectionContent(doc, 1, 1, undefined, annexHints);
+
+    expect(elements).toEqual([
+      { type: 'heading', level: 1, text: 'Annex C\n(normative)\nImplementation Limits' },
+      { type: 'heading', level: 2, text: 'C.1 General' },
+    ]);
+  });
+});

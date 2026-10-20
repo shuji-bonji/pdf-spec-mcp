@@ -50,9 +50,20 @@ describe.skipIf(!HAS_PDFS)('07 - get_definitions', () => {
   });
 
   // D-6: PDF 1.7
-  it('D-6: pdf17 term なし → totalDefinitions >= 0 (サポート対象だがSection 3構造が異なる場合あり)', async () => {
+  it('D-6: pdf17 term なし → 第 4 節の 48 語（#18: 0.6.2 は第 3 節を読んで 0 件だった）', async () => {
     const result = await toolHandlers.get_definitions({ spec: 'pdf17' });
-    expect(result.totalDefinitions).toBeGreaterThanOrEqual(0);
+    expect(result.totalDefinitions).toBe(48);
+    expect(result.definitions[0]).toMatchObject({ section: '4.1', term: '… (ellipsis)' });
+    expect(result.definitions[47]).toMatchObject({ section: '4.48', term: 'XMP packet' });
+  });
+
+  it('D-6b: pdf17 term="conforming reader" → 4.11（番号は原文の "4.n" マーカーに従う）', async () => {
+    const result = await toolHandlers.get_definitions({ spec: 'pdf17', term: 'conforming reader' });
+    const exact = result.definitions.find((d) => d.term === 'conforming reader');
+    expect(exact).toMatchObject({ section: '4.11' });
+    expect(exact?.definition).toMatch(
+      /^software application that is able to read and process PDF files/,
+    );
   });
 
   // D-7: iso32000-2-2020

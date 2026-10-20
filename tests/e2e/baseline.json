@@ -3,63 +3,63 @@
   "entries": [
     {
       "operation": "registry-init-cold",
-      "durationMs": 1,
-      "timestamp": "2026-08-27T16:55:51.578Z"
+      "durationMs": 2,
+      "timestamp": "2026-10-20T19:05:03.869Z"
     },
     {
       "operation": "get_structure-cold",
-      "durationMs": 178,
-      "timestamp": "2026-08-27T16:55:51.757Z"
+      "durationMs": 204,
+      "timestamp": "2026-10-20T19:05:04.073Z"
     },
     {
       "operation": "get_structure-cached",
       "durationMs": 0,
-      "timestamp": "2026-08-27T16:55:51.757Z"
+      "timestamp": "2026-10-20T19:05:04.074Z"
     },
     {
       "operation": "get_section-cold",
-      "durationMs": 290,
-      "timestamp": "2026-08-27T16:55:52.047Z"
+      "durationMs": 318,
+      "timestamp": "2026-10-20T19:05:04.392Z"
     },
     {
       "operation": "get_section-cached",
       "durationMs": 0,
-      "timestamp": "2026-08-27T16:55:52.047Z"
+      "timestamp": "2026-10-20T19:05:04.393Z"
     },
     {
       "operation": "search_spec-cold",
-      "durationMs": 6415,
-      "timestamp": "2026-08-27T16:55:58.463Z"
+      "durationMs": 6426,
+      "timestamp": "2026-10-20T19:05:10.820Z"
     },
     {
       "operation": "search_spec-cached",
-      "durationMs": 29,
-      "timestamp": "2026-08-27T16:55:58.492Z"
+      "durationMs": 28,
+      "timestamp": "2026-10-20T19:05:10.848Z"
     },
     {
       "operation": "get_requirements-section",
-      "durationMs": 473,
-      "timestamp": "2026-08-27T16:55:58.965Z"
+      "durationMs": 507,
+      "timestamp": "2026-10-20T19:05:11.355Z"
     },
     {
       "operation": "get_definitions-cold",
-      "durationMs": 68,
-      "timestamp": "2026-08-27T16:55:59.033Z"
+      "durationMs": 65,
+      "timestamp": "2026-10-20T19:05:11.420Z"
     },
     {
       "operation": "compare_versions-cold",
-      "durationMs": 90,
-      "timestamp": "2026-08-27T16:55:59.123Z"
+      "durationMs": 89,
+      "timestamp": "2026-10-20T19:05:11.509Z"
     },
     {
       "operation": "get_requirements-full-cold",
-      "durationMs": 13971,
-      "timestamp": "2026-08-27T16:56:13.095Z"
+      "durationMs": 13565,
+      "timestamp": "2026-10-20T19:05:25.074Z"
     },
     {
       "operation": "get_structure-all-17",
-      "durationMs": 187,
-      "timestamp": "2026-08-27T16:56:13.282Z"
+      "durationMs": 216,
+      "timestamp": "2026-10-20T19:05:25.290Z"
     }
   ]
 }

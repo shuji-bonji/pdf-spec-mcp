@@ -104,16 +104,24 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-6: PDF 1.7
-  it('T-6: pdf17 → 正常動作', async () => {
-    const structure = await toolHandlers.get_structure({ spec: 'pdf17' });
-    const firstSection = structure.sections.find((s) => s.sectionNumber !== null);
-    if (firstSection?.sectionNumber) {
-      const result = await toolHandlers.get_tables({
-        section: firstSection.sectionNumber,
-        spec: 'pdf17',
-      });
-      expect(result.totalTables).toBeGreaterThanOrEqual(0);
-    }
+  it('T-6: pdf17 9.8.1 → Table 122 が 22 行 1 表（#16: 0.6.2 は 0 件だった）', async () => {
+    // PDF32000_2008.pdf nests every table as P > Span > Table; 0.6.2 collected the
+    // outer P as text and reported 0 tables for every section of pdf17.
+    const result = await toolHandlers.get_tables({ section: '9.8.1', spec: 'pdf17' });
+    expect(result.totalTables).toBe(1);
+    expect(result.tables[0].caption).toMatch(/^Table 122/);
+    expect(result.tables[0].headers).toEqual(['Key', 'Type', 'Value']);
+    // Spans pp.289-291; the header is restated on each page and must not become rows.
+    expect(result.tables[0].rows).toHaveLength(22);
+    expect(result.tables[0].rows.map((r) => r[0])).toEqual(
+      expect.arrayContaining(['FontName', 'FontFile', 'FontFile2', 'FontFile3', 'CharSet']),
+    );
+  });
+
+  it('T-6b: pdf17 7.7.2 → Table 28（表 0 件が pdf17 全体の症状だったことの対照）', async () => {
+    const result = await toolHandlers.get_tables({ section: '7.7.2', spec: 'pdf17' });
+    expect(result.totalTables).toBe(1);
+    expect(result.tables[0].caption).toMatch(/^Table 28/);
   });
 
   // T-7: 小規模PDF (ts32002)

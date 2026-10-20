@@ -137,3 +137,73 @@ describe('parseSection3Content', () => {
     expect(defs[2].section).toBe('3.3');
   });
 });
+
+/**
+ * ISO 32000-1 (#18): the definitions clause is 4, not 3, every term is preceded by a
+ * printed "4.n" marker, and two terms end with ")" — "… (ellipsis)" and
+ * "end-of-line marker (EOL marker)".
+ */
+describe('parseSection3Content with another clause (ISO 32000-1, #18)', () => {
+  const clause4: ContentElement[] = [
+    { type: 'heading', level: 1, text: '4 Terms and definitions' },
+    {
+      type: 'paragraph',
+      text: 'For the purposes of this document, these terms and definitions apply.',
+    },
+    { type: 'paragraph', text: '4.1' },
+    { type: 'paragraph', text: '… (ellipsis)' },
+    {
+      type: 'paragraph',
+      text: 'An ellipsis is used within PDF examples to indicate omitted detail.',
+    },
+    { type: 'paragraph', text: '4.2' },
+    { type: 'paragraph', text: '8-bit value' },
+    { type: 'paragraph', text: '(see byte)' },
+    { type: 'paragraph', text: '4.3' },
+    { type: 'paragraph', text: 'array object' },
+    { type: 'paragraph', text: 'a one-dimensional collection of objects arranged sequentially' },
+    { type: 'heading', level: 1, text: '5 Notation' },
+    { type: 'paragraph', text: 'Not a definition.' },
+  ];
+
+  it('reads clause 4 when told to, and numbers terms by the printed markers', () => {
+    const defs = parseSection3Content(clause4, '4');
+
+    expect(defs.map((d) => [d.section, d.term])).toEqual([
+      ['4.1', '… (ellipsis)'],
+      ['4.2', '8-bit value'],
+      ['4.3', 'array object'],
+    ]);
+    expect(defs[1].definition).toBe('(see byte)');
+  });
+
+  it('finds nothing in clause-4 content when reading it as clause 3 (the 0.6.2 symptom)', () => {
+    expect(parseSection3Content(clause4, '3')).toEqual([]);
+  });
+
+  it('keeps a term that ends with ")" when a marker precedes it', () => {
+    const content: ContentElement[] = [
+      { type: 'paragraph', text: '4.20' },
+      { type: 'paragraph', text: 'end-of-line marker (EOL marker)' },
+      {
+        type: 'paragraph',
+        text: 'one or two character sequence marking the end of a line of text',
+      },
+    ];
+
+    const defs = parseSection3Content(content, '4');
+
+    expect(defs).toEqual([
+      {
+        term: 'end-of-line marker (EOL marker)',
+        definition: 'one or two character sequence marking the end of a line of text',
+        section: '4.20',
+      },
+    ]);
+  });
+
+  it('stops at the next clause heading whatever its number', () => {
+    const defs = parseSection3Content(clause4, '4');
+    expect(defs.some((d) => d.definition.includes('Not a definition'))).toBe(false);
+  });
+});

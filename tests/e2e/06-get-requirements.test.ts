@@ -77,7 +77,30 @@ describe.skipIf(!HAS_PDFS)('06 - get_requirements', () => {
       section: '7',
       spec: 'pdf17',
     });
-    expect(result.totalRequirements).toBeGreaterThanOrEqual(0);
+    expect(result.totalRequirements).toBeGreaterThan(0);
+  });
+
+  it('RQ-6b: pdf17 9.6.4 shall → 2 件、すべて 9.6.4 の本文（#15: 0.6.2 は隣の節を含めて 7 件）', async () => {
+    const result = await toolHandlers.get_requirements({
+      section: '9.6.4',
+      spec: 'pdf17',
+      level: 'shall',
+    });
+    expect(result.totalRequirements).toBe(2);
+    for (const r of result.requirements) {
+      expect(r.section).toBe('9.6.4');
+      expect(r.text).toMatch(/subset|tag/);
+    }
+  });
+
+  it('RQ-6c: pdf17 Annex C shall → 1 件（見出し不在だと Annex C / C.1 / C.2 で同じ文を 3 回数えていた）', async () => {
+    const result = await toolHandlers.get_requirements({
+      section: 'Annex C',
+      spec: 'pdf17',
+      level: 'shall',
+    });
+    expect(result.totalRequirements).toBe(1);
+    expect(result.requirements[0].section).toBe('C.2 Architectural limits');
   });
 
   // RQ-7: 小規模PDF

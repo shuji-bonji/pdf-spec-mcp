@@ -30,6 +30,7 @@ import { logger } from '../utils/logger.js';
 import {
   extractOrphanedStrip,
   extractSectionContent,
+  headingHintsFromIndex,
   trimAfterNextSectionStart,
 } from './content-extractor.js';
 import { extractAllDefinitions } from './definition-extractor.js';
@@ -65,11 +66,14 @@ class PDFSpecService {
   // Section content cache (shared across specs, keyed with specId prefix)
   private sectionContentCache: LRUCache<string, { content: ContentElement[]; endPage: number }>;
 
-  // Definition extraction is only supported for specs with compatible Section 3 structure
-  private static readonly DEFINITIONS_SUPPORTED_SPECS: Set<string> = new Set([
-    'iso32000-2',
-    'iso32000-2-2020',
-    'pdf17',
+  // Definition extraction is only supported for specs whose "Terms and definitions" clause
+  // has the flat "n.m / term / definition" layout — and the clause number differs per
+  // document (#18): clause 3 in ISO 32000-2, clause 4 in ISO 32000-1 (whose clause 3 is
+  // "Normative references"). Reading the wrong clause yields 0 definitions, not an error.
+  private static readonly DEFINITIONS_CLAUSE_BY_SPEC: ReadonlyMap<string, string> = new Map([
+    ['iso32000-2', '3'],
+    ['iso32000-2-2020', '3'],
+    ['pdf17', '4'],
   ]);
 
   /**
@@ -226,11 +230,13 @@ class PDFSpecService {
     const position = index.flatOrder.indexOf(section);
     const next = position === -1 ? undefined : index.flatOrder[position + 1];
 
+    const hints = headingHintsFromIndex(index);
     let content = await extractSectionContent(
       doc,
       section.page,
       section.endPage,
       section.sectionNumber,
+      hints,
     );
 
     // When the next section starts on this section's last page, the range covers content
@@ -249,7 +255,7 @@ class PDFSpecService {
     // owns outright, not a seam — reading it here would steal that section's content.
     const strip =
       next && next.page === section.endPage + 1
-        ? await extractOrphanedStrip(doc, next.page, next.sectionNumber)
+        ? await extractOrphanedStrip(doc, next.page, next.sectionNumber, hints)
         : [];
     content = [...content, ...strip];
 
@@ -482,13 +488,14 @@ class PDFSpecService {
   public async getDefinitions(term?: string, specId?: string): Promise<DefinitionsResult> {
     const id = this.registry.resolveSpecId(specId);
 
-    // Guard: definition extraction requires compatible Section 3 structure
-    if (!PDFSpecService.DEFINITIONS_SUPPORTED_SPECS.has(id)) {
+    // Guard: definition extraction requires the compatible clause layout
+    const clause = PDFSpecService.DEFINITIONS_CLAUSE_BY_SPEC.get(id);
+    if (clause === undefined) {
       throw new ContentError(
         `get_definitions is only supported for ISO 32000-2 and PDF 1.7. ` +
           `For "${id}", use get_section with section "3" instead.`,
         {
-          hint: 'Other specs do not share the Section 3 "Terms and definitions" structure this parses.',
+          hint: 'Other specs do not share the flat "Terms and definitions" clause layout this parses.',
           next_actions: [
             {
               action: 'call_get_section',
@@ -502,9 +509,10 @@ class PDFSpecService {
 
     let definitionsPromise = this.definitionsMap.get(id);
     if (!definitionsPromise) {
-      logger.info('PDFService', `[${id}] Extracting definitions from Section 3...`);
-      definitionsPromise = extractAllDefinitions((sectionId) =>
-        this.getSectionContent(sectionId, id),
+      logger.info('PDFService', `[${id}] Extracting definitions from Section ${clause}...`);
+      definitionsPromise = extractAllDefinitions(
+        (sectionId) => this.getSectionContent(sectionId, id),
+        clause,
       );
       this.definitionsMap.set(id, definitionsPromise);
     }

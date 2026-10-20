@@ -7,7 +7,7 @@ import { CONCURRENCY } from '../config.js';
 import type { PageText, SearchHit, SectionIndex, TextIndex } from '../types/index.js';
 import { mapConcurrent } from '../utils/concurrency.js';
 import { logger } from '../utils/logger.js';
-import { extractPageSegments } from './content-extractor.js';
+import { extractPageSegments, headingHintsFromIndex } from './content-extractor.js';
 import type { PDFDocumentProxy, TextItem } from './pdf-loader.js';
 
 /**
@@ -44,6 +44,7 @@ export async function buildSearchIndex(
     }
   }
 
+  const hints = headingHintsFromIndex(sectionIndex);
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   const pagesNested: PageText[][] = await mapConcurrent(
@@ -68,7 +69,7 @@ export async function buildSearchIndex(
       // strip above the first heading: it belongs to the section flowing in from the
       // previous page.
       const flowingIn = findSectionForPage(sectionIndex, pageNum - 1);
-      const segments = await extractPageSegments(doc, pageNum, startingSections);
+      const segments = await extractPageSegments(doc, pageNum, startingSections, hints);
       return segments.map((seg) => ({
         page: pageNum,
         section: seg.section ?? flowingIn?.sectionNumber ?? '',

@@ -198,6 +198,41 @@ ESM は import を巻き上げるため、ガードは `index.ts` の**最初の
 - ユニットの「壊して落ちる」確認済み（2026-08-25）: キーから packageVersion を外す → IS-2 が落ちる。
   形の検査を外す → IS-7 / IS-7b。service が cache を無視 → PS-C1。rename を直書きに → IS-10 / IS-11。
 
+### 8. 見出しは H タグとは限らない — pdf17 は全ページが P の入れ子（#15 / #16 / 2026-10-21）
+
+`walkStructTree` は見出しを `H1`〜`H6` からしか作っていなかった。Adobe 公開の
+`PDF32000_2008.pdf`（pdf17）には **`H` 要素が 756 ページ中 0 ページ**しか無く、見出しは
+`P`（本文 `"9.6.4 Font Subsets"`）、ページ全体は `Sect > P > P > …` の入れ子、表は
+`P > P > P > Span > Table`。外側の `P` を葉として `collectText` した時点でページが 1 要素に
+溶け、`findSectionHeadingIndex` が常に -1 → 落とし穴 1 の「見出しが見つからないときは
+ページ全体を保持」が**全ページ**に当たっていた。823 節中 602 節が隣の節とページを共有する
+ので、`get_section` / `get_requirements` / `search_spec` はほぼ全節で前後の節を含み、
+`get_tables` は全節 0 件だった。外部の報告（JPN-634）で判明。
+
+直し方は 3 つで、どれも `walkStructTree` の入力側:
+
+1. ブロック要素（`P` / `H*` / `L` / `Table` / `Code` / `Sect` / `Div` …）を子孫に持つ `P` は
+   コンテナとして再帰する（`visitContainerParagraph`）。ブロックの間に挟まる裸の `Span` /
+   content 葉は段落として拾う — pdf17 は節の最初の本文段落をそこに置いている
+2. outline のキーと本文が一致する `P` を `heading` に昇格する（`HeadingHints` =
+   `headingHintsFromIndex(index)`。pdf-service と search-index が渡す）。番号だけでなく
+   **タイトルまで一致**を要求する（本文中の `9.8, "Font Descriptors"` を見出しにしない）。
+   Annex の子はキーがタイトル全体（`C.1 General`）なので、そちらとも照合する
+3. `Table` の中の `Caption` は表の直前の段落として出す（table-collector が読むのは直前の段落）
+
+**境界処理（trimToSectionStart / extractOrphanedStrip / trimAfterNextSectionStart /
+extractPageSegments）は 1 行も変えていない。** 見出し要素を作る側を直せば 4 つが同時に直る。
+受入: iso32000-2 の 987 節で content / tables / requirements / pageRange が 0.6.2 と同一、
+pdf17 の 823 節中 816 節が自節の見出しで始まる（残り 7 は Bibliography の項目）。
+全数差分の取り方は `tests/e2e` ではなく、旧 dist と新 dist で全節を JSON に落として比較する
+（CHANGELOG の数字はそれ）。
+
+**同じ形の見落としがもう 1 つ**: `get_definitions` は「第 3 節」固定だったが、ISO 32000-1 の
+用語定義は**第 4 節**（第 3 節は Normative references）。`DEFINITIONS_SUPPORTED_SPECS` に
+pdf17 を入れて「対応済み」と宣言しながら 0 件を返していた（#18）。節番号は
+`DEFINITIONS_CLAUSE_BY_SPEC` が spec ごとに持つ。**2.0 で作った前提を 1.7 に当てるときは、
+e2e の `>= 0` ではなく実値で固定する**（T-6 / RQ-6 / D-6 がそうだった）。
+
 ## テスト
 
 ```bash

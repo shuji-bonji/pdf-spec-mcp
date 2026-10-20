@@ -202,4 +202,20 @@ describe.skipIf(!HAS_PDFS)('05 - search_spec', () => {
     const cells = tables.tables.flatMap((t) => t.rows.flat());
     expect(cells.some((c) => c.includes('QuadPoints'))).toBe(true);
   });
+
+  // Q-16: Issue #15 — 見出しの無い pdf17 のページは 1 塊で最後の節に帰属していた
+  it('Q-16: pdf17 "Font Subsets" が 9.6.4 に帰属する（0.6.2 は 9.6.5 に付いていた）', async () => {
+    const result = await toolHandlers.search_spec({
+      query: 'Font Subsets',
+      spec: 'pdf17',
+      max_results: 10,
+    });
+    const sections = result.results.map((r) => r.section);
+    expect(sections).toContain('9.6.4');
+    const hit = result.results.find((r) => r.section === '9.6.4');
+    expect(hit?.page).toBe(266);
+    // 9.6.5 のヒットがあっても、その snippet に 9.6.4 の見出しは無い
+    const wrong = result.results.find((r) => r.section === '9.6.5');
+    expect(wrong?.snippet ?? '').not.toContain('9.6.4');
+  });
 });

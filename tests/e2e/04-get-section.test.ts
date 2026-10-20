@@ -196,4 +196,38 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
     );
     expect(headings.some((h) => h.text.startsWith('8.4.3.4 '))).toBe(false);
   });
+
+  // C-15 〜 C-17: Issue #15 — PDF32000_2008.pdf は H 要素を持たず、見出しは P として入っている。
+  // 0.6.2 は見出しを 1 つも作れず、全節がページ単位で前後の節を含んでいた。
+  it('C-15: pdf17 9.6.4 → 自節の見出しで始まり、9.6.3 の NOTE も 9.6.5 も含まない', async () => {
+    const result = await toolHandlers.get_section({ section: '9.6.4', spec: 'pdf17' });
+    expect(result.pageRange).toEqual({ start: 266, end: 266 });
+    expect(result.content[0]).toEqual({ type: 'heading', level: 3, text: '9.6.4 Font Subsets' });
+    const text = JSON.stringify(result.content);
+    expect(text).not.toContain('TrueType font format was developed by Apple'); // 9.6.3 NOTE 1
+    expect(text).not.toContain('Type 3 Fonts'); // 9.6.5
+    expect(text).not.toContain('Table 112'); // 9.6.5 の表
+    expect(text).toContain('EOODIA+Poetica'); // 9.6.4 の EXAMPLE
+  });
+
+  it('C-16: pdf17 7.7.3.4 → 7.7.4 Name Dictionary を含まない', async () => {
+    const result = await toolHandlers.get_section({ section: '7.7.3.4', spec: 'pdf17' });
+    expect(result.content[0]).toEqual({
+      type: 'heading',
+      level: 4,
+      text: '7.7.3.4 Inheritance of Page Attributes',
+    });
+    const text = JSON.stringify(result.content);
+    expect(text).not.toContain('7.7.4 Name Dictionary');
+    expect(text).toContain('Figure 6');
+  });
+
+  it('C-17: pdf17 9.8.1 → Table 122 が table 要素として入り、本文に溶けていない', async () => {
+    const result = await toolHandlers.get_section({ section: '9.8.1', spec: 'pdf17' });
+    const tables = result.content.filter((e) => e.type === 'table');
+    expect(tables.length).toBeGreaterThanOrEqual(1);
+    const paragraphs = result.content.filter((e) => e.type === 'paragraph');
+    // 0.6.2 では "FontName name (Required) ..." が段落の文字列として返っていた
+    expect(paragraphs.some((p) => /FontName name \(Required\)/.test(p.text))).toBe(false);
+  });
 });

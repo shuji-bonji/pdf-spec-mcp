@@ -47,7 +47,7 @@ An MCP (Model Context Protocol) server that provides structured access to ISO 32
 - **Structured content extraction** — Headings, paragraphs, lists, tables, and notes from any section
 - **Full-text search** — Keyword search with section-aware context snippets
 - **Requirements extraction** — Extracts normative language (shall / must / may) per ISO conventions
-- **Definitions lookup** — Term definitions from Section 3 (Definitions)
+- **Definitions lookup** — Term definitions from the "Terms and definitions" clause (clause 3 of ISO 32000-2, clause 4 of ISO 32000-1)
 - **Table extraction** — Multi-page table detection with header merging
 - **Version comparison** — Diff PDF 1.7 vs PDF 2.0 section structures
 - **Bounded-concurrency processing** — Parallel page processing for large documents
@@ -414,7 +414,7 @@ Extract normative requirements (shall / must / may) per ISO conventions.
 
 ### `get_definitions` — Term Definitions
 
-Look up term definitions from Section 3 (Definitions).
+Look up term definitions from the "Terms and definitions" clause — clause 3 of ISO 32000-2 (71 terms), clause 4 of ISO 32000-1 / `pdf17` (48 terms). `section` in each result is the number printed in the document (`3.12`, `4.11`).
 
 ```jsonc
 // Search for "font" definitions

@@ -10,6 +10,7 @@ import type {
   ListElement,
   NoteElement,
   ParagraphElement,
+  SectionIndex,
   TableElement,
 } from '../types/index.js';
 import { mapConcurrent } from '../utils/concurrency.js';
@@ -25,15 +26,42 @@ import type {
 type TextContentItem = TextItem | TextMarkedContent;
 
 /**
+ * Section key → title, from the outline, so that a paragraph whose text is a section
+ * heading can be recognised as one (#15).
+ *
+ * ISO 32000-2 tags its headings as H1–H6, and walkStructTree makes heading elements only
+ * from those. The Adobe-published ISO 32000-1 (PDF32000_2008.pdf) has no H element on
+ * any of its 756 pages: every heading is a P whose text is "9.6.4 Font Subsets". With no
+ * heading element on the page, findSectionHeadingIndex never finds a cut, so all three
+ * boundary operations keep whole pages and every section carries its neighbours
+ * (602 of 823 sections share a page with one). Hints let walkStructTree promote such a
+ * P to a heading — the one rule, in one place, that the three operations then share.
+ *
+ * Keys are the outline keys (section number, or the full title for Annex subsections such
+ * as "C.1 General"); values are the titles with the number stripped.
+ */
+export type HeadingHints = ReadonlyMap<string, string>;
+
+export function headingHintsFromIndex(index: SectionIndex): HeadingHints {
+  const hints = new Map<string, string>();
+  for (const info of index.flatOrder) {
+    hints.set(info.sectionNumber, info.title);
+  }
+  return hints;
+}
+
+/**
  * Extract structured content from a range of pages.
  * Uses chunked parallel processing for multi-page ranges.
  * @param sectionNumber - If provided, skip content before this section's heading on the first page
+ * @param hints - Outline-derived heading hints (see HeadingHints)
  */
 export async function extractSectionContent(
   doc: PDFDocumentProxy,
   startPage: number,
   endPage: number,
   sectionNumber?: string,
+  hints?: HeadingHints,
 ): Promise<ContentElement[]> {
   // Clamp page range to valid bounds (defensive against outline/PagesMapper issues)
   const totalPages = doc.numPages || endPage;
@@ -45,7 +73,7 @@ export async function extractSectionContent(
   // mapConcurrent preserves input order, so page order is maintained
   const pageResults = await mapConcurrent(
     pageNumbers,
-    (pageNum) => extractPageContent(doc, pageNum),
+    (pageNum) => extractPageContent(doc, pageNum, hints),
     CONCURRENCY.contentExtraction,
   );
 
@@ -145,10 +173,11 @@ export async function extractOrphanedStrip(
   doc: PDFDocumentProxy,
   seamPage: number,
   nextSectionNumber: string,
+  hints?: HeadingHints,
 ): Promise<ContentElement[]> {
   if (seamPage < 1 || seamPage > (doc.numPages || 0)) return [];
 
-  const elements = await extractPageContent(doc, seamPage);
+  const elements = await extractPageContent(doc, seamPage, hints);
   const headingIdx = findSectionHeadingIndex(elements, nextSectionNumber);
   return headingIdx > 0 ? elements.slice(0, headingIdx) : [];
 }
@@ -192,13 +221,15 @@ export interface PageSegment {
  * be cut anyway — falling back to the raw page keeps them whole.
  *
  * @param startingSections - section numbers starting on this page, in document order
+ * @param hints - Outline-derived heading hints (see HeadingHints)
  */
 export async function extractPageSegments(
   doc: PDFDocumentProxy,
   pageNum: number,
   startingSections: string[],
+  hints?: HeadingHints,
 ): Promise<PageSegment[]> {
-  const elements = await extractPageContent(doc, pageNum);
+  const elements = await extractPageContent(doc, pageNum, hints);
 
   const segments: PageSegment[] = [];
   let owner: string | null = null;
@@ -278,6 +309,7 @@ function elementsToText(elements: ContentElement[]): string {
 async function extractPageContent(
   doc: PDFDocumentProxy,
   pageNum: number,
+  hints?: HeadingHints,
 ): Promise<ContentElement[]> {
   const page = await doc.getPage(pageNum);
 
@@ -295,7 +327,13 @@ async function extractPageContent(
   const textMap = buildTextMap(textContent.items);
 
   // Walk struct tree and produce content elements
-  return walkStructTree(structTree, textMap, textContent.styles);
+  return walkStructTree(structTree, { textMap, hints });
+}
+
+/** What every struct-tree visitor needs: the page's text and the outline's heading hints. */
+interface WalkContext {
+  textMap: Map<string, string>;
+  hints?: HeadingHints;
 }
 
 /**
@@ -343,11 +381,7 @@ function buildTextMap(items: TextContentItem[]): Map<string, string> {
 /**
  * Walk the structure tree and produce content elements
  */
-function walkStructTree(
-  node: StructTreeNode,
-  textMap: Map<string, string>,
-  styles: TextContent['styles'],
-): ContentElement[] {
+function walkStructTree(node: StructTreeNode, ctx: WalkContext): ContentElement[] {
   const elements: ContentElement[] = [];
 
   if (!node.children) return elements;
@@ -357,77 +391,221 @@ function walkStructTree(
       // Leaf content node — will be collected by parent
       continue;
     }
-
-    const role = child.role;
-
-    // Skip artifacts (headers, footers, page numbers)
-    if (role === 'Artifact') continue;
-
-    // Heading elements (H1-H6, H)
-    if (/^H[1-6]?$/.test(role)) {
-      const text = collectText(child, textMap).trim();
-      if (text) {
-        // role is /^H[1-6]?$/ (checked above), so role[1] is a single decimal digit.
-        // Bare "H" (no level) defaults to 3.
-        const level = role.length === 2 ? Number.parseInt(role[1], 10) : 3;
-        elements.push({ type: 'heading', level, text } as HeadingElement);
-      }
-      continue;
-    }
-
-    // Paragraph
-    if (role === 'P') {
-      const text = collectText(child, textMap).trim();
-      if (!text) continue;
-
-      // Detect NOTE/EXAMPLE
-      const noteMatch = text.match(/^(NOTE\s*\d*|EXAMPLE\s*\d*)\s+/i);
-      if (noteMatch) {
-        elements.push({
-          type: 'note',
-          label: noteMatch[1],
-          text: text.substring(noteMatch[0].length).trim(),
-        } as NoteElement);
-        continue;
-      }
-
-      elements.push({ type: 'paragraph', text } as ParagraphElement);
-      continue;
-    }
-
-    // List
-    if (role === 'L') {
-      const items = collectListItems(child, textMap);
-      if (items.length > 0) {
-        elements.push({ type: 'list', items } as ListElement);
-      }
-      continue;
-    }
-
-    // Table
-    if (role === 'Table') {
-      const table = collectTable(child, textMap);
-      if (table) {
-        elements.push(table);
-      }
-      continue;
-    }
-
-    // Code (Figure role with monospace content, or explicit Code role)
-    if (role === 'Code') {
-      const text = collectText(child, textMap).trim();
-      if (text) {
-        elements.push({ type: 'code', text });
-      }
-      continue;
-    }
-
-    // Recurse into container elements (Document, Part, Sect, Div, etc.)
-    const childElements = walkStructTree(child, textMap, styles);
-    elements.push(...childElements);
+    elements.push(...visitStructElement(child, ctx));
   }
 
   return elements;
+}
+
+/**
+ * Content elements for one struct element (and, for containers, its subtree).
+ */
+function visitStructElement(child: StructTreeNode, ctx: WalkContext): ContentElement[] {
+  const { textMap } = ctx;
+  const role = child.role;
+
+  // Skip artifacts (headers, footers, page numbers)
+  if (role === 'Artifact') return [];
+
+  // Heading elements (H1-H6, H)
+  if (/^H[1-6]?$/.test(role)) {
+    const text = collectText(child, textMap).trim();
+    if (!text) return [];
+    // role is /^H[1-6]?$/ (checked above), so role[1] is a single decimal digit.
+    // Bare "H" (no level) defaults to 3.
+    const level = role.length === 2 ? Number.parseInt(role[1], 10) : 3;
+    return [{ type: 'heading', level, text } as HeadingElement];
+  }
+
+  // Paragraph
+  if (role === 'P') {
+    // A P that holds block elements is a container, not a paragraph (#15 / #16). The
+    // Adobe-published ISO 32000-1 nests a whole page as Sect > P > P > …, with headings
+    // as leaf Ps and tables as P > Span > Table. Collecting such a P's text flattens the
+    // page into one element: headings stop being headings and tables melt into text
+    // (get_tables("9.8.1") = 0 while Table 122's rows sit in a paragraph).
+    if (hasBlockDescendant(child)) {
+      return visitContainerParagraph(child, ctx);
+    }
+    return paragraphElements(collectText(child, textMap), ctx);
+  }
+
+  // List
+  if (role === 'L') {
+    const items = collectListItems(child, textMap);
+    return items.length > 0 ? [{ type: 'list', items } as ListElement] : [];
+  }
+
+  // Table
+  if (role === 'Table') {
+    const out: ContentElement[] = [];
+    // ISO 32000-1 puts the caption inside the Table (Table > Caption > P), ISO 32000-2
+    // as the paragraph before it. table-collector reads the caption from the preceding
+    // paragraph, so emit an in-table Caption there, as that paragraph.
+    const caption = collectCaption(child, textMap);
+    if (caption) out.push({ type: 'paragraph', text: caption } as ParagraphElement);
+    const table = collectTable(child, textMap);
+    if (table) out.push(table);
+    return out;
+  }
+
+  // Code (Figure role with monospace content, or explicit Code role)
+  if (role === 'Code') {
+    const text = collectText(child, textMap).trim();
+    return text ? [{ type: 'code', text }] : [];
+  }
+
+  // Recurse into container elements (Document, Part, Sect, Div, etc.)
+  return walkStructTree(child, ctx);
+}
+
+/**
+ * A container P (#15 / #16): block children are visited as elements; the text between
+ * them — content leaves and inline Span/Link children — is gathered into paragraphs.
+ * Without the gathering, a page's first body paragraph, which ISO 32000-1 tags as a bare
+ * Span beside the block children, would vanish.
+ */
+function visitContainerParagraph(node: StructTreeNode, ctx: WalkContext): ContentElement[] {
+  const out: ContentElement[] = [];
+  const inline: string[] = [];
+  const flush = () => {
+    if (inline.length > 0) {
+      out.push(...paragraphElements(inline.join(''), ctx));
+      inline.length = 0;
+    }
+  };
+
+  for (const child of node.children ?? []) {
+    if (isStructContent(child)) {
+      const text = ctx.textMap.get(child.id);
+      if (text) inline.push(text);
+      continue;
+    }
+    if (child.role === 'Artifact') continue;
+    if (BLOCK_ROLES.has(child.role) || hasBlockDescendant(child)) {
+      flush();
+      out.push(...visitStructElement(child, ctx));
+      continue;
+    }
+    inline.push(collectText(child, ctx.textMap));
+  }
+  flush();
+  return out;
+}
+
+/**
+ * Elements for paragraph text: a NOTE / EXAMPLE, a heading the outline knows (#15), or
+ * a plain paragraph. Empty text yields nothing.
+ */
+function paragraphElements(raw: string, ctx: WalkContext): ContentElement[] {
+  const text = raw.trim();
+  if (!text) return [];
+
+  // Detect NOTE/EXAMPLE
+  const noteMatch = text.match(/^(NOTE\s*\d*|EXAMPLE\s*\d*)\s+/i);
+  if (noteMatch) {
+    return [
+      {
+        type: 'note',
+        label: noteMatch[1],
+        text: text.substring(noteMatch[0].length).trim(),
+      } as NoteElement,
+    ];
+  }
+
+  const heading = ctx.hints ? matchHeadingHint(text, ctx.hints) : null;
+  if (heading) {
+    return [{ type: 'heading', level: heading.level, text: heading.text } as HeadingElement];
+  }
+
+  return [{ type: 'paragraph', text } as ParagraphElement];
+}
+
+/** Roles that make their parent a container rather than a run of inline text. */
+const BLOCK_ROLES: ReadonlySet<string> = new Set([
+  'P',
+  'H',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
+  'L',
+  'Table',
+  'Code',
+  'Sect',
+  'Div',
+  'Art',
+  'Part',
+  'BlockQuote',
+]);
+
+function hasBlockDescendant(node: StructTreeNode): boolean {
+  for (const child of node.children ?? []) {
+    if (isStructContent(child)) continue;
+    if (BLOCK_ROLES.has(child.role) || hasBlockDescendant(child)) return true;
+  }
+  return false;
+}
+
+/** Text of a Table's Caption child, or null when it has none (or an empty one). */
+function collectCaption(table: StructTreeNode, textMap: Map<string, string>): string | null {
+  for (const child of table.children ?? []) {
+    if (!isStructContent(child) && child.role === 'Caption') {
+      const text = collectText(child, textMap).trim();
+      return text || null;
+    }
+  }
+  return null;
+}
+
+const HEADING_HINT_MAX_LENGTH = 200;
+
+/**
+ * Whether paragraph text is the heading of a section the outline lists (#15).
+ *
+ * The text must reproduce the outline entry — key and title — not merely begin with a
+ * number: "9.8, "Font Descriptors"" in a sentence must not become a heading. Matching
+ * ignores case, whitespace (headings wrap: "Annex A\n(informative)\nOperator Summary")
+ * and the (normative) / (informative) marker the outline title drops.
+ *
+ * Annex subsections have no number in the outline, so their key is the whole title
+ * ("C.1 General") and the text must equal it.
+ *
+ * The returned `text` is what the heading element carries: it starts with the key
+ * followed by a boundary, which is exactly what findSectionHeadingIndex looks for.
+ */
+function matchHeadingHint(
+  text: string,
+  hints: HeadingHints,
+): { key: string; level: number; text: string } | null {
+  if (text.length > HEADING_HINT_MAX_LENGTH) return null;
+
+  const numbered = text.match(/^(\d+(?:\.\d+)*|Annex\s+[A-Z])(?=\s)/);
+  if (numbered) {
+    const key = numbered[1].replace(/\s+/g, ' ');
+    const title = hints.get(key);
+    if (title !== undefined && normalizeHeading(text) === normalizeHeading(`${key} ${title}`)) {
+      const level = key.startsWith('Annex') ? 1 : key.split('.').length;
+      return { key, level, text: `${key}${text.slice(numbered[1].length)}` };
+    }
+    return null;
+  }
+
+  const titleKey = text.replace(/\s+/g, ' ');
+  if (hints.has(titleKey)) {
+    return { key: titleKey, level: 2, text: titleKey };
+  }
+  return null;
+}
+
+function normalizeHeading(s: string): string {
+  return s
+    .replace(/\((?:normative|informative)\)/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 /**

@@ -128,7 +128,8 @@ export const tools: ToolDefinition[] = [
     name: 'get_definitions',
     title: 'Get term definitions',
     description:
-      'Get term definitions from Section 3 of the PDF specification (ISO 32000-2). ' +
+      'Get term definitions from the "Terms and definitions" clause of the PDF specification ' +
+      '(clause 3 of ISO 32000-2, clause 4 of ISO 32000-1 / pdf17). ' +
       'Returns structured definitions with term, definition text, notes, and sources.',
     inputSchema: GetDefinitionsSchema,
     annotations: READ_ONLY,

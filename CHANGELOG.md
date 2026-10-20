@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `get_section` / `get_requirements` / `get_tables` / `search_spec` on `pdf17`
+  (`PDF32000_2008.pdf`) returned whole pages: a section carried the tail of the previous
+  section and the head of the next, `get_requirements("9.6.4", level: "shall")` counted 7
+  (2 are 9.6.4's), `get_tables` returned 0 tables for every section, and `search_spec`
+  attributed each page to the last section starting on it. That file tags no heading as
+  H1–H6 — every heading is a `P` reading "9.6.4 Font Subsets" — and nests each page as
+  `Sect > P > P > …` with tables as `P > Span > Table`, so the struct-tree walk flattened
+  a page into one element and never found a heading to cut at. Now a `P` holding block
+  elements is walked as a container, a `P` whose text reproduces an outline entry (number
+  and title, or the full title for Annex subsections) becomes a heading, and a `Caption`
+  inside a `Table` is emitted as the caption paragraph. 816 of pdf17's 823 sections now
+  start with their own heading (the other 7 are Bibliography entries the outline lists as
+  sections); `get_tables` finds 1,413 tables / 9,382 rows that were text before; the
+  requirement index drops 11,349 duplicated or misattributed rows and gains 629. All 987
+  sections of `iso32000-2` are byte-identical to 0.6.2 across the three tools. (#15, #16)
+- `get_definitions(spec: "pdf17")` returned `totalDefinitions: 0` without error while the
+  server declared pdf17 supported: it read clause 3, which in ISO 32000-1 is "Normative
+  references" — the terms are in clause 4. The clause is now per spec (3 for ISO 32000-2,
+  4 for pdf17), `section` follows the printed "4.n" markers, and a term that ends with ")"
+  right after a marker ("… (ellipsis)", "end-of-line marker (EOL marker)") is no longer
+  skipped. pdf17 yields its 48 terms; `iso32000-2` still yields 71, unchanged. (#18)
+
+### Changed
+
+- `get_definitions` tool description names the clause per document instead of "Section 3".
+- e2e: the pdf17 cases that only asserted `>= 0` (T-6, RQ-6, D-6) now pin the values
+  above, plus C-15–C-17 (section boundaries), Q-16 (search attribution), RQ-6b/6c
+  (requirement counts, including the Annex C triple count) and T-6b.
+
 ## [0.6.2] - 2026-10-13
 
 ### Changed
