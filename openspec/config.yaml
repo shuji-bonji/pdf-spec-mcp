@@ -1,0 +1,45 @@
+schema: spec-driven
+
+# PDF family 共通の前提（pdf-agent-stack/docs/specs/31 付録 A）と、pdf-spec-mcp 固有の境界ルール。
+# すべての成果物（proposal / specs / design / tasks）のプロンプトに <context> として注入される。
+# 🔴 rules の項目は必ず引用符で囲む。文中の「approved: 」のような「コロン + 空白」を YAML が入れ子と読み、
+#    openspec が「could not parse config.yaml」と警告して context と rules を丸ごと捨てる（pdf-reader-mcp で実際に起きた）。
+context: |
+  このリポジトリは PDF family の 1 つ（pdf-spec-mcp。「正典」担当: ISO 32000 などの仕様 PDF を構造的に読み、
+  仕様が何を要求しているかを原文のまま返す）。仕様の文を言い換えたり、仕様に無いことを足したりしない。
+  個々の PDF ファイルを読むのは pdf-reader-mcp、規格に照らした合否は pdf-verify-mcp の仕事。
+  仕様 PDF は著作物なので配布しない（PDF_SPEC_DIR で置き場所を指定する）。CI は仕様 PDF を持たないので、
+  CI で回るのは src/**/*.test.ts の単体テストだけで、tests/e2e/ は仕様 PDF のある手元でしか回らない。
+  仕様は openspec/specs/<capability>/spec.md が正本で、日本語で書く。capability はツール名の _ を - にした
+  kebab-case（例: get-requirements）。横断の振る舞いは common-errors などの共通 capability に置く。
+  要求の見出しは「### Requirement: SPEC-PDFSPEC-<機能>-<3 桁> 題」で、ID は `npx spec-ids next <capability>` で採る
+  （一度使った番号は再利用しない）。文末に（SHALL）を付ける。
+  テストは src/**/*.test.ts（vitest）と tests/e2e/**/*.test.ts。受入テストの it / describe の名前に仕様 ID を書く。
+  CI で確かめたい要求の受入テストは src/ 側に置く。
+  `npx spec-ids check` が仕様 ID とテスト名を突き合わせ、CI（spec-gate）で止める。
+
+rules:
+  proposal:
+    - "先頭に front matter を置く（approved: と pr: は空のキー、implementation: required か none、targets: [capability, ...]）。approved と pr は人がマージの前に書く"
+    - "Capabilities には openspec/specs/ にある既存の capability 名をそのまま使う。無いツールの capability を新しく作るときは、そのツールの既存のテストを読んで、起こす範囲（このツールのどの振る舞いか）を書く"
+    - "本文に「変わる振る舞い / 変わらない振る舞い / 対象外 / 人が判断すること」を書く"
+  specs:
+    - "各 Requirement の見出しは「### Requirement: SPEC-PDFSPEC-<機能>-<3 桁> 題」。ID は `npx spec-ids next <capability>` で採り、再利用しない"
+    - "各 Requirement に「#### Scenario:」を 1 つ以上書く。Scenario 名はそのままテスト名の後半になるので、WHEN / THEN が読める名前にする"
+    - "文末に（SHALL）を付ける。Purpose は 50 文字以上"
+    - "例や根拠は仕様の節番号（例: ISO 32000-2 §14.8.2.5）で書く。ライブラリ名（pdfjs など）は Requirement に書かない"
+    - "仕様 PDF の中身（条文の文そのもの）を要求や Scenario に長く写さない。節番号と、確かめる性質（何件・どの節に属するか）で書く"
+  design:
+    - "ライブラリの制約と仕様の制約を分けて書く"
+  tasks:
+    - "テストの describe / it の名前に仕様 ID と Scenario 名を書くタスクを含める"
+    - "期待値を仕様 ID のために変えない"
+    - "最後に「npx openspec validate --all && npx spec-ids check が通る」を確かめるタスクを置く"
+    - "新しい capability を作る変更は、archive の後に正本の先頭へ front matter（spec_id / kind / introduced_by）を書き足すタスクを置く（OpenSpec 1.14.1 は差分の front matter を写さない）"
+
+operations:
+  archive:
+    guidance:
+      - "archive の前に proposal.md の front matter の approved と pr が埋まっていることを確かめ、空なら止まって人に求める"
+      - "archive はマージの前に、同じ PR の中で行う（実装 PR は openspec/changes/<slug>/ の追加を pr-scope が通さない）"
+      - "archive の後に npx spec-ids check を実行し、OK を確かめる"

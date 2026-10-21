@@ -1,5 +1,7 @@
 # pdf-spec-mcp - 開発ガイド
 
+> 仕様の正本は `openspec/specs/`（OpenSpec）。仕様 ID・PR の種類・承認の記録の規則は [AGENTS.md](./AGENTS.md)。
+
 ## プロジェクト概要
 
 ISO 32000（PDF）等の仕様 PDF を構造的に読む MCP サーバ。PDF family における「**仕様は何を要求するか**」担当であり、
