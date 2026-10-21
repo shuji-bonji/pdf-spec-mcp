@@ -1,0 +1,9 @@
+{
+  "domain": "PDFSPEC",
+  "dirPrefix": "",
+  "tests": [
+    "src/**/*.test.ts",
+    "tests/**/*.test.ts"
+  ],
+  "layout": "openspec"
+}
