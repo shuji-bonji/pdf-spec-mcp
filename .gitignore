@@ -11,7 +11,9 @@ pdf-spec-archive/
 # "no binaries in the repo" policy, not a copyright restriction.
 docs/reference/*.pdf
 
-.claude/
+# Claude Code のローカル設定（環境固有・共有しない）。commands/opsx と skills/openspec-* は
+# openspec init が作る共有物なので追跡する（pdf-reader-mcp と同じ）
+.claude/settings.local.json
 
 # Vitest temp files (残存する一時トランスパイル成果物)
 *.timestamp-*
