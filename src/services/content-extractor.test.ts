@@ -43,7 +43,7 @@ type MockTextItem =
   | { type: 'beginMarkedContentProps' | 'endMarkedContent'; id?: string };
 
 describe('extractSectionContent', () => {
-  it('extracts heading elements from H1-H6 roles', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-003 extracts heading elements from H1-H6 roles', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -78,7 +78,7 @@ describe('extractSectionContent', () => {
     ]);
   });
 
-  it('extracts paragraph elements from P role', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-003 extracts paragraph elements from P role', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -103,7 +103,7 @@ describe('extractSectionContent', () => {
     expect(elements).toEqual([{ type: 'paragraph', text: 'PDF is a portable document format.' }]);
   });
 
-  it('detects NOTE/EXAMPLE paragraphs as NoteElement', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-003 detects NOTE/EXAMPLE paragraphs as NoteElement', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -144,7 +144,7 @@ describe('extractSectionContent', () => {
     });
   });
 
-  it('extracts list elements from L/LI roles', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-003 extracts list elements from L/LI roles', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -193,7 +193,7 @@ describe('extractSectionContent', () => {
     expect(elements).toEqual([{ type: 'list', items: ['First item', 'Second item'] }]);
   });
 
-  it('extracts table elements from Table/TR/TH/TD', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-003 extracts table elements from Table/TR/TH/TD', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -248,7 +248,7 @@ describe('extractSectionContent', () => {
     ]);
   });
 
-  it('extracts table with THead/TBody wrappers', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-003 extracts table with THead/TBody wrappers', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -341,7 +341,7 @@ describe('extractSectionContent', () => {
     ]);
   });
 
-  it('skips Artifact elements', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-004 skips Artifact elements', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -368,7 +368,7 @@ describe('extractSectionContent', () => {
     expect(elements[0]).toEqual({ type: 'paragraph', text: 'Actual content' });
   });
 
-  it('falls back to plain text when no struct tree', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-005 falls back to plain text when no struct tree', async () => {
     const doc = createMockDoc([
       {
         structTree: null,
@@ -384,7 +384,7 @@ describe('extractSectionContent', () => {
     expect(elements).toEqual([{ type: 'paragraph', text: 'Plain text content here.' }]);
   });
 
-  it('combines content across multiple pages', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-006 combines content across multiple pages', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -417,7 +417,7 @@ describe('extractSectionContent', () => {
     expect((elements[1] as { text: string }).text).toBe('Page 2 content');
   });
 
-  it('skips empty paragraphs', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-004 skips empty paragraphs', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -444,7 +444,7 @@ describe('extractSectionContent', () => {
     expect((elements[0] as { text: string }).text).toBe('Real content');
   });
 
-  it('recurses into container elements (Sect, Div)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-006 recurses into container elements (Sect, Div)', async () => {
     const doc = createMockDoc([
       {
         structTree: {
@@ -479,7 +479,7 @@ describe('trimAfterNextSectionStart (S-9)', () => {
   const heading = (text: string): ContentElement => ({ type: 'heading', level: 3, text });
   const para = (text: string): ContentElement => ({ type: 'paragraph', text });
 
-  it('cuts at the next section’s heading', () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 cuts at the next section’s heading', () => {
     const elements = [heading('1.1 First'), para('Mine.'), heading('1.2 Second'), para('Theirs.')];
 
     const trimmed = trimAfterNextSectionStart(elements, '1.2');
@@ -487,13 +487,13 @@ describe('trimAfterNextSectionStart (S-9)', () => {
     expect(trimmed).toEqual([heading('1.1 First'), para('Mine.')]);
   });
 
-  it('keeps everything when the heading is not found (mirror of the start-trim arm)', () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 keeps everything when the heading is not found (mirror of the start-trim arm)', () => {
     const elements = [heading('1.1 First'), para('Mine.'), para('Also mine.')];
 
     expect(trimAfterNextSectionStart(elements, '1.2')).toEqual(elements);
   });
 
-  it('cuts to empty when the next heading opens the content (heading at index 0)', () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 cuts to empty when the next heading opens the content (heading at index 0)', () => {
     // Own heading missing, next section's heading first: trimToSectionStart keeps
     // everything for the next section (index 0 → no cut there), so this section must
     // keep nothing — `> 0` here would duplicate the whole block into both sections.
@@ -502,7 +502,7 @@ describe('trimAfterNextSectionStart (S-9)', () => {
     expect(trimAfterNextSectionStart(elements, '1.2')).toEqual([]);
   });
 
-  it('does not cut at a prefix-sharing sibling ("1.2" must not match "1.2.1")', () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 does not cut at a prefix-sharing sibling ("1.2" must not match "1.2.1")', () => {
     const elements = [heading('1.1 First'), para('Mine.'), heading('1.2.1 Grandchild'), para('x')];
 
     // "1.2 " does not prefix "1.2.1 Grandchild" — no cut.
@@ -511,7 +511,7 @@ describe('trimAfterNextSectionStart (S-9)', () => {
 
   // ---- SV-1: heading keys that the trailing-space rule silently missed ----
 
-  it('matches a title-key heading exactly (Annex subsections: "A.1 General")', () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 matches a title-key heading exactly (Annex subsections: "A.1 General")', () => {
     // Annex subsections carry no section number in the outline, so the key is the full
     // title and the heading text equals it — no trailing space to match on. Missing it
     // left the shared page double-held by parent and child (51 sections).
@@ -528,7 +528,7 @@ describe('trimAfterNextSectionStart (S-9)', () => {
     ]);
   });
 
-  it('matches a heading whose key is followed by a line break ("Annex A\\n(informative)…")', () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 matches a heading whose key is followed by a line break ("Annex A\\n(informative)…")', () => {
     const elements = [
       para('Tail of previous.'),
       heading('Annex A\n(informative)\nOperator Summary'),
@@ -728,7 +728,7 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     ['9.6.5', 'Type 3 Fonts'],
   ]);
 
-  it('without hints, the page is still one element per block — not one per page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 without hints, the page is still one element per block — not one per page', async () => {
     // The container rule alone stops the page from melting into a single element.
     const elements = await extractSectionContent(createMockDoc([page266()]), 1, 1);
 
@@ -744,7 +744,7 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     ]);
   });
 
-  it('promotes a leaf P that matches an outline entry to a heading', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 promotes a leaf P that matches an outline entry to a heading', async () => {
     const elements = await extractSectionContent(
       createMockDoc([page266()]),
       1,
@@ -759,7 +759,7 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     ]);
   });
 
-  it('keeps the bare Span beside block children as a paragraph of its own', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 keeps the bare Span beside block children as a paragraph of its own', async () => {
     const elements = await extractSectionContent(
       createMockDoc([page266()]),
       1,
@@ -774,7 +774,7 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     });
   });
 
-  it('surfaces a Table nested under P > Span, with its in-table Caption as the preceding paragraph', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 surfaces a Table nested under P > Span, with its in-table Caption as the preceding paragraph', async () => {
     const elements = await extractSectionContent(
       createMockDoc([page266()]),
       1,
@@ -796,7 +796,7 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     });
   });
 
-  it('cuts the section at the promoted headings (9.6.4 keeps neither 9.6.3’s NOTE nor 9.6.5)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 cuts the section at the promoted headings (9.6.4 keeps neither 9.6.3’s NOTE nor 9.6.5)', async () => {
     const elements = await extractSectionContent(createMockDoc([page266()]), 1, 1, '9.6.4', hints);
 
     // Start trim: 9.6.3's NOTE is gone. (The end trim is pdf-service's, mirrored below.)
@@ -826,7 +826,7 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     expect(segments[2].text).toContain('Type 3 fonts differ');
   });
 
-  it('does not promote a paragraph that merely starts with a section number', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 does not promote a paragraph that merely starts with a section number', async () => {
     const doc = createMockDoc([
       {
         structTree: { role: 'Sect', children: [leafP('p')] },
@@ -844,7 +844,7 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     ]);
   });
 
-  it('matches Annex headings across line breaks and the (normative) marker', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 matches Annex headings across line breaks and the (normative) marker', async () => {
     const annexHints = new Map([
       ['Annex C', 'Implementation Limits'],
       ['C.1 General', 'C.1 General'],

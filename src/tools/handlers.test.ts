@@ -148,7 +148,7 @@ describe('toolHandlers', () => {
   // ========================================
 
   describe('get_section', () => {
-    it('returns section content', async () => {
+    it('SPEC-PDFSPEC-GET-SECTION-001 returns section content', async () => {
       const mockResult: SectionResult = {
         sectionNumber: '7.3.4',
         title: 'String objects',
@@ -163,7 +163,7 @@ describe('toolHandlers', () => {
       expect(mockGetSectionContent).toHaveBeenCalledWith('7.3.4', undefined);
     });
 
-    it('passes spec parameter', async () => {
+    it('SPEC-PDFSPEC-GET-SECTION-001 passes spec parameter', async () => {
       mockGetSectionContent.mockResolvedValue({
         sectionNumber: '5',
         title: 'Test',
@@ -175,11 +175,11 @@ describe('toolHandlers', () => {
       expect(mockGetSectionContent).toHaveBeenCalledWith('5', 'ts32002');
     });
 
-    it('rejects missing section parameter', async () => {
+    it('SPEC-PDFSPEC-GET-SECTION-002 rejects missing section parameter', async () => {
       await expect(toolHandlers.get_section({})).rejects.toThrow();
     });
 
-    it('rejects empty section string', async () => {
+    it('SPEC-PDFSPEC-GET-SECTION-002 rejects empty section string', async () => {
       await expect(toolHandlers.get_section({ section: '' })).rejects.toThrow('must not be empty');
     });
   });
@@ -260,38 +260,38 @@ describe('toolHandlers', () => {
       ],
     };
 
-    it('returns requirements with section filter', async () => {
+    it('SPEC-PDFSPEC-GET-REQUIREMENTS-003 returns requirements with section filter', async () => {
       mockGetRequirements.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_requirements({ section: '7.3' });
       expect(result).toEqual(mockResult);
       expect(mockGetRequirements).toHaveBeenCalledWith('7.3', undefined, undefined);
     });
 
-    it('passes level filter', async () => {
+    it('SPEC-PDFSPEC-GET-REQUIREMENTS-003 passes level filter', async () => {
       mockGetRequirements.mockResolvedValue({ ...mockResult, totalRequirements: 1 });
       await toolHandlers.get_requirements({ section: '7.3', level: 'shall' });
       expect(mockGetRequirements).toHaveBeenCalledWith('7.3', 'shall', undefined);
     });
 
-    it('works without any filters', async () => {
+    it('SPEC-PDFSPEC-GET-REQUIREMENTS-003 works without any filters', async () => {
       mockGetRequirements.mockResolvedValue(mockResult);
       await toolHandlers.get_requirements({});
       expect(mockGetRequirements).toHaveBeenCalledWith(undefined, undefined, undefined);
     });
 
-    it('passes spec parameter', async () => {
+    it('SPEC-PDFSPEC-GET-REQUIREMENTS-003 passes spec parameter', async () => {
       mockGetRequirements.mockResolvedValue(mockResult);
       await toolHandlers.get_requirements({ spec: 'pdf17' });
       expect(mockGetRequirements).toHaveBeenCalledWith(undefined, undefined, 'pdf17');
     });
 
-    it('rejects invalid level', async () => {
+    it('SPEC-PDFSPEC-GET-REQUIREMENTS-003 rejects invalid level', async () => {
       await expect(toolHandlers.get_requirements({ level: 'invalid' })).rejects.toThrow(
         'Invalid requirement level',
       );
     });
 
-    it('rejects empty section string', async () => {
+    it('SPEC-PDFSPEC-GET-REQUIREMENTS-003 rejects empty section string', async () => {
       await expect(toolHandlers.get_requirements({ section: '' })).rejects.toThrow(
         'must not be empty',
       );
@@ -356,34 +356,34 @@ describe('toolHandlers', () => {
       ],
     };
 
-    it('returns all tables in a section', async () => {
+    it('SPEC-PDFSPEC-GET-TABLES-001 returns all tables in a section', async () => {
       mockGetTables.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_tables({ section: '7.2.3' });
       expect(result).toEqual(mockResult);
       expect(mockGetTables).toHaveBeenCalledWith('7.2.3', undefined, undefined);
     });
 
-    it('passes table_index', async () => {
+    it('SPEC-PDFSPEC-GET-TABLES-001 passes table_index', async () => {
       mockGetTables.mockResolvedValue(mockResult);
       await toolHandlers.get_tables({ section: '7.2.3', table_index: 0 });
       expect(mockGetTables).toHaveBeenCalledWith('7.2.3', 0, undefined);
     });
 
-    it('passes spec parameter', async () => {
+    it('SPEC-PDFSPEC-GET-TABLES-001 passes spec parameter', async () => {
       mockGetTables.mockResolvedValue(mockResult);
       await toolHandlers.get_tables({ section: '7.2.3', spec: 'pdf17' });
       expect(mockGetTables).toHaveBeenCalledWith('7.2.3', undefined, 'pdf17');
     });
 
-    it('rejects missing section parameter', async () => {
+    it('SPEC-PDFSPEC-GET-TABLES-001 rejects missing section parameter', async () => {
       await expect(toolHandlers.get_tables({})).rejects.toThrow();
     });
 
-    it('rejects empty section string', async () => {
+    it('SPEC-PDFSPEC-GET-TABLES-001 rejects empty section string', async () => {
       await expect(toolHandlers.get_tables({ section: '' })).rejects.toThrow('must not be empty');
     });
 
-    it('rejects negative table_index', async () => {
+    it('SPEC-PDFSPEC-GET-TABLES-001 rejects negative table_index', async () => {
       await expect(toolHandlers.get_tables({ section: '7.2.3', table_index: -1 })).rejects.toThrow(
         'non-negative integer',
       );

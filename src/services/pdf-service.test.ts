@@ -139,7 +139,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
   /** Kinds of the elements a section ends up with, for compact assertions. */
   const kinds = (content: { type: string }[]) => content.map((e) => e.type);
 
-  it('adopts the content stranded on the next section’s first page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-008 adopts the content stranded on the next section’s first page', async () => {
     const doc = createDoc([
       [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
       [
@@ -164,7 +164,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     );
   });
 
-  it('does not count the strip twice: the next section still excludes it', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-008 does not count the strip twice: the next section still excludes it', async () => {
     // The safety property. Adoption is the complement of trimToSectionStart, so the strip
     // lands in exactly one section — never both, never neither.
     const doc = createDoc([
@@ -189,7 +189,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     expect((second.content[1] as { text: string }).text).toBe('Body of 1.2.');
   });
 
-  it('adopts nothing when the next section’s heading is not on the seam page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-008 adopts nothing when the next section’s heading is not on the seam page', async () => {
     // 69 sections of ISO 32000-2 look like this. trimToSectionStart cannot find the
     // heading, so the next section keeps the whole page — including this strip. Adopting
     // it here as well would duplicate it, so the strip must be left alone.
@@ -213,7 +213,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     expect(kinds(second.content)).toEqual(['paragraph', 'paragraph']);
   });
 
-  it('adopts nothing when the next section’s heading opens the page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-008 adopts nothing when the next section’s heading opens the page', async () => {
     const doc = createDoc([
       [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
       [headingFixture('1.2 Second'), paragraphFixture('Body of 1.2.')],
@@ -231,7 +231,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     expect(kinds(first.content)).toEqual(['heading', 'paragraph']);
   });
 
-  it('partitions a shared page: neither adoption nor trailing overlap (S-9)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 partitions a shared page: neither adoption nor trailing overlap (S-9)', async () => {
     // endPage is max(page, next.page - 1), so sections sharing a page get endPage === page.
     // There is no seam: `endPage + 1` is a page the next section owns outright — and the
     // trailing part of the shared page, from 1.2's heading on, is 1.2's content, cut by
@@ -269,7 +269,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     expect(kinds(second.content)).toEqual(['heading', 'paragraph', 'paragraph']);
   });
 
-  it('keeps the whole shared page when the next section’s heading is not found (S-9)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 keeps the whole shared page when the next section’s heading is not found (S-9)', async () => {
     // Mirror of the trimToSectionStart arm: heading missing → the next section keeps the
     // whole page, so cutting here would lose the text entirely. Duplication is the
     // pre-existing, lesser harm.
@@ -289,7 +289,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
     expect(kinds(first.content)).toEqual(['heading', 'paragraph', 'paragraph']);
   });
 
-  it('adopts nothing for the last section', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-008 adopts nothing for the last section', async () => {
     const doc = createDoc([[headingFixture('1.1 Only'), paragraphFixture('Body.')]]);
     const svc = createService(doc, outline([['1.1 Only', 1]]));
 
@@ -300,7 +300,7 @@ describe('getSectionContent — the orphaned strip at the section boundary', () 
 });
 
 describe('getSectionContent — pageRange reflects the spill (S-10)', () => {
-  it('extends pageRange.end onto the seam page when the strip is adopted', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-009 extends pageRange.end onto the seam page when the strip is adopted', async () => {
     // §14.9.4 reported 815–815 while its shall/NOTE/EXAMPLE text continued on p.816:
     // content was complete, metadata was short by one page, and page-based follow-ups
     // (reader read_text, veraPDF spot checks) stopped one page early.
@@ -328,7 +328,7 @@ describe('getSectionContent — pageRange reflects the spill (S-10)', () => {
     expect(again.pageRange).toEqual({ start: 1, end: 2 });
   });
 
-  it('keeps pageRange.end when the next section opens its page (no spill)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-009 keeps pageRange.end when the next section opens its page (no spill)', async () => {
     const doc = createDoc([
       [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
       [headingFixture('1.2 Second'), paragraphFixture('Body of 1.2.')],
@@ -345,7 +345,7 @@ describe('getSectionContent — pageRange reflects the spill (S-10)', () => {
     expect(first.pageRange).toEqual({ start: 1, end: 1 });
   });
 
-  it('keeps pageRange.end when two sections share a page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-009 keeps pageRange.end when two sections share a page', async () => {
     const doc = createDoc([
       [
         headingFixture('1.1 First'),
@@ -411,7 +411,7 @@ describe('getSectionContent — a parent returns its subtree (SV-1)', () => {
     return createService(doc, outline);
   }
 
-  it('aggregates the whole subtree in document order, spill included', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-010 aggregates the whole subtree in document order, spill included', async () => {
     const svc = parentDoc();
 
     const parent = await svc.getSectionContent('1', 'test-spec');
@@ -429,7 +429,7 @@ describe('getSectionContent — a parent returns its subtree (SV-1)', () => {
     expect(cells.some((c) => c.includes('shall not be considered as changes'))).toBe(true);
   });
 
-  it('reports the subtree page range, not the preamble’s', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-010 reports the subtree page range, not the preamble’s', async () => {
     const svc = parentDoc();
 
     const parent = await svc.getSectionContent('1', 'test-spec');
@@ -438,7 +438,7 @@ describe('getSectionContent — a parent returns its subtree (SV-1)', () => {
     expect(parent.pageRange).toEqual({ start: 1, end: 3 });
   });
 
-  it('surfaces a descendant’s tables through get_tables on the parent (SV-1b)', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-005 surfaces a descendant’s tables through get_tables on the parent (SV-1b)', async () => {
     const svc = parentDoc();
 
     const tables = await svc.getTables('1', undefined, 'test-spec');
@@ -448,7 +448,7 @@ describe('getSectionContent — a parent returns its subtree (SV-1)', () => {
     expect(cells.some((c) => c.includes('shall not be considered as changes'))).toBe(true);
   });
 
-  it('does not double-count requirements: parent query = subtree of disjoint pieces', async () => {
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-005 does not double-count requirements: parent query = subtree of disjoint pieces', async () => {
     const svc = parentDoc();
 
     const parent = await svc.getRequirements('1', undefined, 'test-spec');
@@ -462,7 +462,7 @@ describe('getSectionContent — a parent returns its subtree (SV-1)', () => {
     expect(count(parent.requirements)).toBe(1);
   });
 
-  it('keeps the full requirements index on own content — subtree wiring would double-count', async () => {
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-005 keeps the full requirements index on own content — subtree wiring would double-count', async () => {
     // The index iterates flatOrder (parents included). If it were wired to the public
     // getSectionContent, every requirement would be counted once per ancestor.
     const svc = parentDoc();
@@ -477,7 +477,7 @@ describe('getSectionContent — a parent returns its subtree (SV-1)', () => {
 });
 
 describe('get_tables / get_requirements — fixed by the same seam', () => {
-  it('merges table rows stranded past the section’s last page', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 merges table rows stranded past the section’s last page', async () => {
     // Table 182: the QuadPoints row sits on the next section's first page. The strip
     // arrives with the content, so the ordinary continuation rule merges it — getTables
     // itself needs no table-specific boundary handling.
@@ -510,7 +510,7 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
     expect(result.tables[0].rows.map((r) => r[0])).toEqual(['Subtype', 'QuadPoints']);
   });
 
-  it('leaves the next section’s own table alone', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-005 leaves the next section’s own table alone', async () => {
     const doc = createDoc([
       [
         headingFixture('1.1 First'),
@@ -537,7 +537,7 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
     expect(result.tables[0].rows.map((r) => r[0])).toEqual(['A']);
   });
 
-  it('does not leave the next section’s table in the previous section (S-9)', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-005 does not leave the next section’s table in the previous section (S-9)', async () => {
     // The Table 54 shape: 8.4.3.3 and 8.4.3.4 share page 176; Table 54 (caption, header,
     // first row) sits after 8.4.3.4's heading. 8.4.3.3 used to return it as an incomplete
     // duplicate under its correct caption.
@@ -568,7 +568,7 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
     expect(second.tables[0].caption).toContain('Table 54');
   });
 
-  it('keeps a stranded table with different headers separate', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 keeps a stranded table with different headers separate', async () => {
     // Adopted (it is above the next heading, so it is 1.1's content) but not merged:
     // different headers mean it is a different table.
     const doc = createDoc([
@@ -597,7 +597,7 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
     expect(result.tables[1].rows.map((r) => r[0])).toEqual(['1']);
   });
 
-  it('surfaces requirement text that was stranded in the strip', async () => {
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-006 surfaces requirement text that was stranded in the strip', async () => {
     // The point of generalising B-S1: 271 sections of ISO 32000-2 strand "shall" text.
     const doc = createDoc([
       [headingFixture('1.1 First'), paragraphFixture('An introduction with no requirement.')],
@@ -731,7 +731,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
    * until #17 nothing in the answer said which. (On pdf17 before 0.7.0 every section was
    * page-cut, and get_tables answered "0 tables" as if that were an observation.)
    */
-  it('heading / heading: own heading found, next heading found on the shared page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 heading / heading: own heading found, next heading found on the shared page', async () => {
     const doc = createDoc([
       [
         headingFixture('1.1 First'),
@@ -754,7 +754,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     });
   });
 
-  it('heading / page: the next section starts on a later page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 heading / page: the next section starts on a later page', async () => {
     const doc = createDoc([
       [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
       [paragraphFixture('Still 1.1.')],
@@ -773,7 +773,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     expect(first.pageRange).toEqual({ start: 1, end: 2 });
   });
 
-  it('heading / heading with a spill: the tail on the seam page was adopted', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 heading / heading with a spill: the tail on the seam page was adopted', async () => {
     const doc = createDoc([
       [headingFixture('1.1 First'), paragraphFixture('Body of 1.1.')],
       [paragraphFixture('Tail of 1.1.'), headingFixture('1.2 Second'), paragraphFixture('Body.')],
@@ -791,7 +791,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     expect(first.pageRange.end).toBe(2);
   });
 
-  it('page / page_shared: no heading found at either end (the pdf17-before-0.7.0 shape)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 page / page_shared: no heading found at either end (the pdf17-before-0.7.0 shape)', async () => {
     // Headings tagged as paragraphs and no hints to promote them: the whole page is
     // held by both sections, and the boundary says so at both ends.
     const doc = createDoc([
@@ -820,7 +820,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     });
   });
 
-  it('next_page_unclaimed: the next heading is missing from the seam page', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 next_page_unclaimed: the next heading is missing from the seam page', async () => {
     // The seam page is held whole by the next section (the "adopt nothing" arm), so any
     // tail of 1.1 there is not in 1.1's content — and 1.1 says so.
     const doc = createDoc([
@@ -840,7 +840,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     expect(first.pageRange.end).toBe(1);
   });
 
-  it('document: the last section', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 document: the last section', async () => {
     const doc = createDoc([[headingFixture('1.1 First'), paragraphFixture('Body.')]]);
     const svc = createService(doc, outline([['1.1 First', 1]]));
 
@@ -850,7 +850,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     });
   });
 
-  it('a parent reports its own start and its last descendant’s end', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 a parent reports its own start and its last descendant’s end', async () => {
     const doc = createDoc([
       [
         headingFixture('1 Parent'),
@@ -877,7 +877,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     });
   });
 
-  it('get_tables carries pageRange and boundary; 0 tables under a page cut is not "no table"', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-007 get_tables carries pageRange and boundary; 0 tables under a page cut is not "no table"', async () => {
     const doc = createDoc([
       [paragraphFixture('1.1 First'), paragraphFixture('Body.'), paragraphFixture('1.2 Second')],
     ]);
@@ -895,7 +895,7 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     expect(tables.boundary).toEqual({ start: 'page', end: 'page_shared' });
   });
 
-  it('get_requirements lists the sections in scope that were cut by page', async () => {
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-007 get_requirements lists the sections in scope that were cut by page', async () => {
     const doc = createDoc([
       [
         headingFixture('1 Parent'),

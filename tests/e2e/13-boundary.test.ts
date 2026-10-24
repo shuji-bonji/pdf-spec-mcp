@@ -13,18 +13,18 @@ describe.skipIf(!HAS_PDFS)('13 - boundary', () => {
     await initRegistry();
   });
 
-  it('B-1: iso32000-2 12.8.2.2（親・跨ぎあり）→ heading / heading', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 B-1: iso32000-2 12.8.2.2（親・跨ぎあり）→ heading / heading', async () => {
     const result = await toolHandlers.get_section({ section: '12.8.2.2', spec: 'iso32000-2' });
     expect(result.boundary).toEqual({ start: 'heading', end: 'heading' });
     expect(result.pageRange).toEqual({ start: 588, end: 589 });
   });
 
-  it('B-2: pdf17 9.6.4（ページ共有）→ heading / heading（0.6.2 なら page / page_shared）', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-011 B-2: pdf17 9.6.4（ページ共有）→ heading / heading（0.6.2 なら page / page_shared）', async () => {
     const result = await toolHandlers.get_section({ section: '9.6.4', spec: 'pdf17' });
     expect(result.boundary).toEqual({ start: 'heading', end: 'heading' });
   });
 
-  it('B-3: get_tables は pageRange と boundary を持つ（pdf17 9.8.1 = 289–291）', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-007 B-3: get_tables は pageRange と boundary を持つ（pdf17 9.8.1 = 289–291）', async () => {
     const result = await toolHandlers.get_tables({ section: '9.8.1', spec: 'pdf17' });
     expect(result.pageRange).toEqual({ start: 289, end: 291 });
     expect(result.boundary).toEqual({ start: 'heading', end: 'heading' });
@@ -34,12 +34,12 @@ describe.skipIf(!HAS_PDFS)('13 - boundary', () => {
     expect(one.boundary).toEqual(result.boundary);
   });
 
-  it('B-4: get_requirements（節指定）は、ページで切れた節が無ければ空の一覧を返す', async () => {
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-007 B-4: get_requirements（節指定）は、ページで切れた節が無ければ空の一覧を返す', async () => {
     const result = await toolHandlers.get_requirements({ section: '9.6', spec: 'pdf17' });
     expect(result.sectionsCutByPage).toEqual([]);
   });
 
-  it('B-5: pdf17 の全走査でページ切りになるのは Bibliography の項目だけ', async () => {
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-007 B-5: pdf17 の全走査でページ切りになるのは Bibliography の項目だけ', async () => {
     // outline が参考文献の各項目を節として持っており、本文には見出しが無い。
     // 本文の節（823 - 11）はすべて見出しで切れている。
     const result = await toolHandlers.get_requirements({ spec: 'pdf17' });
@@ -49,7 +49,7 @@ describe.skipIf(!HAS_PDFS)('13 - boundary', () => {
     }
   });
 
-  it('B-6: iso32000-2 の全走査でページ切りになるのは前付・後付と第 1 節だけ', async () => {
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-007 B-6: iso32000-2 の全走査でページ切りになるのは前付・後付と第 1 節だけ', async () => {
     const result = await toolHandlers.get_requirements({ spec: 'iso32000-2' });
     const sections = result.sectionsCutByPage.map((c) => c.section);
     expect(sections).toHaveLength(12);

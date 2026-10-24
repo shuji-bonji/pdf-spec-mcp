@@ -14,7 +14,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-1: 標準セクション取得
-  it('C-1: iso32000-2 "7.3.4" を取得', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-001 C-1: iso32000-2 "7.3.4" を取得', async () => {
     const result = await toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' });
     expect(result.sectionNumber).toBe('7.3.4');
     expect(result.title).toBeTruthy();
@@ -24,20 +24,20 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-2: トップレベルセクション
-  it('C-2: iso32000-2 "7" トップレベルセクション', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-001 C-2: iso32000-2 "7" トップレベルセクション', async () => {
     const result = await toolHandlers.get_section({ section: '7', spec: 'iso32000-2' });
     expect(result.sectionNumber).toBe('7');
     expect(result.content.length).toBeGreaterThan(0);
   });
 
   // C-3: Annex セクション
-  it('C-3: iso32000-2 "Annex A" を取得', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-001 C-3: iso32000-2 "Annex A" を取得', async () => {
     const result = await toolHandlers.get_section({ section: 'Annex A', spec: 'iso32000-2' });
     expect(result.sectionNumber).toBe('Annex A');
   });
 
   // C-4: 深いネスト
-  it('C-4: 深いネストのセクションを取得', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-001 C-4: 深いネストのセクションを取得', async () => {
     // iso32000-2 has sections like 7.3.4.2 etc.
     const result = await toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' });
     expect(result.sectionNumber).toBeTruthy();
@@ -45,7 +45,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-5: 各仕様の先頭セクション
-  describe('C-5: 全17仕様の先頭セクションが取得可能', () => {
+  describe('SPEC-PDFSPEC-GET-SECTION-001 C-5: 全17仕様の先頭セクションが取得可能', () => {
     for (const specId of ALL_SPEC_IDS) {
       it(`${specId}: 先頭セクション取得`, async () => {
         // まず structure を取得してセクション一覧を確認
@@ -77,7 +77,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-6: ContentElement 型の検証
-  it('C-6: heading/paragraph/list/table/note/code の各型が存在確認', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-003 C-6: heading/paragraph/list/table/note/code の各型が存在確認', async () => {
     const result = await toolHandlers.get_section({ section: '7.3.4.1', spec: 'iso32000-2' });
 
     const types = new Set(result.content.map((e: ContentElement) => e.type));
@@ -91,7 +91,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-6b: SV-1 — 親セクションはサブツリー全体を文書順に返す（分割済み断片の連結なので重複なし）
-  it('C-6b: 7.3.4 (親) は自身の見出し + 全子セクションの内容を返す', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-010 C-6b: 7.3.4 (親) は自身の見出し + 全子セクションの内容を返す', async () => {
     const result = await toolHandlers.get_section({ section: '7.3.4', spec: 'iso32000-2' });
     const headings = result.content
       .filter(
@@ -113,7 +113,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-14: SV-1 固定ケース — 親経由で Table 257 の P エントリの規範が見える
-  it('C-14: get_section("12.8.2.2") に Table 257 の DSS 例外（shall not be considered as changes）', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-010 C-14: get_section("12.8.2.2") に Table 257 の DSS 例外（shall not be considered as changes）', async () => {
     const result = await toolHandlers.get_section({ section: '12.8.2.2', spec: 'iso32000-2' });
     expect(result.pageRange.start).toBe(588);
     expect(result.pageRange.end).toBeGreaterThanOrEqual(589);
@@ -130,7 +130,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-7: StructTree 非対応 PDF (pdf17old)
-  it('C-7: pdf17old でフォールバック (plain text)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-005 C-7: pdf17old でフォールバック (plain text)', async () => {
     const structure = await toolHandlers.get_structure({ spec: 'pdf17old' });
     // 最初の有効なセクションを探す
     function findFirst(entries: typeof structure.sections): string | null {
@@ -153,34 +153,34 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-8: WTPDF のセクション形式
-  it('C-8: wtpdf "1" を取得 (dot-terminated 形式)', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-001 C-8: wtpdf "1" を取得 (dot-terminated 形式)', async () => {
     const result = await toolHandlers.get_section({ section: '1', spec: 'wtpdf' });
     expect(result.sectionNumber).toBe('1');
     expect(result.content.length).toBeGreaterThan(0);
   });
 
   // C-9: 存在しないセクション
-  it('C-9: 存在しないセクション "999.999" → エラー + サジェスト', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-002 C-9: 存在しないセクション "999.999" → エラー + サジェスト', async () => {
     await expect(
       toolHandlers.get_section({ section: '999.999', spec: 'iso32000-2' }),
     ).rejects.toThrow('not found');
   });
 
   // C-10: 空文字セクション
-  it('C-10: 空文字セクション → エラー', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-002 C-10: 空文字セクション → エラー', async () => {
     await expect(toolHandlers.get_section({ section: '', spec: 'iso32000-2' })).rejects.toThrow(
       /must not be empty|empty/i,
     );
   });
 
   // C-11: 大文字小文字
-  it('C-11: "annex a" (小文字) → case-insensitive で取得', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-001 C-11: "annex a" (小文字) → case-insensitive で取得', async () => {
     const result = await toolHandlers.get_section({ section: 'annex a', spec: 'iso32000-2' });
     expect(result.sectionNumber.toLowerCase()).toContain('annex');
   });
 
   // C-12: S-10 回帰 — pageRange.end が跨ぎ先ページを反映する
-  it('C-12: 14.9.4 の pageRange が 815–816（帯を採用したら end も伸びる）', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-009 C-12: 14.9.4 の pageRange が 815–816（帯を採用したら end も伸びる）', async () => {
     // 内容は p.816 の shall / NOTE / EXAMPLE まで返るのに end が 815 のままだったため、
     // ページ指定の後続処理（reader read_text / veraPDF の該当箇所確認）が 1 ページ手前で
     // 止まっていた。
@@ -189,7 +189,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
   });
 
   // C-13: S-9 回帰 — ページを共有する次セクションの内容を含まない
-  it('C-13: 8.4.3.3 の内容に 8.4.3.4 の見出しが含まれない（ページ分割）', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-007 C-13: 8.4.3.3 の内容に 8.4.3.4 の見出しが含まれない（ページ分割）', async () => {
     const result = await toolHandlers.get_section({ section: '8.4.3.3', spec: 'iso32000-2' });
     const headings = result.content.filter(
       (e): e is { type: 'heading'; level: number; text: string } => e.type === 'heading',
@@ -199,7 +199,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
 
   // C-15 〜 C-17: Issue #15 — PDF32000_2008.pdf は H 要素を持たず、見出しは P として入っている。
   // 0.6.2 は見出しを 1 つも作れず、全節がページ単位で前後の節を含んでいた。
-  it('C-15: pdf17 9.6.4 → 自節の見出しで始まり、9.6.3 の NOTE も 9.6.5 も含まない', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 C-15: pdf17 9.6.4 → 自節の見出しで始まり、9.6.3 の NOTE も 9.6.5 も含まない', async () => {
     const result = await toolHandlers.get_section({ section: '9.6.4', spec: 'pdf17' });
     expect(result.pageRange).toEqual({ start: 266, end: 266 });
     expect(result.content[0]).toEqual({ type: 'heading', level: 3, text: '9.6.4 Font Subsets' });
@@ -210,7 +210,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
     expect(text).toContain('EOODIA+Poetica'); // 9.6.4 の EXAMPLE
   });
 
-  it('C-16: pdf17 7.7.3.4 → 7.7.4 Name Dictionary を含まない', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 C-16: pdf17 7.7.3.4 → 7.7.4 Name Dictionary を含まない', async () => {
     const result = await toolHandlers.get_section({ section: '7.7.3.4', spec: 'pdf17' });
     expect(result.content[0]).toEqual({
       type: 'heading',
@@ -222,7 +222,7 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
     expect(text).toContain('Figure 6');
   });
 
-  it('C-17: pdf17 9.8.1 → Table 122 が table 要素として入り、本文に溶けていない', async () => {
+  it('SPEC-PDFSPEC-GET-SECTION-012 C-17: pdf17 9.8.1 → Table 122 が table 要素として入り、本文に溶けていない', async () => {
     const result = await toolHandlers.get_section({ section: '9.8.1', spec: 'pdf17' });
     const tables = result.content.filter((e) => e.type === 'table');
     expect(tables.length).toBeGreaterThanOrEqual(1);

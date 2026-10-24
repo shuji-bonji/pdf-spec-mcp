@@ -10,7 +10,7 @@ const table = (headers: string[], rows: string[][]): ContentElement => ({
 });
 
 describe('collectStructTreeTables', () => {
-  it('merges a continuation into the table it continues', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 merges a continuation into the table it continues', () => {
     const content: ContentElement[] = [
       caption('Table 182 — Additional entries specific to text markup annotations'),
       table(['Key', 'Type', 'Value'], [['Subtype', 'name', 'Highlight']]),
@@ -25,7 +25,7 @@ describe('collectStructTreeTables', () => {
 
   // ---- S-4: continuations that headers cannot identify ----
 
-  it('merges an adjacent all-blank-header fragment and keeps the chain alive (8.4.3.4 / 10.6.3)', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 merges an adjacent all-blank-header fragment and keeps the chain alive (8.4.3.4 / 10.6.3)', () => {
     // Table 54 arrives as three fragments: headed, blank-headed (image-only rows),
     // then the header restated. The blank fragment used to break the chain, so the
     // restated header no longer matched "the last table" and all three stayed split.
@@ -58,7 +58,7 @@ describe('collectStructTreeTables', () => {
     expect(tables[0].rows.map((r) => r[0])).toEqual(['0', '1', '2']);
   });
 
-  it('merges adjacent headerless fragments of the same width (8.7.4.5.5)', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 merges adjacent headerless fragments of the same width (8.7.4.5.5)', () => {
     const content: ContentElement[] = [
       table(
         [],
@@ -77,7 +77,7 @@ describe('collectStructTreeTables', () => {
     expect(tables[0].rows).toHaveLength(3);
   });
 
-  it('does not merge a headerless table separated by prose — it is a different table', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 does not merge a headerless table separated by prose — it is a different table', () => {
     // 8.7.4.5.5: "Mesh 2 again begins with triangle 1 ..." separates two flag lists.
     const content: ContentElement[] = [
       table([], [['1 (fa = fb = 0)', '7 (fi = 2)']]),
@@ -91,7 +91,7 @@ describe('collectStructTreeTables', () => {
     expect(collectStructTreeTables(content)).toHaveLength(2);
   });
 
-  it('does not merge an adjacent headerless table of a different width', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 does not merge an adjacent headerless table of a different width', () => {
     const content: ContentElement[] = [
       table(['Key', 'Type', 'Value'], [['A', 'x', 'y']]),
       table([], [['left', 'right']]),
@@ -102,7 +102,7 @@ describe('collectStructTreeTables', () => {
 
   // ---- S-9: fabricated all-blank rows ----
 
-  it('drops all-blank rows: the struct tree has no such TR (S-9)', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-003 drops all-blank rows: the struct tree has no such TR (S-9)', () => {
     // Page-slicing a Table element that spans pages leaves TRs with no text on this
     // page; they arrived as ["","",""] rows. Table 126 carried six of them.
     const content: ContentElement[] = [
@@ -133,7 +133,7 @@ describe('collectStructTreeTables', () => {
     ]);
   });
 
-  it('emits nothing for a fragment that is pure page-slicing noise (S-9)', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-003 emits nothing for a fragment that is pure page-slicing noise (S-9)', () => {
     // A blank-header fragment whose rows are all blank, not adjacent to any table it
     // could merge into: presenting it as a table would present nothing as spec content.
     const content: ContentElement[] = [
@@ -150,7 +150,7 @@ describe('collectStructTreeTables', () => {
     expect(collectStructTreeTables(content)).toHaveLength(0);
   });
 
-  it('drops the blank header row: it holds no text whether restated header or image row', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-003 drops the blank header row: it holds no text whether restated header or image row', () => {
     const content: ContentElement[] = [
       caption('Table 126 — Predefined spot functions'),
       table(['Name', 'Appearance', 'Definition'], [['SimpleDot', '', '1 - (x2 + y2)']]),
@@ -167,7 +167,7 @@ describe('collectStructTreeTables', () => {
     ]);
   });
 
-  it('keeps a captioned table separate', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 SPEC-PDFSPEC-GET-TABLES-004 keeps a captioned table separate', () => {
     const content: ContentElement[] = [
       caption('Table 1 — First'),
       table(['Key', 'Value'], [['A', 'a']]),
@@ -180,7 +180,7 @@ describe('collectStructTreeTables', () => {
 
   // ---- #22: Annex captions are lettered ("Table F.5", "Table Annex L.1") ----
 
-  it('recognises a lettered Annex caption and keeps same-header Annex tables apart (#22)', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-004 recognises a lettered Annex caption and keeps same-header Annex tables apart (#22)', () => {
     // Annex F of ISO 32000-1 / -2: F.3 to F.12 all have the header Item / Size / Description.
     // With the caption unrecognised, every one of them merged into the first by the
     // repeated-header rule: get_tables("Annex F", pdf17) returned 7 tables, all `caption:
@@ -204,7 +204,7 @@ describe('collectStructTreeTables', () => {
     expect(tables.map((t) => t.rows.length)).toEqual([1, 1, 1]);
   });
 
-  it('does not take a sentence that merely begins with "Table" for a caption', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-004 does not take a sentence that merely begins with "Table" for a caption', () => {
     const content: ContentElement[] = [
       caption('Table entries shall be sorted by key.'),
       table(['Key', 'Value'], [['A', 'a']]),
@@ -222,7 +222,7 @@ describe('collectStructTreeTables', () => {
    * then 7, then 10. The tools are declared readOnlyHint / idempotentHint — this made them
    * neither. Only found by driving the published server over MCP in call order.
    */
-  it('does not mutate the content it was given', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-006 does not mutate the content it was given', () => {
     const content: ContentElement[] = [
       caption('Table 182 — x'),
       table(['Key', 'Type', 'Value'], [['Subtype', 'name', 'a']]),
@@ -235,7 +235,7 @@ describe('collectStructTreeTables', () => {
     expect(content).toEqual(before);
   });
 
-  it('returns the same result however often it is called', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-006 returns the same result however often it is called', () => {
     const content: ContentElement[] = [
       caption('Table 182 — x'),
       table(['Key', 'Type', 'Value'], [['Subtype', 'name', 'a']]),
@@ -250,7 +250,7 @@ describe('collectStructTreeTables', () => {
     expect(third).toEqual(first);
   });
 
-  it('hands back rows the caller cannot use to corrupt the cache', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-006 hands back rows the caller cannot use to corrupt the cache', () => {
     // Even a caller that mutates the result must not reach the content behind it.
     const content: ContentElement[] = [
       caption('Table 1 — x'),
@@ -266,7 +266,7 @@ describe('collectStructTreeTables', () => {
     expect(again[0].headers).toEqual(['Key', 'Value']);
   });
 
-  it('copies continuation rows too — editing a merged cell must not reach the cache', () => {
+  it('SPEC-PDFSPEC-GET-TABLES-006 copies continuation rows too — editing a merged cell must not reach the cache', () => {
     // The 0.4.1 fix copied rows at push time, but the merge path still spread the
     // cached inner arrays by reference. Overwriting a cell of a merged row rewrote
     // the cached page.

@@ -17,7 +17,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   // セクション "7.4.7" などにはテーブルがある
 
   // T-1: テーブル取得
-  it('T-1: iso32000-2 テーブル含有セクション → tables.length > 0', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-1: iso32000-2 テーブル含有セクション → tables.length > 0', async () => {
     // まず get_structure で探索
     // "7.9.6" は CIDFont のテーブルがあるセクション
     // いくつかのセクションを試す
@@ -38,7 +38,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-2: テーブル構造の検証
-  it('T-2: headers[]非空、rows[][]の列数がheadersと一致', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-2: headers[]非空、rows[][]の列数がheadersと一致', async () => {
     const candidates = ['7.9.6', '8.4.5', '12.8.1', '7.4.7'];
     for (const section of candidates) {
       try {
@@ -61,7 +61,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-3: table_index=0
-  it('T-3: table_index=0 → tables.length=1', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-3: table_index=0 → tables.length=1', async () => {
     const candidates = ['7.9.6', '8.4.5', '12.8.1', '7.4.7'];
     for (const section of candidates) {
       try {
@@ -79,7 +79,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-4: table_index 範囲外
-  it('T-4: table_index=999 → エラー', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-4: table_index=999 → エラー', async () => {
     // テーブルがあるセクションで範囲外の table_index
     const candidates = ['7.9.6', '8.4.5', '12.8.1'];
     for (const section of candidates) {
@@ -96,7 +96,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-5: テーブルなしセクション
-  it('T-5: テーブルなしセクション → tables.length=0', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-5: テーブルなしセクション → tables.length=0', async () => {
     // "7.2.2" はテーブルなしと判明している
     const result = await toolHandlers.get_tables({ section: '7.2.2', spec: 'iso32000-2' });
     expect(result.totalTables).toBe(0);
@@ -104,7 +104,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-6: PDF 1.7
-  it('T-6: pdf17 9.8.1 → Table 122 が 22 行 1 表（#16: 0.6.2 は 0 件だった）', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-002 T-6: pdf17 9.8.1 → Table 122 が 22 行 1 表（#16: 0.6.2 は 0 件だった）', async () => {
     // PDF32000_2008.pdf nests every table as P > Span > Table; 0.6.2 collected the
     // outer P as text and reported 0 tables for every section of pdf17.
     const result = await toolHandlers.get_tables({ section: '9.8.1', spec: 'pdf17' });
@@ -118,14 +118,14 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
     );
   });
 
-  it('T-6b: pdf17 7.7.2 → Table 28（表 0 件が pdf17 全体の症状だったことの対照）', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-004 T-6b: pdf17 7.7.2 → Table 28（表 0 件が pdf17 全体の症状だったことの対照）', async () => {
     const result = await toolHandlers.get_tables({ section: '7.7.2', spec: 'pdf17' });
     expect(result.totalTables).toBe(1);
     expect(result.tables[0].caption).toMatch(/^Table 28/);
   });
 
   // T-6c / T-6d: Annex の表はキャプションが英字付き（#22）
-  it('T-6c: pdf17 Annex F → Table F.1〜F.12 の 12 表、caption はすべて非 null（#22: 0.8.0 は 7 表・全部 null）', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-004 T-6c: pdf17 Annex F → Table F.1〜F.12 の 12 表、caption はすべて非 null（#22: 0.8.0 は 7 表・全部 null）', async () => {
     // F.3〜F.12 はヘッダが Item / Size (bits) / Description で共通。キャプションが取れないと
     // ヘッダ再掲の連結規則が別々の表を 1 つに畳む。
     const result = await toolHandlers.get_tables({ section: 'Annex F', spec: 'pdf17' });
@@ -155,7 +155,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
     expect(leaf.tables.map((t) => t.rows.length)).toEqual([13, 7]);
   });
 
-  it('T-6d: iso32000-2 Annex A → Table A.1 が 73 行 1 表で caption あり / Annex O の "Table Annex O.n" も取れる', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-004 T-6d: iso32000-2 Annex A → Table A.1 が 73 行 1 表で caption あり / Annex O の "Table Annex O.n" も取れる', async () => {
     const a = await toolHandlers.get_tables({ section: 'Annex A', spec: 'iso32000-2' });
     expect(a.totalTables).toBe(1);
     expect(a.tables[0].caption).toMatch(/^Table A\.1 — PDF content stream operators/);
@@ -170,7 +170,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-7: 小規模PDF (ts32002)
-  it('T-7: ts32002 → 正常動作', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-7: ts32002 → 正常動作', async () => {
     const structure = await toolHandlers.get_structure({ spec: 'ts32002' });
     const firstSection = structure.sections.find((s) => s.sectionNumber !== null);
     if (firstSection?.sectionNumber) {
@@ -183,7 +183,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-8: StructTree 非対応 (pdf17old)
-  it('T-8: pdf17old → フォールバック動作', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-8: pdf17old → フォールバック動作', async () => {
     const structure = await toolHandlers.get_structure({ spec: 'pdf17old' });
     const firstSection = structure.sections.find((s) => s.sectionNumber !== null);
     if (firstSection?.sectionNumber) {
@@ -197,7 +197,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-9: THead/TBody ラッパー
-  it('T-9: iso32000-2 のテーブルでヘッダーとボディ行が分離', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-001 T-9: iso32000-2 のテーブルでヘッダーとボディ行が分離', async () => {
     const candidates = ['7.9.6', '8.4.5', '12.8.1', '7.4.7'];
     for (const section of candidates) {
       try {
@@ -212,7 +212,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-10: S-9 回帰 — 実在しない空行を捏造しない
-  it('T-10: Table 126 は 21 行・全セル空の行ゼロ（構造木に空 TR は存在しない）', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-003 T-10: Table 126 は 21 行・全セル空の行ゼロ（構造木に空 TR は存在しない）', async () => {
     // ページ跨ぎ Table 要素（386 の断片が TH 内に他ページの Figure を抱える）の輪切りが
     // ["","",""] 行として合成されていた。地上真実は pdf-lib ダンプ + reader M-8 で確認済み:
     // データ行 7+5+7+2 = 21、空行ゼロ。
@@ -223,7 +223,7 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
   });
 
   // T-11: S-9 回帰 — 次セクションの表を前セクションに残さない
-  it('T-11: 8.4.3.3 に Table 54（8.4.3.4 の表）が不完全な重複として現れない', async () => {
+  it('SPEC-PDFSPEC-GET-TABLES-005 T-11: 8.4.3.3 に Table 54（8.4.3.4 の表）が不完全な重複として現れない', async () => {
     const result = await toolHandlers.get_tables({ section: '8.4.3.3', spec: 'iso32000-2' });
     const captions = result.tables.map((t) => t.caption ?? '');
     expect(captions.some((c) => c.includes('Table 53'))).toBe(true);
