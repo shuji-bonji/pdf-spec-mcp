@@ -2,8 +2,8 @@
  "spec": "iso32000-2",
  "file": "ISO_32000-2_sponsored_EC3.pdf",
  "generatedWith": {
-  "package": "0.8.0",
-  "dist": "0.8.0",
+  "package": "0.9.0",
+  "dist": "0.9.0",
   "node": "v22.22.0"
  },
  "tools": [
@@ -29,7 +29,7 @@
   },
   "tablesTotal": 1681,
   "tablesTotalLeafOnly": 460,
-  "tablesWithNullCaption": 56,
+  "tablesWithNullCaption": 48,
   "requirementsTotal": 25068,
   "errors": 0
  },
@@ -765,15 +765,15 @@
     "end": "page"
    },
    "content": {
-    "elements": 1773,
+    "elements": 1774,
     "byType": {
      "heading": 167,
-     "paragraph": 1222,
+     "paragraph": 1223,
      "list": 81,
      "table": 189,
      "note": 114
     },
-    "sha": "da1615f0cd2c7921"
+    "sha": "75f77bfbaa485310"
    },
    "tables": {
     "total": 130,
@@ -1247,15 +1247,15 @@
     "end": "heading"
    },
    "content": {
-    "elements": 1707,
+    "elements": 1709,
     "byType": {
      "heading": 152,
-     "paragraph": 1233,
+     "paragraph": 1235,
      "list": 60,
      "table": 98,
      "note": 164
     },
-    "sha": "097440655b6049c1"
+    "sha": "51ec19071561d692"
    },
    "tables": {
     "total": 63,
@@ -1482,11 +1482,11 @@
     "end": "page"
    },
    "content": {
-    "elements": 19,
+    "elements": 23,
     "byType": {
-     "paragraph": 19
+     "paragraph": 23
     },
-    "sha": "7fd38653b302582d"
+    "sha": "ec4ea51e96a77a41"
    },
    "tables": {
     "total": 0,
@@ -1517,9 +1517,11 @@
     "end": "page"
    },
    "content": {
-    "elements": 0,
-    "byType": {},
-    "sha": "4f53cda18c2baa0c"
+    "elements": 4,
+    "byType": {
+     "paragraph": 4
+    },
+    "sha": "a98ef0126d1b71fe"
    },
    "tables": {
     "total": 0,
@@ -19406,15 +19408,15 @@
     "end": "heading"
    },
    "content": {
-    "elements": 287,
+    "elements": 288,
     "byType": {
      "heading": 32,
-     "paragraph": 181,
+     "paragraph": 182,
      "list": 13,
      "table": 44,
      "note": 17
     },
-    "sha": "6e6898ea729b2ade"
+    "sha": "d70a33c3e21c64c7"
    },
    "tables": {
     "total": 30,
@@ -19712,15 +19714,15 @@
     "end": "heading"
    },
    "content": {
-    "elements": 223,
+    "elements": 224,
     "byType": {
      "heading": 26,
-     "paragraph": 141,
+     "paragraph": 142,
      "table": 35,
      "list": 9,
      "note": 12
     },
-    "sha": "fe9b005efccca031"
+    "sha": "a21423f69a06e59a"
    },
    "tables": {
     "total": 25,
@@ -20007,13 +20009,13 @@
     "end": "page"
    },
    "content": {
-    "elements": 6,
+    "elements": 7,
     "byType": {
      "heading": 1,
-     "paragraph": 3,
+     "paragraph": 4,
      "table": 2
     },
-    "sha": "62b7dc821b88900d"
+    "sha": "568b9d333208ee43"
    },
    "tables": {
     "total": 1,
@@ -32917,15 +32919,15 @@
     "end": "heading"
    },
    "content": {
-    "elements": 123,
+    "elements": 125,
     "byType": {
      "heading": 18,
-     "paragraph": 69,
+     "paragraph": 71,
      "list": 5,
      "note": 19,
      "table": 12
     },
-    "sha": "61514e928f20c727"
+    "sha": "725f34a7e98b7d6b"
    },
    "tables": {
     "total": 10,
@@ -33050,15 +33052,15 @@
     "end": "heading"
    },
    "content": {
-    "elements": 40,
+    "elements": 42,
     "byType": {
      "heading": 5,
-     "paragraph": 23,
+     "paragraph": 25,
      "note": 9,
      "list": 2,
      "table": 1
     },
-    "sha": "891676f2e10b0914"
+    "sha": "28ce77012315cd9a"
    },
    "tables": {
     "total": 1,
@@ -33091,13 +33093,13 @@
     "end": "heading"
    },
    "content": {
-    "elements": 11,
+    "elements": 13,
     "byType": {
      "heading": 1,
-     "paragraph": 9,
+     "paragraph": 11,
      "note": 1
     },
-    "sha": "b20d06da9881ff02"
+    "sha": "23929cb6874d36a1"
    },
    "tables": {
     "total": 0,
@@ -36954,15 +36956,15 @@
     "end": "page"
    },
    "content": {
-    "elements": 1235,
+    "elements": 1243,
     "byType": {
      "heading": 18,
-     "paragraph": 1199,
+     "paragraph": 1207,
      "list": 3,
      "note": 6,
      "table": 9
     },
-    "sha": "fd7cd662d15a5064"
+    "sha": "defa0c2063e24459"
    },
    "tables": {
     "total": 7,
@@ -37149,12 +37151,12 @@
     "end": "heading"
    },
    "content": {
-    "elements": 176,
+    "elements": 177,
     "byType": {
      "heading": 1,
-     "paragraph": 175
+     "paragraph": 176
     },
-    "sha": "455585abd6354e12"
+    "sha": "9f13076887c56e10"
    },
    "tables": {
     "total": 0,
@@ -37180,13 +37182,13 @@
     "end": "heading"
    },
    "content": {
-    "elements": 117,
+    "elements": 119,
     "byType": {
      "heading": 1,
-     "paragraph": 113,
+     "paragraph": 115,
      "note": 3
     },
-    "sha": "69b99be9473c4dbe"
+    "sha": "726236627629b8eb"
    },
    "tables": {
     "total": 0,
@@ -37433,12 +37435,12 @@
     "end": "page"
    },
    "content": {
-    "elements": 392,
+    "elements": 397,
     "byType": {
      "heading": 5,
-     "paragraph": 387
+     "paragraph": 392
     },
-    "sha": "6d7739197b75f49b"
+    "sha": "aed7fb0e598e0b65"
    },
    "tables": {
     "total": 0,
@@ -37497,12 +37499,12 @@
     "end": "heading"
    },
    "content": {
-    "elements": 179,
+    "elements": 182,
     "byType": {
      "heading": 1,
-     "paragraph": 178
+     "paragraph": 181
     },
-    "sha": "34cbc36f25bb2378"
+    "sha": "b19af65a166b1ee9"
    },
    "tables": {
     "total": 0,
@@ -37530,12 +37532,12 @@
     "end": "heading"
    },
    "content": {
-    "elements": 137,
+    "elements": 139,
     "byType": {
      "heading": 1,
-     "paragraph": 136
+     "paragraph": 138
     },
-    "sha": "588e5f479f6cd094"
+    "sha": "b0f2b34667bd156b"
    },
    "tables": {
     "total": 0,
@@ -38997,25 +38999,25 @@
     "end": "document"
    },
    "content": {
-    "elements": 96,
+    "elements": 104,
     "byType": {
      "heading": 17,
-     "paragraph": 58,
+     "paragraph": 66,
      "table": 12,
      "note": 8,
      "list": 1
     },
-    "sha": "b3669ce7d14208e2"
+    "sha": "5a25ac783886b7c4"
    },
    "tables": {
     "total": 9,
     "captions": [
      null,
      null,
-     null,
-     null,
-     null,
-     null,
+     "Table 323a - Interpretation of 3D Node Subtype entry",
+     "Table 352a - Marked content tags defined in PDF 2.0 (informative)",
+     "Table 377 – Standard layout attributes",
+     "Table 409a - Property list entries for associated files",
      "Table 24 — Public-key security handler user access permissions",
      "Table 125a - Additional entries in a ToUnicode CMap stream dictionary",
      "Table 333 — Additional entries specific to a RichMedia annotation"
@@ -39031,7 +39033,7 @@
      5,
      2
     ],
-    "sha": "aae350da87018461"
+    "sha": "de9088a6657fa702"
    },
    "requirements": {
     "total": 25,
@@ -39048,7 +39050,7 @@
      "Issue #462",
      "Issue 284"
     ],
-    "sha": "b4582e0b06997827"
+    "sha": "57c1c7b99591ff71"
    }
   },
   "Issue #300 and Issue #327": {
@@ -39200,23 +39202,23 @@
     "end": "page"
    },
    "content": {
-    "elements": 3,
+    "elements": 4,
     "byType": {
      "heading": 1,
-     "paragraph": 1,
+     "paragraph": 2,
      "table": 1
     },
-    "sha": "6d9e40648cd45ee2"
+    "sha": "0ca38fb027e9af1a"
    },
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table 323a - Interpretation of 3D Node Subtype entry"
     ],
     "rows": [
      3
     ],
-    "sha": "f9c62c660beaea31"
+    "sha": "85e161de45c2df68"
    },
    "requirements": {
     "total": 5,
@@ -39224,7 +39226,7 @@
      "shall": 5
     },
     "cutByPage": [],
-    "sha": "352ce5e34f468c07"
+    "sha": "1ac98514f20e15b7"
    }
   },
   "Issue #334": {
@@ -39238,23 +39240,23 @@
     "end": "page"
    },
    "content": {
-    "elements": 4,
+    "elements": 5,
     "byType": {
      "heading": 1,
-     "paragraph": 2,
+     "paragraph": 3,
      "table": 1
     },
-    "sha": "55a91b76105791c5"
+    "sha": "3ca7e59b6649a6fc"
    },
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table 352a - Marked content tags defined in PDF 2.0 (informative)"
     ],
     "rows": [
      8
     ],
-    "sha": "337284bd61cf47aa"
+    "sha": "4cd0c43e00a72e1b"
    },
    "requirements": {
     "total": 0,
@@ -39341,23 +39343,23 @@
     "end": "page"
    },
    "content": {
-    "elements": 5,
+    "elements": 6,
     "byType": {
      "heading": 1,
-     "paragraph": 2,
+     "paragraph": 3,
      "table": 2
     },
-    "sha": "f1df7406b2fb67e6"
+    "sha": "567d6c5274fc5948"
    },
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table 377 – Standard layout attributes"
     ],
     "rows": [
      33
     ],
-    "sha": "87fab97606283bac"
+    "sha": "571a938be65e9696"
    },
    "requirements": {
     "total": 2,
@@ -39380,24 +39382,24 @@
     "end": "page"
    },
    "content": {
-    "elements": 6,
+    "elements": 7,
     "byType": {
      "heading": 1,
-     "paragraph": 3,
+     "paragraph": 4,
      "note": 1,
      "table": 1
     },
-    "sha": "309a49bfe852f11d"
+    "sha": "72d2254f0b7c5b8a"
    },
    "tables": {
     "total": 1,
     "captions": [
-     null
+     "Table 409a - Property list entries for associated files"
     ],
     "rows": [
      1
     ],
-    "sha": "c2f27b0a39068ca5"
+    "sha": "8c4c397bd8a52691"
    },
    "requirements": {
     "total": 1,
@@ -39405,7 +39407,7 @@
      "shall": 1
     },
     "cutByPage": [],
-    "sha": "f817f84a53737a0b"
+    "sha": "bfaef9b40d027826"
    }
   },
   "Issue #419": {
@@ -39419,12 +39421,12 @@
     "end": "page"
    },
    "content": {
-    "elements": 9,
+    "elements": 10,
     "byType": {
      "heading": 1,
-     "paragraph": 8
+     "paragraph": 9
     },
-    "sha": "86dc52369d8e3fc3"
+    "sha": "e31d6ae7d61a3717"
    },
    "tables": {
     "total": 0,
@@ -39450,12 +39452,12 @@
     "end": "page"
    },
    "content": {
-    "elements": 2,
+    "elements": 3,
     "byType": {
      "heading": 1,
-     "paragraph": 1
+     "paragraph": 2
     },
-    "sha": "856c4a44ae4a8d84"
+    "sha": "720a22a779efcfe7"
    },
    "tables": {
     "total": 0,
@@ -39481,12 +39483,12 @@
     "end": "next_page_unclaimed"
    },
    "content": {
-    "elements": 3,
+    "elements": 5,
     "byType": {
      "heading": 1,
-     "paragraph": 2
+     "paragraph": 4
     },
-    "sha": "a2ffa832e278af46"
+    "sha": "ba00a3cc4625b453"
    },
    "tables": {
     "total": 0,

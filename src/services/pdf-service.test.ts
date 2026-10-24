@@ -618,6 +618,48 @@ describe('get_tables / get_requirements — fixed by the same seam', () => {
   });
 });
 
+describe('unhandled roles — a caption whose text sits directly under a Div (#25)', () => {
+  /**
+   * The errata pages of ISO 32000-2 put the table caption ("Table 323a - …") as text
+   * directly under an element whose role the walker does not handle. It used to be
+   * dropped, so the table came back with caption null and its requirements without
+   * `table`. Here the caption is a content item directly under a Div.
+   */
+  function divTextFixture(text: string) {
+    const id = `c${cellSeq++}`;
+    return { node: { role: 'Div', children: [{ type: 'content', id }] }, cells: [{ id, text }] };
+  }
+
+  function erratumDoc() {
+    const doc = createDoc([
+      [
+        headingFixture('1.1 Issue'),
+        divTextFixture('Table 323a - Interpretation of 3D Node Subtype entry'),
+        tableFixture(
+          ['Key', 'Type', 'Value'],
+          [['Subtype', 'name', 'The Subtype of the corresponding 3D stream shall be U3D.']],
+        ),
+      ],
+    ]);
+    return createService(doc, outline([['1.1 Issue', 1]]));
+  }
+
+  it('SPEC-PDFSPEC-GET-TABLES-008 Div の直下のキャプション', async () => {
+    const result = await erratumDoc().getTables('1.1', undefined, 'test-spec');
+
+    expect(result.totalTables).toBe(1);
+    expect(result.tables[0].caption).toMatch(/^Table 323a/);
+  });
+
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-008 Div の直下のキャプションを持つ表の要件', async () => {
+    const result = await erratumDoc().getRequirements('1.1', undefined, 'test-spec');
+
+    expect(result.totalRequirements).toBe(1);
+    expect(result.requirements[0]).toMatchObject({ source: 'table', key: 'Subtype' });
+    expect(result.requirements[0].table).toMatch(/^Table 323a/);
+  });
+});
+
 // ========================================
 // Issue #6 — the on-disk index store
 // ========================================

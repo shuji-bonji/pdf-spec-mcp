@@ -230,4 +230,21 @@ describe.skipIf(!HAS_PDFS)('04 - get_section', () => {
     // 0.6.2 では "FontName name (Required) ..." が段落の文字列として返っていた
     expect(paragraphs.some((p) => /FontName name \(Required\)/.test(p.text))).toBe(false);
   });
+
+  // C-18 / C-19: #25 — 扱い方を決めていない役割（TOC / TOCI / Figure など）の直下の文字
+  it('SPEC-PDFSPEC-GET-SECTION-013 実際の目次の節が空でない', async () => {
+    // 0.9.0 は Contents が 0 要素だった（TOC > TOCI の直下の文字を捨てていた）
+    const result = await toolHandlers.get_section({ section: 'Contents', spec: 'iso32000-2' });
+    expect(result.content.length).toBeGreaterThan(0);
+  });
+
+  it('SPEC-PDFSPEC-GET-SECTION-013 実際の節で図の文字が入る', async () => {
+    const result = await toolHandlers.get_section({ section: '12.5.6.6', spec: 'iso32000-2' });
+    const i = result.content.findIndex(
+      (e) => e.type === 'paragraph' && e.text.includes('Free text with callouts'),
+    );
+    expect(i).toBeGreaterThanOrEqual(0);
+    const next = result.content[i + 1];
+    expect(next?.type === 'paragraph' && next.text.startsWith('Figure 79')).toBe(true);
+  });
 });

@@ -871,3 +871,132 @@ describe('nested-P pages (ISO 32000-1 tag shape, #15 / #16)', () => {
     ]);
   });
 });
+
+describe('unhandled roles', () => {
+  /**
+   * visitStructElement used to walk an unhandled role (TOC / TOCI / Link / Span / Caption /
+   * Figure …) only for its child elements, so text placed directly under it was dropped:
+   * the Contents section came back empty and the errata tables lost their captions (#25).
+   * ISO 32000-2 §14.7.5.1 lets any structure element hold content items directly.
+   */
+  const leaf = (id: string) => ({ type: 'content' as const, id });
+  const text = (id: string, str: string): MockTextItem[] => [
+    { type: 'beginMarkedContentProps', id },
+    { str, hasEOL: false },
+    { type: 'endMarkedContent' },
+  ];
+
+  it('SPEC-PDFSPEC-GET-SECTION-013 目次の項目の文字が段落になる', async () => {
+    const doc = createMockDoc([
+      {
+        structTree: {
+          role: 'Document',
+          children: [
+            {
+              role: 'TOC',
+              children: [
+                { role: 'TOCI', children: [leaf('t1')] },
+                { role: 'TOCI', children: [leaf('t2')] },
+              ],
+            },
+          ],
+        },
+        // The Contents pages end each entry's line with an EOL, as here.
+        textItems: [
+          { type: 'beginMarkedContentProps', id: 't1' },
+          { str: '1 Scope ........ 1', hasEOL: true },
+          { type: 'endMarkedContent' },
+          { type: 'beginMarkedContentProps', id: 't2' },
+          { str: '2 Conformance ........ 2', hasEOL: true },
+          { type: 'endMarkedContent' },
+        ],
+      },
+    ]);
+
+    const elements = await extractSectionContent(doc, 1, 1);
+
+    // TOCI is not a block role, so the entries form one run of text: one paragraph whose
+    // lines are the entries (the Contents section of ISO 32000-2 comes back as 4 such
+    // paragraphs, one per page).
+    expect(elements).toEqual([
+      { type: 'paragraph', text: '1 Scope ........ 1\n2 Conformance ........ 2' },
+    ]);
+  });
+
+  it('SPEC-PDFSPEC-GET-SECTION-013 図の中の文字が図のキャプションの直前に段落として出る', async () => {
+    const doc = createMockDoc([
+      {
+        structTree: {
+          role: 'Document',
+          children: [
+            {
+              role: 'Div',
+              children: [
+                { role: 'Figure', children: [leaf('f1'), leaf('f2')] },
+                { role: 'P', children: [leaf('cap')] },
+              ],
+            },
+          ],
+        },
+        textItems: [
+          ...text('f1', 'x1, y1'),
+          ...text('f2', 'x2, y2'),
+          ...text('cap', 'Figure 1 — Callout coordinates'),
+        ],
+      },
+    ]);
+
+    const elements = await extractSectionContent(doc, 1, 1);
+
+    expect(elements).toEqual([
+      { type: 'paragraph', text: 'x1, y1x2, y2' },
+      { type: 'paragraph', text: 'Figure 1 — Callout coordinates' },
+    ]);
+  });
+
+  it('SPEC-PDFSPEC-GET-SECTION-013 入れ物の直下の文字とブロック要素が文書順に並ぶ', async () => {
+    const doc = createMockDoc([
+      {
+        structTree: {
+          role: 'Document',
+          children: [
+            {
+              role: 'Sect',
+              children: [leaf('a'), { role: 'P', children: [leaf('b')] }, leaf('c')],
+            },
+          ],
+        },
+        textItems: [...text('a', 'Before.'), ...text('b', 'Middle.'), ...text('c', 'After.')],
+      },
+    ]);
+
+    const elements = await extractSectionContent(doc, 1, 1);
+
+    expect(elements).toEqual([
+      { type: 'paragraph', text: 'Before.' },
+      { type: 'paragraph', text: 'Middle.' },
+      { type: 'paragraph', text: 'After.' },
+    ]);
+  });
+
+  it('SPEC-PDFSPEC-GET-SECTION-013 入れ物の中の Artifact は出さない', async () => {
+    const doc = createMockDoc([
+      {
+        structTree: {
+          role: 'Document',
+          children: [
+            {
+              role: 'Div',
+              children: [{ role: 'Artifact', children: [leaf('art')] }, leaf('body')],
+            },
+          ],
+        },
+        textItems: [...text('art', 'Page 42'), ...text('body', 'Errata body.')],
+      },
+    ]);
+
+    const elements = await extractSectionContent(doc, 1, 1);
+
+    expect(elements).toEqual([{ type: 'paragraph', text: 'Errata body.' }]);
+  });
+});

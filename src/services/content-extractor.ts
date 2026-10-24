@@ -228,12 +228,12 @@ export interface PageSegment {
  *                                  owner adopts nothing (69 sections of ISO 32000-2)
  *
  * When NO heading is found at all, the page is returned as one raw-text segment for the
- * last starting section — exactly what the whole-page index did. This is not just a
- * shortcut: walkStructTree drops text whose only home is an unhandled container (TOC /
- * TOCI / Link / Span chains on the Contents pages, the errata "Issue #NNN" pages, the
- * INTERNATIONAL STANDARD title page), so element text on those pages is near-empty and
- * cutting by elements would silently drop them from the index. Headingless pages cannot
- * be cut anyway — falling back to the raw page keeps them whole.
+ * last starting section — exactly what the whole-page index did. Headingless pages cannot
+ * be cut anyway, and the raw page does not depend on how well the struct tree was read.
+ * Until #25 the walker dropped text placed directly under an unhandled role (TOC / TOCI /
+ * Link / Span on the Contents pages, the errata "Issue #NNN" pages, the title page), so
+ * element text on those pages was near-empty; it is read now, but Issue #379 (p.1020)
+ * still yields no elements, so keep this arm.
  *
  * @param startingSections - section numbers starting on this page, in document order
  * @param hints - Outline-derived heading hints (see HeadingHints)
@@ -470,15 +470,22 @@ function visitStructElement(child: StructTreeNode, ctx: WalkContext): ContentEle
     return text ? [{ type: 'code', text }] : [];
   }
 
-  // Recurse into container elements (Document, Part, Sect, Div, etc.)
-  return walkStructTree(child, ctx);
+  // Any other role (Document, Part, Sect, Div, TOC, TOCI, Link, Span, Caption, Figure …):
+  // read it like a container P. Block children become elements; text placed directly under
+  // it, and the text of inline children, becomes paragraphs in document order. Walking only
+  // the child elements dropped that text — the Contents section came back empty and the
+  // errata tables lost their captions (#25). ISO 32000-2 §14.7.5.1 lets any structure
+  // element hold content items directly; Figure's text is part of the figure (Table 373).
+  return visitContainerParagraph(child, ctx);
 }
 
 /**
- * A container P (#15 / #16): block children are visited as elements; the text between
- * them — content leaves and inline Span/Link children — is gathered into paragraphs.
- * Without the gathering, a page's first body paragraph, which ISO 32000-1 tags as a bare
- * Span beside the block children, would vanish.
+ * A container P (#15 / #16), and since #25 every role visitStructElement does not handle:
+ * block children are visited as elements; the text between them — content leaves and
+ * inline Span/Link children — is gathered into paragraphs. Without the gathering, a page's
+ * first body paragraph, which ISO 32000-1 tags as a bare Span beside the block children,
+ * would vanish. An element with only block children yields exactly what walking its
+ * children did.
  */
 function visitContainerParagraph(node: StructTreeNode, ctx: WalkContext): ContentElement[] {
   const out: ContentElement[] = [];

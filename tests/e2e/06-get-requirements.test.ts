@@ -183,4 +183,16 @@ describe.skipIf(!HAS_PDFS)('06 - get_requirements', () => {
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
   });
+
+  // RQ-13: #25 — キャプションが取れた正誤表の表の要件に table が付く
+  it('SPEC-PDFSPEC-GET-REQUIREMENTS-008 実際の正誤表の節', async () => {
+    const result = await toolHandlers.get_requirements({
+      section: 'Issue #156',
+      spec: 'iso32000-2',
+    });
+    expect(result.totalRequirements).toBe(5);
+    for (const r of result.requirements) {
+      expect(r.table).toMatch(/^Table 323a/);
+    }
+  });
 });

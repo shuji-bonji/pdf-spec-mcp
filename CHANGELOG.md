@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Text placed directly under a structure element whose role the extractor does not handle
+  (`TOC`, `TOCI`, `Link`, `Span`, `Caption`, `Figure`, …) was dropped: the walker only
+  descended into such an element's child elements, never its content items (#25). ISO
+  32000-2 §14.7.5.1 lets any structure element hold content items directly. On
+  `iso32000-2` the `Contents` section came back empty, the title page and seven errata
+  sections lost part of their text, and four errata tables (Table 323a, 352a, 377, 409a)
+  came back `caption: null` because their caption was such text. These elements are now
+  read like a container `P` (#15 / #16): block children become elements as before, and the
+  text between them becomes paragraphs in document order. Specified as
+  `SPEC-PDFSPEC-GET-SECTION-013`, `SPEC-PDFSPEC-GET-TABLES-008` and
+  `SPEC-PDFSPEC-GET-REQUIREMENTS-008`.
+
+### Changed
+
+- Text inside `Figure` elements is now returned, as a `paragraph` placed just before the
+  figure's caption paragraph — axis labels, coordinates and node numbers drawn as text
+  (ISO 32000-2 §14.8.4.8.5, Table 373, counts such text as part of the figure). This
+  affects six body sections of `iso32000-2`: 12.5.6.6, 14.10.3.1, H.5, H.6, H.8.2 and H.8.3.
+
+The full-corpus baseline (`.golden/iso32000-2.digest.json`) was updated to accept exactly
+these differences, measured with `npm run golden:check` against 0.9.0: 24 of 987 sections
+changed (the 10 front-matter and errata sections, the 6 sections above, and their 8
+ancestors 12, 12.5, 12.5.6, 14, 14.10, 14.10.3, Annex H and H.8). Only `paragraph`
+elements were added; in every changed section the 0.9.0 elements survive unchanged and in
+order. Tables with a `null` caption went from 56 to 48 (the four errata tables, each
+counted in its own section and in the parent `Additional errata pages`); the six
+requirements in those tables (five in Issue #156, one in Issue #374) now carry `table`.
+Table count (1,681) and rows, the requirement count (25,068), `boundary` and `pageRange`
+are unchanged. `pdf17` has no differences in any of its 823 sections. The `search_spec`
+index gains text in 11 segments (seven errata pages and four pages with figures); no
+segment changes the section it belongs to. `Issue #379` (p.1020) still yields no elements;
+its cause is different and not addressed here.
+
 ## [0.9.0] - 2026-10-21
 
 ### Fixed

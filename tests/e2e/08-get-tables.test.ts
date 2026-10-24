@@ -234,4 +234,11 @@ describe.skipIf(!HAS_PDFS)('08 - get_tables', () => {
     expect(owner.tables[0].caption).toContain('Table 54');
     expect(owner.tables[0].rows).toHaveLength(3);
   });
+
+  // T-12: #25 — 正誤表のキャプションは扱い方を決めていない役割の直下の文字だった
+  it('SPEC-PDFSPEC-GET-TABLES-008 実際の正誤表の節', async () => {
+    const result = await toolHandlers.get_tables({ section: 'Issue #156', spec: 'iso32000-2' });
+    expect(result.totalTables).toBe(1);
+    expect(result.tables[0].caption).toMatch(/^Table 323a/);
+  });
 });
