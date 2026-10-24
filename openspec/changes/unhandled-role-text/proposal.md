@@ -1,6 +1,6 @@
 ---
-approved:
-pr:
+approved: 2026-10-25
+pr: 27
 implementation: required
 targets: [get-section, get-tables, get-requirements]
 ---
