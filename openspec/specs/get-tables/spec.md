@@ -1,8 +1,8 @@
 ---
 spec_id: PDFSPEC
 kind: tool
-approved:
-pr:
+approved: 2026-10-25
+pr: 26
 ---
 # get-tables
 
