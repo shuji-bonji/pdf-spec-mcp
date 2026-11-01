@@ -122,6 +122,19 @@ export class DocumentLoaderService {
   }
 
   /**
+   * Drop one cached document, if present (spec-sources 002). The next `loadDocument` reads
+   * the file again — used when the spec's file was replaced while the process ran.
+   */
+  evictDocument(pdfPath: string): void {
+    const existing = this.documentCache.get(pdfPath);
+    if (!existing) return;
+    existing.destroy();
+    this.documentCache.delete(pdfPath);
+    const idx = this.accessOrder.indexOf(pdfPath);
+    if (idx >= 0) this.accessOrder.splice(idx, 1);
+  }
+
+  /**
    * Get outline with resolved page numbers
    */
   async getOutlineWithPages(doc: PDFDocumentProxy): Promise<OutlineEntry[]> {
@@ -262,6 +275,13 @@ export async function loadDocument(pdfPath: string): Promise<PDFDocumentProxy> {
  */
 export async function reloadDocument(pdfPath: string): Promise<PDFDocumentProxy> {
   return defaultLoader.reloadDocument(pdfPath);
+}
+
+/**
+ * Drop one cached document from the default loader (spec-sources 002).
+ */
+export function evictDocument(pdfPath: string): void {
+  defaultLoader.evictDocument(pdfPath);
 }
 
 /**

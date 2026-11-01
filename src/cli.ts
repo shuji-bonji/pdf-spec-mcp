@@ -22,11 +22,17 @@
 
 import { CACHE_ENV, PACKAGE_INFO } from './config.js';
 import { FileIndexStore } from './services/index-store.js';
-import { getOutlineWithPages, loadDocument, reloadDocument } from './services/pdf-loader.js';
+import {
+  evictDocument,
+  getOutlineWithPages,
+  loadDocument,
+  reloadDocument,
+} from './services/pdf-loader.js';
 import {
   enrichSpecInfo,
   ensureRegistryInitialized,
   getSpecPath,
+  getSpecVersion,
   listSpecs,
   resolveSpecId,
 } from './services/pdf-registry.js';
@@ -153,8 +159,8 @@ export async function runCli(
   }
   await ensureRegistryInitialized();
   const service = new PDFSpecService(
-    { getSpecPath, resolveSpecId, enrichSpecInfo },
-    { loadDocument, reloadDocument, getOutlineWithPages },
+    { getSpecPath, resolveSpecId, enrichSpecInfo, getSpecVersion },
+    { loadDocument, reloadDocument, getOutlineWithPages, evictDocument },
     store,
   );
 

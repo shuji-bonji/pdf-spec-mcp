@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A failed load or index build is no longer remembered until restart** (#29). The four
+  per-spec index maps in `pdf-service.ts` (section, search, requirements, definitions)
+  kept a rejected promise, so a broken specification PDF — truncated download, wrong file
+  under the right name — kept returning the same error after the file was fixed. A
+  rejected build is now dropped and the next call builds again (the same shape as
+  `index-store.ts`'s `digest`). A failed first scan of `PDF_SPEC_DIR` (directory missing
+  or unreadable) is not remembered either.
+- **Specification PDFs replaced, added or removed while the server runs are seen on the next
+  call** (#30). `PDF_SPEC_DIR` was scanned once per process, and the loaded document, the
+  indexes and the section text were keyed by path or spec id without checking the file. The
+  registry now stats the directory on every call and re-scans when its modification time
+  moves (a spec added, removed or renamed), and stats each registered spec; when a spec's
+  size or modification time changes, everything held for it — indexes, section text, the
+  loaded document — is dropped before it is used again. The on-disk index cache already
+  keyed on the content hash and is unchanged.
+  - `retryable: true` on "Specification … not found" now holds: putting the PDF in place and
+    calling again finds it.
+  - Measured on 0.10.0 (npm, `PDF_SPEC_CACHE=off`, dummy spec PDFs): broken → fixed in place,
+    1 page → 3 pages in place, and a spec added — each answered the old way until a restart.
+    With this change each is seen on the next call.
+  - Cost: one `stat` for the directory and one per registered spec on every tool call.
+
 ## [0.10.0] - 2026-10-25
 
 ### Fixed

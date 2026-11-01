@@ -45,8 +45,8 @@ import {
   type RequirementsIndex,
 } from './index-store.js';
 import { buildSectionIndex, collectSubtree, findSection } from './outline-resolver.js';
-import { getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.js';
-import { enrichSpecInfo, getSpecPath, resolveSpecId } from './pdf-registry.js';
+import { evictDocument, getOutlineWithPages, loadDocument, reloadDocument } from './pdf-loader.js';
+import { enrichSpecInfo, getSpecPath, getSpecVersion, resolveSpecId } from './pdf-registry.js';
 import { extractRequirementsFromContent } from './requirement-extractor.js';
 import { buildSearchIndex, searchTextIndex } from './search-index.js';
 import { collectStructTreeTables } from './table-collector.js';
@@ -65,6 +65,13 @@ class PDFSpecService {
   private searchIndexMap: Map<string, Promise<TextIndex>>;
   private requirementsIndexMap: Map<string, Promise<RequirementsIndex>>;
   private definitionsMap: Map<string, Promise<Definition[]>>;
+
+  /**
+   * The spec file each spec's indexes were built from: `getSpecVersion` and the path at the
+   * time (spec-sources 002). When the registry reports another version, everything held
+   * for that spec is dropped before it is used again.
+   */
+  private builtFrom = new Map<string, { version: string; path: string }>();
 
   // Section content cache (shared across specs, keyed with specId prefix)
   private sectionContentCache: LRUCache<
@@ -92,11 +99,19 @@ class PDFSpecService {
       getSpecPath(id: string): string;
       resolveSpecId(id?: string): string;
       enrichSpecInfo(id: string, data: { pages?: number; outlineEntries?: number }): void;
+      /**
+       * Changes when the spec's file is replaced (spec-sources 002). Required, not optional:
+       * a service wired without it would keep every index for the life of the process, and
+       * the compiler is what catches the missing wire.
+       */
+      getSpecVersion(id: string): string | undefined;
     },
     private loader: {
       loadDocument(path: string): Promise<PDFDocumentProxy>;
       reloadDocument(path: string): Promise<PDFDocumentProxy>;
       getOutlineWithPages(doc: PDFDocumentProxy): Promise<OutlineEntry[]>;
+      /** Drop one cached document (spec-sources 002). Required for the same reason as above. */
+      evictDocument(path: string): void;
     },
     /**
      * On-disk persistence for the search and requirements indexes (Issue #6). Injected so
@@ -113,6 +128,55 @@ class PDFSpecService {
   }
 
   // ========================================
+  // Freshness (spec-sources)
+  // ========================================
+
+  /**
+   * Resolve a spec ID and make sure nothing held for it is older than its file
+   * (spec-sources 002). Every public entry point goes through here instead of calling
+   * `registry.resolveSpecId` directly.
+   */
+  private resolveFresh(specId?: string): string {
+    const id = this.registry.resolveSpecId(specId);
+    const version = this.registry.getSpecVersion(id);
+    if (version === undefined) return id;
+    const built = this.builtFrom.get(id);
+    if (built !== undefined && built.version !== version) this.forget(id, built.path);
+    if (built === undefined || built.version !== version) {
+      this.builtFrom.set(id, { version, path: this.registry.getSpecPath(id) });
+    }
+    return id;
+  }
+
+  /** Drop every index, section text and loaded document held for one spec. */
+  private forget(id: string, path: string): void {
+    logger.info('PDFService', `[${id}] The spec file changed; rebuilding what was cached from it`);
+    this.sectionIndexMap.delete(id);
+    this.searchIndexMap.delete(id);
+    this.requirementsIndexMap.delete(id);
+    this.definitionsMap.delete(id);
+    this.sectionContentCache.deleteWhere((key) => key.startsWith(`${id}:`));
+    this.loader.evictDocument(path);
+  }
+
+  /**
+   * The memoised promise for `id`, created by `make` when absent. A promise that rejects is
+   * removed (spec-sources 001) — unless a later call already replaced it — so the next call
+   * builds again instead of returning the same failure until a restart. The same shape as
+   * index-store.ts's `digest`.
+   */
+  private memo<T>(map: Map<string, Promise<T>>, id: string, make: () => Promise<T>): Promise<T> {
+    const existing = map.get(id);
+    if (existing) return existing;
+    const created = make();
+    map.set(id, created);
+    created.catch(() => {
+      if (map.get(id) === created) map.delete(id);
+    });
+    return created;
+  }
+
+  // ========================================
   // Section Index (public)
   // ========================================
 
@@ -120,14 +184,8 @@ class PDFSpecService {
    * Get section index (lazy initialization, cached per spec)
    */
   public async getSectionIndex(specId?: string): Promise<SectionIndex> {
-    const id = this.registry.resolveSpecId(specId);
-    // Hold the memoised promise in a local: one lookup, and no non-null assertion.
-    let index = this.sectionIndexMap.get(id);
-    if (!index) {
-      index = this.initSectionIndex(id);
-      this.sectionIndexMap.set(id, index);
-    }
-    return index;
+    const id = this.resolveFresh(specId);
+    return this.memo(this.sectionIndexMap, id, () => this.initSectionIndex(id));
   }
 
   /**
@@ -169,7 +227,7 @@ class PDFSpecService {
    * "shall not be considered as changes".
    */
   public async getSectionContent(sectionId: string, specId?: string): Promise<SectionResult> {
-    const id = this.registry.resolveSpecId(specId);
+    const id = this.resolveFresh(specId);
     const index = await this.getSectionIndex(id);
 
     const own = await this.getOwnSectionContent(sectionId, id);
@@ -315,16 +373,12 @@ class PDFSpecService {
     maxResults: number,
     specId?: string,
   ): Promise<SearchHit[]> {
-    const id = this.registry.resolveSpecId(specId);
+    const id = this.resolveFresh(specId);
     const index = await this.getSectionIndex(id);
 
-    let searchIndexPromise = this.searchIndexMap.get(id);
-    if (!searchIndexPromise) {
-      searchIndexPromise = this.loadOrBuildSearchIndex(id, index);
-      this.searchIndexMap.set(id, searchIndexPromise);
-    }
-
-    const searchIdx = await searchIndexPromise;
+    const searchIdx = await this.memo(this.searchIndexMap, id, () =>
+      this.loadOrBuildSearchIndex(id, index),
+    );
     return searchTextIndex(searchIdx, query, maxResults, index);
   }
 
@@ -403,7 +457,7 @@ class PDFSpecService {
     level?: ISORequirementLevel,
     specId?: string,
   ): Promise<RequirementsResult> {
-    const id = this.registry.resolveSpecId(specId);
+    const id = this.resolveFresh(specId);
     let allRequirements: Requirement[];
     let sectionsCutByPage: RequirementsResult['sectionsCutByPage'];
 
@@ -447,13 +501,10 @@ class PDFSpecService {
         .map((p) => ({ section: p.section, boundary: p.boundary }));
     } else {
       // Full scan: build or reuse cached index
-      let requirementsPromise = this.requirementsIndexMap.get(id);
-      if (!requirementsPromise) {
+      const built = await this.memo(this.requirementsIndexMap, id, () => {
         logger.info('PDFService', `[${id}] Building requirements index (this may take a while)...`);
-        requirementsPromise = this.buildRequirementsIndex(id);
-        this.requirementsIndexMap.set(id, requirementsPromise);
-      }
-      const built = await requirementsPromise;
+        return this.buildRequirementsIndex(id);
+      });
       allRequirements = built.requirements;
       sectionsCutByPage = built.sectionsCutByPage;
     }
@@ -542,7 +593,7 @@ class PDFSpecService {
    * Only supported for ISO 32000-2, ISO 32000-2-2020, and PDF 1.7.
    */
   public async getDefinitions(term?: string, specId?: string): Promise<DefinitionsResult> {
-    const id = this.registry.resolveSpecId(specId);
+    const id = this.resolveFresh(specId);
 
     // Guard: definition extraction requires the compatible clause layout
     const clause = PDFSpecService.DEFINITIONS_CLAUSE_BY_SPEC.get(id);
@@ -563,17 +614,10 @@ class PDFSpecService {
       );
     }
 
-    let definitionsPromise = this.definitionsMap.get(id);
-    if (!definitionsPromise) {
+    let definitions = await this.memo(this.definitionsMap, id, () => {
       logger.info('PDFService', `[${id}] Extracting definitions from Section ${clause}...`);
-      definitionsPromise = extractAllDefinitions(
-        (sectionId) => this.getSectionContent(sectionId, id),
-        clause,
-      );
-      this.definitionsMap.set(id, definitionsPromise);
-    }
-
-    let definitions = await definitionsPromise;
+      return extractAllDefinitions((sectionId) => this.getSectionContent(sectionId, id), clause);
+    });
 
     if (term) {
       const searchTerm = term.toLowerCase();
@@ -604,7 +648,7 @@ class PDFSpecService {
     tableIndex?: number,
     specId?: string,
   ): Promise<TablesResult> {
-    const id = this.registry.resolveSpecId(specId);
+    const id = this.resolveFresh(specId);
     const result = await this.getSectionContent(sectionId, id);
 
     // Rows that spill onto the next section's first page arrive with the section's content
@@ -755,8 +799,8 @@ function findSimilarSections(index: SectionIndex, query: string): string[] {
  * Default PDF service instance using module-level imports
  */
 export const defaultPdfService = new PDFSpecService(
-  { getSpecPath, resolveSpecId, enrichSpecInfo },
-  { loadDocument, reloadDocument, getOutlineWithPages },
+  { getSpecPath, resolveSpecId, enrichSpecInfo, getSpecVersion },
+  { loadDocument, reloadDocument, getOutlineWithPages, evictDocument },
 );
 
 /**

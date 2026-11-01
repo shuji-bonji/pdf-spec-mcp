@@ -15,11 +15,17 @@ import { runCli } from '../../src/cli.js';
 import { INDEX_SCHEMA_VERSION, PACKAGE_INFO } from '../../src/config.js';
 import { FileIndexStore, type IndexStore } from '../../src/services/index-store.js';
 import {
+  evictDocument,
   getOutlineWithPages,
   loadDocument,
   reloadDocument,
 } from '../../src/services/pdf-loader.js';
-import { enrichSpecInfo, getSpecPath, resolveSpecId } from '../../src/services/pdf-registry.js';
+import {
+  enrichSpecInfo,
+  getSpecPath,
+  getSpecVersion,
+  resolveSpecId,
+} from '../../src/services/pdf-registry.js';
 import { PDFSpecService } from '../../src/services/pdf-service.js';
 import { withTiming } from './helpers.js';
 import { HAS_PDFS, initRegistry } from './setup.js';
@@ -27,8 +33,8 @@ import { HAS_PDFS, initRegistry } from './setup.js';
 /** A fresh service over the real registry / loader, with an explicit store. */
 const freshService = (store: IndexStore) =>
   new PDFSpecService(
-    { getSpecPath, resolveSpecId, enrichSpecInfo },
-    { loadDocument, reloadDocument, getOutlineWithPages },
+    { getSpecPath, resolveSpecId, enrichSpecInfo, getSpecVersion },
+    { loadDocument, reloadDocument, getOutlineWithPages, evictDocument },
     store,
   );
 

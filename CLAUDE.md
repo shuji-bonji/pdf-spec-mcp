@@ -176,6 +176,23 @@ ISO の表は要件語の宝庫で、全体インデックスは **5927 → 8666
 上位を通すテストは下位に届かない。ドキュメント LRU は `DocumentLoaderService` に
 `DocumentSource` を注入して直接検証する（`pdf-loader.test.ts`）。
 
+### 5b. 起動中の仕様書の変化を見る（spec-sources・#29 / #30 / 2026-11-01）
+
+キャッシュの層は 3 つある（登録簿・メモリの索引と文書・ディスクの索引）。どの層も、元の仕様書が
+変わったかを**自分で**確かめないと、下の層の確かめ方は使われない（0.10.0 まではディスクの層だけが
+内容の SHA-256 で差し替えを見分けていて、メモリの層が先に古い内容で答えていた）。
+
+- 登録簿（`pdf-registry.ts`）は `ensureInitialized` のたびに `PDF_SPEC_DIR` を `stat` し、更新時刻が
+  変われば読み直す。仕様書ごとの大きさと更新時刻を `getSpecVersion(id)` で返す
+- pdf-service は公開の入口をすべて `resolveFresh` に通し、索引を作ったときの `getSpecVersion` と
+  違えば、その仕様の索引の 4 つの `Map`・`sectionContentCache`・読み込んだ文書を捨てる
+- 索引の `Map` は `memo` で作る。**失敗した Promise は消す**（消さないと、壊れた PDF を直しても
+  起動し直すまで同じエラーを返す）
+- `getSpecVersion` と `evictDocument` は、注入する registry / loader の型で**必須**にしてある。
+  既定の `defaultPdfService` は関数の組を渡していて、`evictDocument` を渡し忘れても単体テスト
+  （偽の loader は持っている）では見えなかった。実際に一度渡し忘れ、`dist` を stdio で起動して
+  差し替えを試したときにだけ見えた。型で必須にして、配線の漏れをコンパイルで止める
+
 ### 6. stdout を汚すのは `console.log` と `console.info`（`warn` ではない）
 
 Node では **`console.log` / `console.info` が stdout**、`warn` / `error` は stderr。

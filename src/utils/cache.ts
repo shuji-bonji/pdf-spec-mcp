@@ -60,6 +60,18 @@ export class LRUCache<K, V> {
     return this.cache.delete(key);
   }
 
+  /** Delete every entry whose key matches. Returns how many were deleted. */
+  deleteWhere(predicate: (key: K) => boolean): number {
+    let deleted = 0;
+    for (const key of [...this.cache.keys()]) {
+      if (predicate(key)) {
+        this.cache.delete(key);
+        deleted++;
+      }
+    }
+    return deleted;
+  }
+
   clear(): void {
     this.cache.clear();
   }

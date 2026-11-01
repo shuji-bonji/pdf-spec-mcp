@@ -113,11 +113,13 @@ function createServiceWithLoader(
     getSpecPath: () => '/fake/spec.pdf',
     resolveSpecId: (id?: string) => id ?? 'test-spec',
     enrichSpecInfo: () => {},
+    getSpecVersion: () => 'fixed',
   };
   const loader = {
     loadDocument: vi.fn(async () => doc),
     reloadDocument: vi.fn(async () => doc),
     getOutlineWithPages: async () => outline,
+    evictDocument: vi.fn(),
   };
   return { service: new PDFSpecService(registry, loader, store), loader };
 }

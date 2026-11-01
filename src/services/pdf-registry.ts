@@ -5,9 +5,15 @@
  * Two-phase initialization:
  *   1. discoverSpecs() — file scan only (path + pattern match)
  *   2. enrichSpecInfo() — open PDF to get pages/outlineEntries (on first tool access)
+ *
+ * Freshness (spec-sources, #29 / #30): every `ensureInitialized` stats PDF_SPEC_DIR and
+ * re-scans when its modification time moved (a spec added, removed or renamed), and stats
+ * each registered spec so `getSpecVersion` changes when a file is replaced in place. A
+ * failed scan is not remembered. The cost is one `stat` for the directory and one per
+ * registered spec — small next to opening a specification.
  */
 
-import { readdir } from 'node:fs/promises';
+import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_SPEC_ID, PDF_CONFIG, SPEC_PATTERNS } from '../config.js';
 import { NEXT_ACTIONS, RegistryError } from '../errors.js';
@@ -17,6 +23,27 @@ import { logger } from '../utils/logger.js';
 interface RegistryEntry {
   path: string;
   info: SpecInfo;
+  /** Size and modification time at the last check. `null` when the file could not be stat'ed. */
+  fingerprint: FileFingerprint | null;
+}
+
+interface FileFingerprint {
+  size: number;
+  mtimeMs: number;
+}
+
+async function fingerprintOf(path: string): Promise<FileFingerprint | null> {
+  try {
+    const s = await stat(path);
+    return { size: s.size, mtimeMs: s.mtimeMs };
+  } catch {
+    return null;
+  }
+}
+
+function sameFingerprint(a: FileFingerprint | null, b: FileFingerprint | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.size === b.size && a.mtimeMs === b.mtimeMs;
 }
 
 /**
@@ -38,18 +65,62 @@ export function findUnexpandedEnvReference(value: string): string | null {
 export class RegistryService {
   private registry = new Map<SpecId, RegistryEntry>();
   private discoveryDone = false;
-  private discoveryPromise: Promise<void> | null = null;
+  /** The directory and its modification time at the last successful scan. */
+  private scanned: { dir: string; mtimeMs: number } | null = null;
+  /** The refresh in flight, shared by concurrent callers. Cleared when it settles. */
+  private refreshing: Promise<void> | null = null;
 
   /**
-   * Ensure registry is initialized (discover specs from PDF_SPEC_DIR).
-   * Safe to call multiple times — only runs once.
+   * Ensure the registry reflects PDF_SPEC_DIR as it is now.
+   *
+   * Safe to call on every tool call — the first call scans; later calls stat the directory
+   * and re-scan only when it changed, then stat each registered spec. A failed scan is not
+   * remembered (spec-sources 001): the next call tries again, so creating the directory or
+   * putting a spec in it takes effect without a restart.
    */
   async ensureInitialized(): Promise<void> {
-    if (this.discoveryDone) return;
-    if (!this.discoveryPromise) {
-      this.discoveryPromise = this.discoverSpecs();
+    this.refreshing ??= this.refresh().finally(() => {
+      this.refreshing = null;
+    });
+    await this.refreshing;
+  }
+
+  private async refresh(): Promise<void> {
+    const dir = process.env[PDF_CONFIG.envVar];
+    if (this.discoveryDone && this.scanned !== null && dir === this.scanned.dir) {
+      const dirStat = await stat(dir).catch(() => null);
+      if (dirStat !== null && dirStat.mtimeMs === this.scanned.mtimeMs) {
+        await this.refreshFingerprints();
+        return;
+      }
     }
-    await this.discoveryPromise;
+    await this.discoverSpecs();
+  }
+
+  /** Re-stat each registered spec; a replaced file forgets the metadata read from the old one. */
+  private async refreshFingerprints(): Promise<void> {
+    await Promise.all(
+      [...this.registry.values()].map(async (entry) => {
+        const current = await fingerprintOf(entry.path);
+        if (!sameFingerprint(entry.fingerprint, current)) {
+          entry.fingerprint = current;
+          entry.info.pages = null;
+          entry.info.outlineEntries = null;
+        }
+      }),
+    );
+  }
+
+  /**
+   * A string that changes whenever the spec's file is replaced (path, size, modification
+   * time), or `undefined` for an unknown spec. pdf-service compares it with the value its
+   * indexes were built from and drops them when it moved (spec-sources 002).
+   */
+  getSpecVersion(specId: string): string | undefined {
+    const entry = this.registry.get(specId);
+    if (!entry) return undefined;
+    const f = entry.fingerprint;
+    return f === null ? `${entry.path}|unreadable` : `${entry.path}|${f.size}|${f.mtimeMs}`;
   }
 
   /**
@@ -91,6 +162,9 @@ export class RegistryService {
       );
     }
 
+    // Stat before readdir: a spec added between the two moves the time past what we record,
+    // so the next call scans again rather than missing it.
+    const dirStat = await stat(dir).catch(() => null);
     let files: string[];
     try {
       files = await readdir(dir);
@@ -104,6 +178,8 @@ export class RegistryService {
 
     const pdfFiles = files.filter((f) => f.toLowerCase().endsWith('.pdf'));
     let matched = 0;
+    const previous = this.registry;
+    const next = new Map<SpecId, RegistryEntry>();
 
     // Process files in SPEC_PATTERNS priority order (not readdir order),
     // so that for duplicate IDs the earlier pattern wins (e.g. EC3 over EC2).
@@ -122,26 +198,34 @@ export class RegistryService {
       }
 
       // Skip if this ID is already registered (higher-priority pattern wins)
-      if (this.registry.has(pattern.id)) {
+      if (next.has(pattern.id)) {
         logger.debug('PDFRegistry', `Duplicate pattern match for "${pattern.id}", keeping first`);
         continue;
       }
 
-      this.registry.set(pattern.id, {
-        path: join(dir, filename),
+      const path = join(dir, filename);
+      const fingerprint = await fingerprintOf(path);
+      // Keep what was read from the file (pages, outline entries) only when it is the same file.
+      const before = previous.get(pattern.id);
+      const unchanged = before?.path === path && sameFingerprint(before.fingerprint, fingerprint);
+      next.set(pattern.id, {
+        path,
+        fingerprint,
         info: {
           id: pattern.id,
           title: pattern.title,
           filename,
-          pages: null,
+          pages: unchanged ? before.info.pages : null,
           category: pattern.category,
-          outlineEntries: null,
+          outlineEntries: unchanged ? before.info.outlineEntries : null,
           description: pattern.description,
         },
       });
       matched++;
     }
 
+    this.registry = next;
+    this.scanned = dirStat === null ? null : { dir, mtimeMs: dirStat.mtimeMs };
     this.discoveryDone = true;
     logger.info(
       'PDFRegistry',
@@ -228,6 +312,7 @@ export const defaultRegistry = new RegistryService();
 
 // Backward compatibility: thin adapters to default instance
 export const ensureRegistryInitialized = () => defaultRegistry.ensureInitialized();
+export const getSpecVersion = (specId: string) => defaultRegistry.getSpecVersion(specId);
 export const getSpecPath = (specId: string) => defaultRegistry.getSpecPath(specId);
 export const getSpecInfo = (specId: string) => defaultRegistry.getSpecInfo(specId);
 export const listSpecs = (category?: SpecCategory) => defaultRegistry.listSpecs(category);
