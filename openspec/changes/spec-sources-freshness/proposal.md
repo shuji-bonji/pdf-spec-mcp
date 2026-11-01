@@ -1,6 +1,6 @@
 ---
-approved:
-pr:
+approved: 2026-11-01
+pr: 31
 implementation: required
 targets: [spec-sources]
 ---
