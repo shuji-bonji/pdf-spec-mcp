@@ -27,8 +27,22 @@ export interface SpecServiceError {
   hint?: string;
   /** Concrete next steps. */
   next_actions?: NextAction[];
-  /** Whether a different argument or a fixed environment could make this succeed. */
-  retryable?: boolean;
+  /**
+   * Whether a different argument could make this succeed. Always present
+   * (SPEC-PDFSPEC-COMMON-ERRORS-003): without it a caller cannot decide whether to retry.
+   */
+  retryable: boolean;
+  /** Server-specific detail. */
+  detail?: ErrorDetail;
+}
+
+/** Server-specific detail of an error (規約 §2.3). */
+export interface ErrorDetail {
+  /**
+   * The `code` 0.11.x returned for the same case (SPEC-PDFSPEC-COMMON-ERRORS-004).
+   * @deprecated Only during the transition minor (0.12.x); removed in the next minor.
+   */
+  legacyCode?: string;
 }
 
 /**
@@ -38,32 +52,47 @@ export class PDFSpecError extends Error {
   readonly code: string;
   readonly hint?: string;
   readonly next_actions?: NextAction[];
-  readonly retryable?: boolean;
+  readonly retryable: boolean;
+  readonly detail?: ErrorDetail;
 
-  constructor(
-    code: string,
-    message: string,
-    options: { hint?: string; next_actions?: NextAction[]; retryable?: boolean } = {},
-  ) {
+  constructor(code: string, message: string, options: ErrorOptions = {}) {
     super(message);
     this.name = 'PDFSpecError';
     this.code = code;
     this.hint = options.hint;
     this.next_actions = options.next_actions;
-    this.retryable = options.retryable;
+    this.retryable = options.retryable ?? false;
+    this.detail = options.detail;
   }
 }
 
-type ErrorOptions = { hint?: string; next_actions?: NextAction[]; retryable?: boolean };
+type ErrorOptions = {
+  hint?: string;
+  next_actions?: NextAction[];
+  retryable?: boolean;
+  detail?: ErrorDetail;
+};
+
+/**
+ * Options for the codes whose `retryable` depends on where they are raised
+ * (REGISTRY_ERROR / CONTENT_ERROR). Required so that a new call site cannot leave it out.
+ */
+type ErrorOptionsWithRetryable = ErrorOptions & { retryable: boolean };
 
 /**
  * Input validation errors (invalid parameters, out-of-range values, etc.)
  *
+ * Reported as the family's common code `INVALID_ARGUMENT` (SPEC-PDFSPEC-COMMON-ERRORS-002).
  * Always retryable: the caller controls the arguments.
  */
 export class ValidationError extends PDFSpecError {
   constructor(message: string, options: ErrorOptions = {}) {
-    super('VALIDATION_ERROR', message, { retryable: true, ...options });
+    super('INVALID_ARGUMENT', message, {
+      retryable: true,
+      // 🔴 Transition minor (0.12.x) only: the name 0.11.x used. Remove in the next minor.
+      detail: { legacyCode: 'VALIDATION_ERROR' },
+      ...options,
+    });
     this.name = 'ValidationError';
   }
 }
@@ -72,7 +101,7 @@ export class ValidationError extends PDFSpecError {
  * Registry-related errors (spec not found, env var missing, discovery failure)
  */
 export class RegistryError extends PDFSpecError {
-  constructor(message: string, options: ErrorOptions = {}) {
+  constructor(message: string, options: ErrorOptionsWithRetryable) {
     super('REGISTRY_ERROR', message, options);
     this.name = 'RegistryError';
   }
@@ -82,7 +111,7 @@ export class RegistryError extends PDFSpecError {
  * Content extraction errors (section not found, page access failure, parse errors)
  */
 export class ContentError extends PDFSpecError {
-  constructor(message: string, options: ErrorOptions = {}) {
+  constructor(message: string, options: ErrorOptionsWithRetryable) {
     super('CONTENT_ERROR', message, options);
     this.name = 'ContentError';
   }
@@ -110,16 +139,20 @@ export class ToolPrerequisiteError extends PDFSpecError {
  */
 export function toStructuredError(error: unknown): SpecServiceError {
   if (error instanceof PDFSpecError) {
-    const out: SpecServiceError = { error: error.message, code: error.code };
+    const out: SpecServiceError = {
+      error: error.message,
+      code: error.code,
+      retryable: error.retryable,
+    };
     if (error.hint) out.hint = error.hint;
     if (error.next_actions && error.next_actions.length > 0) out.next_actions = error.next_actions;
-    if (error.retryable !== undefined) out.retryable = error.retryable;
+    if (error.detail) out.detail = error.detail;
     return out;
   }
   if (error instanceof Error) {
-    return { error: error.message, code: 'INTERNAL_ERROR' };
+    return { error: error.message, code: 'INTERNAL_ERROR', retryable: false };
   }
-  return { error: String(error), code: 'INTERNAL_ERROR' };
+  return { error: String(error), code: 'INTERNAL_ERROR', retryable: false };
 }
 
 /**

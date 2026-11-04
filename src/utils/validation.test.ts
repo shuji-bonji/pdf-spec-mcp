@@ -34,12 +34,12 @@ describe('parseArgs', () => {
     expect(() => parseArgs(GetSectionSchema, { section: 123 })).toThrow(/section/);
   });
 
-  it('raises a ValidationError so it reaches the client as VALIDATION_ERROR', () => {
+  it('raises a ValidationError so it reaches the client as INVALID_ARGUMENT', () => {
     try {
       parseArgs(GetSectionSchema, {});
       throw new Error('should have thrown');
     } catch (e) {
-      expect((e as { code?: string }).code).toBe('VALIDATION_ERROR');
+      expect((e as { code?: string }).code).toBe('INVALID_ARGUMENT');
       expect((e as { retryable?: boolean }).retryable).toBe(true);
     }
   });

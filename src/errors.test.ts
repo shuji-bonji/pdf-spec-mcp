@@ -44,9 +44,9 @@ describe('PDFSpecError', () => {
 // ========================================
 
 describe('ValidationError', () => {
-  it('sets code to "VALIDATION_ERROR"', () => {
+  it('sets code to "INVALID_ARGUMENT"', () => {
     const error = new ValidationError('Invalid input');
-    expect(error.code).toBe('VALIDATION_ERROR');
+    expect(error.code).toBe('INVALID_ARGUMENT');
   });
 
   it('sets name to "ValidationError"', () => {
@@ -71,17 +71,17 @@ describe('ValidationError', () => {
 
 describe('RegistryError', () => {
   it('sets code to "REGISTRY_ERROR"', () => {
-    const error = new RegistryError('Spec not found');
+    const error = new RegistryError('Spec not found', { retryable: true });
     expect(error.code).toBe('REGISTRY_ERROR');
   });
 
   it('sets name to "RegistryError"', () => {
-    const error = new RegistryError('Spec not found');
+    const error = new RegistryError('Spec not found', { retryable: true });
     expect(error.name).toBe('RegistryError');
   });
 
   it('is an instance of PDFSpecError', () => {
-    const error = new RegistryError('Spec not found');
+    const error = new RegistryError('Spec not found', { retryable: true });
     expect(error instanceof PDFSpecError).toBe(true);
   });
 });
@@ -92,17 +92,17 @@ describe('RegistryError', () => {
 
 describe('ContentError', () => {
   it('sets code to "CONTENT_ERROR"', () => {
-    const error = new ContentError('Section not found');
+    const error = new ContentError('Section not found', { retryable: true });
     expect(error.code).toBe('CONTENT_ERROR');
   });
 
   it('sets name to "ContentError"', () => {
-    const error = new ContentError('Section not found');
+    const error = new ContentError('Section not found', { retryable: true });
     expect(error.name).toBe('ContentError');
   });
 
   it('is an instance of PDFSpecError', () => {
-    const error = new ContentError('Section not found');
+    const error = new ContentError('Section not found', { retryable: true });
     expect(error instanceof PDFSpecError).toBe(true);
   });
 });

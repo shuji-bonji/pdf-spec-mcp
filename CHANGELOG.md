@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed (breaking for callers that branch on error codes)
+
+- **An argument error is now `INVALID_ARGUMENT`, the PDF family's common code** (#33,
+  pdf-agent-stack#48, `docs/specs/06` §2.3; SPEC-PDFSPEC-COMMON-ERRORS-002). It was
+  `VALIDATION_ERROR`. This covers what the handler rejects: arguments that fail parsing when a
+  handler is called directly, and a `level` that is not one of the requirement levels. The error
+  sentence, `hint`, `next_actions` and `retryable: true` are unchanged.
+- **Transition.** For this minor only, `INVALID_ARGUMENT` also carries
+  `detail.legacyCode: "VALIDATION_ERROR"`. The next minor removes it. Codes whose name did not
+  change carry no `detail`.
+
+### Fixed
+
+- **Every error body now has `retryable`** (SPEC-PDFSPEC-COMMON-ERRORS-003). A failure that was
+  not one of this server's errors came back as `INTERNAL_ERROR` without it; it now says
+  `retryable: false`. `retryable` is required in the error type, and `RegistryError` /
+  `ContentError` take it as a required option, so a new call site cannot leave it out. The
+  values at the existing call sites are unchanged (`REGISTRY_ERROR` is `false` when
+  `PDF_SPEC_DIR` is missing or unreadable and `true` when the spec id is not registered;
+  `CONTENT_ERROR` is `true`; `PREREQUISITE_ERROR` is `false`).
+
+### Unchanged
+
+- `tools/list` (the responses of 0.11.0 and this build, taken over stdio, are identical) and
+  successful output: only the error type and its formatting changed.
+- `REGISTRY_ERROR`, `CONTENT_ERROR` and `PREREQUISITE_ERROR` keep their names as codes specific
+  to this server.
+- Input that the MCP SDK rejects before the handler runs (an undeclared key, a missing required
+  argument) still carries the SDK's own message (§2.11).
+
 ## [0.11.0] - 2026-11-02
 
 ### Fixed

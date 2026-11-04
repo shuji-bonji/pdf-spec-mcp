@@ -144,7 +144,7 @@ describe('tool registry (external spec)', () => {
 
     expect(res.isError).toBe(true);
     const payload = JSON.parse((res.content as { text: string }[])[0].text);
-    expect(payload.code).toBe('VALIDATION_ERROR');
+    expect(payload.code).toBe('INVALID_ARGUMENT');
     expect(payload.error).toContain('Invalid requirement level');
     expect(payload.retryable).toBe(true);
   });

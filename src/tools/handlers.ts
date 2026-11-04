@@ -8,7 +8,7 @@
  *
  * Every handler parses its arguments with parseArgs before doing anything. The SDK also
  * checks the published shape, but handlers are called directly in tests too, and parseArgs
- * is what turns a bad argument into the family's structured VALIDATION_ERROR.
+ * is what turns a bad argument into the family's structured INVALID_ARGUMENT.
  */
 
 import { COVERAGE_GAPS } from '../config.js';
