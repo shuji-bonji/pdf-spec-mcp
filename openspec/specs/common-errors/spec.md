@@ -6,7 +6,9 @@ introduced_by: family-error-contract
 # common-errors Specification
 
 ## Purpose
-TBD - created by archiving change family-error-contract. Update Purpose after archive.
+
+8 ツールに共通する、失敗の返し方を定めます。ツール結果 `isError: true` の本文の形（PDF family の規約 pdf-agent-stack `docs/specs/06` §2.3）、引数の誤りに返す共通語彙の `code`（`INVALID_ARGUMENT`）と、spec 固有のコード（`REGISTRY_ERROR`・`CONTENT_ERROR`・`PREREQUISITE_ERROR`）、すべてのエラーに `retryable` を書くこと、移行の版のあいだ旧い名前（`VALIDATION_ERROR`）も返すことを扱います。
+受け側の Skill は `code` で分岐し、`retryable` で再試行してよいかを決めます。`REGISTRY_ERROR` は起きた箇所によって `retryable` の値が違うので、`code` だけでは決められません。SDK がハンドラより前に拒む入力検証の失敗は、この capability の対象外です（§2.11）。
 
 ## Requirements
 
