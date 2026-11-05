@@ -253,3 +253,19 @@ describe('discoverSpecs with an unexpanded PDF_SPEC_DIR reference', () => {
     expect(err.message).toContain('Cannot read PDF_SPEC_DIR');
   });
 });
+
+describe('SPEC-PDFSPEC-COMMON-ERRORS-002 引数の誤りは INVALID_ARGUMENT を返す', () => {
+  it('SPEC-PDFSPEC-COMMON-ERRORS-002 知らない spec の id は INVALID_ARGUMENT', () => {
+    for (const run of [() => resolveSpecId('no-such-spec'), () => getSpecPath('no-such-spec')]) {
+      let caught: { code?: string; retryable?: boolean; next_actions?: { action: string }[] } = {};
+      try {
+        run();
+      } catch (e) {
+        caught = e as typeof caught;
+      }
+      expect(caught.code).toBe('INVALID_ARGUMENT');
+      expect(caught.retryable).toBe(true);
+      expect(caught.next_actions?.[0]?.action).toMatch(/list_specs/);
+    }
+  });
+});

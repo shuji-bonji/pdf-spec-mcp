@@ -127,3 +127,13 @@ describe('ToolPrerequisiteError', () => {
     expect(error instanceof PDFSpecError).toBe(true);
   });
 });
+
+describe('SPEC-PDFSPEC-COMMON-ERRORS-003 retryable はすべてのエラーに書く', () => {
+  it('SPEC-PDFSPEC-COMMON-ERRORS-003 REGISTRY_ERROR と CONTENT_ERROR は常に再試行できない', () => {
+    // 作る箇所から値を渡せない（第 2 引数に retryable を書いても使わない）
+    const registry = new RegistryError('x', { retryable: true } as never);
+    const content = new ContentError('x', { retryable: true } as never);
+    expect(registry.retryable).toBe(false);
+    expect(content.retryable).toBe(false);
+  });
+});

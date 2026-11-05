@@ -981,3 +981,14 @@ describe('boundary — how each end of a section was cut (#17)', () => {
     );
   });
 });
+
+describe('SPEC-PDFSPEC-COMMON-ERRORS-002 引数の誤りは INVALID_ARGUMENT を返す', () => {
+  it('SPEC-PDFSPEC-COMMON-ERRORS-002 指した節が無いのは INVALID_ARGUMENT', async () => {
+    const doc = createDoc([[headingFixture('1.1 First'), paragraphFixture('Body.')]]);
+    const svc = createService(doc, outline([['1.1 First', 1]]));
+    await expect(svc.getSectionContent('99.99', 'test-spec')).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      retryable: true,
+    });
+  });
+});
