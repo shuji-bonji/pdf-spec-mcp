@@ -1,7 +1,12 @@
+---
+spec_id: PDFSPEC
+kind: tool
+introduced_by: name-what-was-read
+---
 # list-specs Specification
 
 ## Purpose
-TBD - created by archiving change name-what-was-read. Update Purpose after archive.
+`list_specs` ツールが、`PDF_SPEC_DIR` にある仕様書の一覧と、このコーパスで答えられない領域（`coverage.gaps`）を返すときの規則を定めます。この初版には、自動検出のパターンに当たらず読まなかった `.pdf` のファイルを `unrecognizedFiles` で名指す振る舞いだけを書きます。置いた文書が読まれていないことに、利用者が応答から気づけるようにすることが目的です。
 
 ## Requirements
 

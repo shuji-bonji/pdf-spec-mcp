@@ -1,7 +1,12 @@
+---
+spec_id: PDFSPEC
+kind: common
+introduced_by: name-what-was-read
+---
 # common-output Specification
 
 ## Purpose
-TBD - created by archiving change name-what-was-read. Update Purpose after archive.
+仕様書を読むツールに共通する、成功の応答の項目を定めます。`spec` を省いて既定の仕様が使われたときも含め、応答だけからどの仕様書の答えかを読めるように、読んだ仕様の id を最初の項目（`compare_versions` は比べた 2 つを `specs`）で返します。エラーの本文の形は `common-errors` が扱います。
 
 ## Requirements
 

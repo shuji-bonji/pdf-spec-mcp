@@ -23,5 +23,5 @@
 
 - [x] 4.1 人が `proposal.md` の front matter に `approved: YYYY-MM-DD` と `pr: N` を書く
 - [x] 4.2 マージの前に、同じ PR の中で `npx openspec archive name-what-was-read --yes` を実行する
-- [ ] 4.3 archive の後、正本 `openspec/specs/list-specs/spec.md`（`kind: tool`）と `openspec/specs/common-output/spec.md`（`kind: common`）の先頭に front matter（`spec_id: PDFSPEC`・`introduced_by: name-what-was-read`）と Purpose（50 文字以上）を書き足す
-- [ ] 4.4 `npx openspec validate --all && npx spec-ids check` が通る
+- [x] 4.3 archive の後、正本 `openspec/specs/list-specs/spec.md`（`kind: tool`）と `openspec/specs/common-output/spec.md`（`kind: common`）の先頭に front matter（`spec_id: PDFSPEC`・`introduced_by: name-what-was-read`）と Purpose（50 文字以上）を書き足す
+- [x] 4.4 `npx openspec validate --all && npx spec-ids check` が通る

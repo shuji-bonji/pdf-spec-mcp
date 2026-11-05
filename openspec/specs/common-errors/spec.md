@@ -7,8 +7,8 @@ introduced_by: family-error-contract
 
 ## Purpose
 
-8 ツールに共通する、失敗の返し方を定めます。ツール結果 `isError: true` の本文の形（PDF family の規約 pdf-agent-stack `docs/specs/06` §2.3）、引数の誤りに返す共通語彙の `code`（`INVALID_ARGUMENT`）と、spec 固有のコード（`REGISTRY_ERROR`・`CONTENT_ERROR`・`PREREQUISITE_ERROR`）、すべてのエラーに `retryable` を書くこと、移行の版のあいだ旧い名前（`VALIDATION_ERROR`）も返すことを扱います。
-受け側の Skill は `code` で分岐し、`retryable` で再試行してよいかを決めます。`REGISTRY_ERROR` は起きた箇所によって `retryable` の値が違うので、`code` だけでは決められません。SDK がハンドラより前に拒む入力検証の失敗は、この capability の対象外です（§2.11）。
+8 ツールに共通する、失敗の返し方を定めます。ツール結果 `isError: true` の本文の形（PDF family の規約 pdf-agent-stack `docs/specs/06` §2.3）、引数の誤りに返す共通語彙の `code`（`INVALID_ARGUMENT`）と、spec 固有のコード（`REGISTRY_ERROR`・`CONTENT_ERROR`・`PREREQUISITE_ERROR`）、すべてのエラーに `retryable` を `code` ごとに 1 つの値で書くことを扱います。0.12.x が移行のために返していた旧い名前（`VALIDATION_ERROR`）は、0.13.0 で外しました。
+受け側の Skill は `code` で分岐し、`retryable` で再試行してよいかを決めます。`retryable` は `code` ごとに 1 つの値なので、`code` だけで再試行してよいかを決められます（0.13.x までは、`REGISTRY_ERROR` が起きた箇所によって値が違いました）。SDK がハンドラより前に拒む入力検証の失敗は、この capability の対象外です（§2.11）。
 
 ## Requirements
 
