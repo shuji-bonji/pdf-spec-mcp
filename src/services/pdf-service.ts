@@ -8,7 +8,7 @@
 
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api.js';
 import { CACHE_CONFIG, CONCURRENCY } from '../config.js';
-import { ContentError, NEXT_ACTIONS } from '../errors.js';
+import { NEXT_ACTIONS, ValidationError } from '../errors.js';
 import type {
   ContentElement,
   Definition,
@@ -273,9 +273,9 @@ class PDFSpecService {
         suggestions.length > 0
           ? `Section "${sectionId}" not found. Did you mean: ${suggestions.join(', ')}?`
           : `Section "${sectionId}" not found. Use get_structure to see available sections.`;
-      throw new ContentError(msg, {
+      // SPEC-PDFSPEC-COMMON-ERRORS-002: what the arguments point at is missing (0.13.x: CONTENT_ERROR)
+      throw new ValidationError(msg, {
         next_actions: [NEXT_ACTIONS.getStructure()],
-        retryable: true,
       });
     }
 
@@ -472,9 +472,10 @@ class PDFSpecService {
       const root = findSection(index, section);
 
       if (!root) {
-        throw new ContentError(
+        // SPEC-PDFSPEC-COMMON-ERRORS-002: what the arguments point at is missing (0.13.x: CONTENT_ERROR)
+        throw new ValidationError(
           `Section "${section}" not found. Use get_structure to see available sections.`,
-          { next_actions: [NEXT_ACTIONS.getStructure()], retryable: true },
+          { next_actions: [NEXT_ACTIONS.getStructure()] },
         );
       }
 
@@ -598,7 +599,8 @@ class PDFSpecService {
     // Guard: definition extraction requires the compatible clause layout
     const clause = PDFSpecService.DEFINITIONS_CLAUSE_BY_SPEC.get(id);
     if (clause === undefined) {
-      throw new ContentError(
+      // SPEC-PDFSPEC-COMMON-ERRORS-002: what the arguments point at is missing (0.13.x: CONTENT_ERROR)
+      throw new ValidationError(
         `get_definitions is only supported for ISO 32000-2 and PDF 1.7. ` +
           `For "${id}", use get_section with section "3" instead.`,
         {
@@ -609,7 +611,6 @@ class PDFSpecService {
               reason: `Call get_section with section "3" on "${id}" to read its terms verbatim.`,
             },
           ],
-          retryable: true,
         },
       );
     }
@@ -663,7 +664,8 @@ class PDFSpecService {
 
     if (tableIndex !== undefined) {
       if (tableIndex >= tables.length) {
-        throw new ContentError(
+        // SPEC-PDFSPEC-COMMON-ERRORS-002: what the arguments point at is missing (0.13.x: CONTENT_ERROR)
+        throw new ValidationError(
           `table_index ${tableIndex} out of range. Section "${sectionId}" has ${tables.length} table(s).`,
           {
             next_actions: [
@@ -672,7 +674,6 @@ class PDFSpecService {
                 reason: `Call get_tables without table_index to see all ${tables.length} table(s) in this section.`,
               },
             ],
-            retryable: true,
           },
         );
       }

@@ -16,7 +16,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_SPEC_ID, PDF_CONFIG, SPEC_PATTERNS } from '../config.js';
-import { NEXT_ACTIONS, RegistryError } from '../errors.js';
+import { NEXT_ACTIONS, RegistryError, ValidationError } from '../errors.js';
 import type { SpecCategory, SpecId, SpecInfo } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -67,6 +67,8 @@ export class RegistryService {
   private discoveryDone = false;
   /** The directory and its modification time at the last successful scan. */
   private scanned: { dir: string; mtimeMs: number } | null = null;
+  /** `.pdf` files in PDF_SPEC_DIR that no pattern recognised (SPEC-PDFSPEC-LIST-SPECS-001) */
+  private unrecognized: string[] = [];
   /** The refresh in flight, shared by concurrent callers. Cleared when it settles. */
   private refreshing: Promise<void> | null = null;
 
@@ -135,7 +137,6 @@ export class RegistryService {
         {
           hint: 'The server cannot locate any specification PDF without this.',
           next_actions: [NEXT_ACTIONS.setSpecDir(PDF_CONFIG.envVar)],
-          retryable: false,
         },
       );
     }
@@ -157,7 +158,6 @@ export class RegistryService {
             NEXT_ACTIONS.expandEnvInHostConfig(PDF_CONFIG.envVar, dir),
             NEXT_ACTIONS.setSpecDir(PDF_CONFIG.envVar),
           ],
-          retryable: false,
         },
       );
     }
@@ -172,7 +172,6 @@ export class RegistryService {
       throw new RegistryError(`Cannot read PDF_SPEC_DIR "${dir}": ${err}`, {
         hint: 'The directory is set but unreadable — check that it exists and is accessible.',
         next_actions: [NEXT_ACTIONS.setSpecDir(PDF_CONFIG.envVar)],
-        retryable: false,
       });
     }
 
@@ -225,12 +224,24 @@ export class RegistryService {
     }
 
     this.registry = next;
+    this.unrecognized = prioritized
+      .filter((p) => p.patternIndex < 0)
+      .map((p) => p.filename)
+      .sort();
     this.scanned = dirStat === null ? null : { dir, mtimeMs: dirStat.mtimeMs };
     this.discoveryDone = true;
     logger.info(
       'PDFRegistry',
       `Discovered ${matched} specs from ${pdfFiles.length} PDFs in ${dir}`,
     );
+  }
+
+  /**
+   * The `.pdf` files in PDF_SPEC_DIR that no pattern recognised, so they were not read
+   * (SPEC-PDFSPEC-LIST-SPECS-001). Sorted by name.
+   */
+  getUnrecognizedFiles(): string[] {
+    return [...this.unrecognized];
   }
 
   /**
@@ -241,9 +252,10 @@ export class RegistryService {
     const entry = this.registry.get(specId);
     if (!entry) {
       const available = [...this.registry.keys()].join(', ');
-      throw new RegistryError(
+      // SPEC-PDFSPEC-COMMON-ERRORS-002: an unknown id is an argument error (0.13.x: REGISTRY_ERROR)
+      throw new ValidationError(
         `Specification "${specId}" not found. Available specs: ${available || '(none — run list_specs first)'}`,
-        { next_actions: [NEXT_ACTIONS.listSpecs()], retryable: true },
+        { next_actions: [NEXT_ACTIONS.listSpecs()] },
       );
     }
     return entry.path;
@@ -282,9 +294,10 @@ export class RegistryService {
     const id = specId ?? DEFAULT_SPEC_ID;
     if (!this.registry.has(id)) {
       const available = [...this.registry.keys()].join(', ');
-      throw new RegistryError(
+      // SPEC-PDFSPEC-COMMON-ERRORS-002: an unknown id is an argument error (0.13.x: REGISTRY_ERROR)
+      throw new ValidationError(
         `Specification "${id}" not found. Available specs: ${available || '(none)'}`,
-        { next_actions: [NEXT_ACTIONS.listSpecs()], retryable: true },
+        { next_actions: [NEXT_ACTIONS.listSpecs()] },
       );
     }
     return id;
@@ -318,5 +331,6 @@ export const getSpecInfo = (specId: string) => defaultRegistry.getSpecInfo(specI
 export const listSpecs = (category?: SpecCategory) => defaultRegistry.listSpecs(category);
 export const isSpecAvailable = (specId: string) => defaultRegistry.isSpecAvailable(specId);
 export const resolveSpecId = (specId?: string) => defaultRegistry.resolveSpecId(specId);
+export const getUnrecognizedFiles = () => defaultRegistry.getUnrecognizedFiles();
 export const enrichSpecInfo = (specId: string, data: { pages?: number; outlineEntries?: number }) =>
   defaultRegistry.enrichSpecInfo(specId, data);

@@ -21,6 +21,7 @@ vi.mock('../services/pdf-registry.js', () => ({
     category: 'standard',
   }),
   resolveSpecId: vi.fn((id?: string) => id || 'iso32000-2'),
+  getUnrecognizedFiles: vi.fn().mockReturnValue([]),
 }));
 
 // Mock compare-service before importing handlers
@@ -159,7 +160,8 @@ describe('toolHandlers', () => {
       mockGetSectionContent.mockResolvedValue(mockResult);
 
       const result = await toolHandlers.get_section({ section: '7.3.4' });
-      expect(result).toEqual(mockResult);
+      // 0.14.0: the spec id comes first (SPEC-PDFSPEC-COMMON-OUTPUT-001)
+      expect(result).toEqual({ spec: expect.any(String), ...mockResult });
       expect(mockGetSectionContent).toHaveBeenCalledWith('7.3.4', undefined);
     });
 
@@ -263,7 +265,8 @@ describe('toolHandlers', () => {
     it('SPEC-PDFSPEC-GET-REQUIREMENTS-003 returns requirements with section filter', async () => {
       mockGetRequirements.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_requirements({ section: '7.3' });
-      expect(result).toEqual(mockResult);
+      // 0.14.0: the spec id comes first (SPEC-PDFSPEC-COMMON-OUTPUT-001)
+      expect(result).toEqual({ spec: expect.any(String), ...mockResult });
       expect(mockGetRequirements).toHaveBeenCalledWith('7.3', undefined, undefined);
     });
 
@@ -314,7 +317,8 @@ describe('toolHandlers', () => {
     it('returns all definitions without term filter', async () => {
       mockGetDefinitions.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_definitions({});
-      expect(result).toEqual(mockResult);
+      // 0.14.0: the spec id comes first (SPEC-PDFSPEC-COMMON-OUTPUT-001)
+      expect(result).toEqual({ spec: expect.any(String), ...mockResult });
       expect(mockGetDefinitions).toHaveBeenCalledWith(undefined, undefined);
     });
 
@@ -359,7 +363,8 @@ describe('toolHandlers', () => {
     it('SPEC-PDFSPEC-GET-TABLES-001 returns all tables in a section', async () => {
       mockGetTables.mockResolvedValue(mockResult);
       const result = await toolHandlers.get_tables({ section: '7.2.3' });
-      expect(result).toEqual(mockResult);
+      // 0.14.0: the spec id comes first (SPEC-PDFSPEC-COMMON-OUTPUT-001)
+      expect(result).toEqual({ spec: expect.any(String), ...mockResult });
       expect(mockGetTables).toHaveBeenCalledWith('7.2.3', undefined, undefined);
     });
 
@@ -488,7 +493,8 @@ describe('toolHandlers', () => {
     it('returns comparison result when both specs available', async () => {
       mockCompareVersions.mockResolvedValue(mockCompareResult);
       const result = await toolHandlers.compare_versions({});
-      expect(result).toEqual(mockCompareResult);
+      // 0.14.0: the two specs compared come first (SPEC-PDFSPEC-COMMON-OUTPUT-001)
+      expect(result).toEqual({ specs: ['pdf17', 'iso32000-2'], ...mockCompareResult });
     });
 
     it('passes section filter', async () => {

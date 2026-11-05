@@ -44,6 +44,21 @@ export interface SpecServiceError {
 export type ErrorDetail = Record<string, unknown>;
 
 /**
+ * `retryable` per `code` — one value each, never chosen where the error is raised
+ * (SPEC-PDFSPEC-COMMON-ERRORS-003). Until 0.13.x, REGISTRY_ERROR and CONTENT_ERROR took the
+ * value at the call site, so a caller could not decide by `code` alone; reader, writer and
+ * verify already fixed it per code. The rule is the same: could a different argument make
+ * the same call succeed?
+ */
+export const RETRYABLE: Readonly<Record<string, boolean>> = {
+  INVALID_ARGUMENT: true,
+  REGISTRY_ERROR: false,
+  CONTENT_ERROR: false,
+  PREREQUISITE_ERROR: false,
+  INTERNAL_ERROR: false,
+};
+
+/**
  * Base error class for all pdf-spec-mcp errors.
  */
 export class PDFSpecError extends Error {
@@ -59,7 +74,8 @@ export class PDFSpecError extends Error {
     this.code = code;
     this.hint = options.hint;
     this.next_actions = options.next_actions;
-    this.retryable = options.retryable ?? false;
+    // Looked up from the code; an options.retryable passed by a caller is not used.
+    this.retryable = RETRYABLE[code] ?? false;
     this.detail = options.detail;
   }
 }
@@ -67,15 +83,8 @@ export class PDFSpecError extends Error {
 type ErrorOptions = {
   hint?: string;
   next_actions?: NextAction[];
-  retryable?: boolean;
   detail?: ErrorDetail;
 };
-
-/**
- * Options for the codes whose `retryable` depends on where they are raised
- * (REGISTRY_ERROR / CONTENT_ERROR). Required so that a new call site cannot leave it out.
- */
-type ErrorOptionsWithRetryable = ErrorOptions & { retryable: boolean };
 
 /**
  * Input validation errors (invalid parameters, out-of-range values, etc.)
@@ -85,29 +94,29 @@ type ErrorOptionsWithRetryable = ErrorOptions & { retryable: boolean };
  */
 export class ValidationError extends PDFSpecError {
   constructor(message: string, options: ErrorOptions = {}) {
-    super('INVALID_ARGUMENT', message, {
-      retryable: true,
-      ...options,
-    });
+    super('INVALID_ARGUMENT', message, options);
     this.name = 'ValidationError';
   }
 }
 
 /**
- * Registry-related errors (spec not found, env var missing, discovery failure)
+ * Registry errors: the environment (PDF_SPEC_DIR) has to change before a call can succeed.
+ * Never retryable. An unknown spec id is an argument error (ValidationError) since 0.14.0.
  */
 export class RegistryError extends PDFSpecError {
-  constructor(message: string, options: ErrorOptionsWithRetryable) {
+  constructor(message: string, options: ErrorOptions = {}) {
     super('REGISTRY_ERROR', message, options);
     this.name = 'RegistryError';
   }
 }
 
 /**
- * Content extraction errors (section not found, page access failure, parse errors)
+ * Content errors: a specification PDF that cannot be read as needed. Never retryable.
+ * A section, table or term the arguments point at but that does not exist is an argument
+ * error (ValidationError) since 0.14.0. No call site raises this at the moment.
  */
 export class ContentError extends PDFSpecError {
-  constructor(message: string, options: ErrorOptionsWithRetryable) {
+  constructor(message: string, options: ErrorOptions = {}) {
     super('CONTENT_ERROR', message, options);
     this.name = 'ContentError';
   }
@@ -122,7 +131,7 @@ export class ContentError extends PDFSpecError {
  */
 export class ToolPrerequisiteError extends PDFSpecError {
   constructor(message: string, options: ErrorOptions = {}) {
-    super('PREREQUISITE_ERROR', message, { retryable: false, ...options });
+    super('PREREQUISITE_ERROR', message, options);
     this.name = 'ToolPrerequisiteError';
   }
 }

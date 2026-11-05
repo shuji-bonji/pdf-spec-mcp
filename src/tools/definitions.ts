@@ -66,7 +66,10 @@ export const tools: ToolDefinition[] = [
       'Returns document IDs, titles, page counts, and categories, plus `coverage.gaps` — ' +
       'the normative areas this corpus does NOT contain (PDF/A, PAdES). ' +
       'Read the gaps before concluding that a requirement does not exist. ' +
-      'Use the returned IDs as the `spec` parameter in other tools.',
+      'Use the returned IDs as the `spec` parameter in other tools. ' +
+      '`unrecognizedFiles` names the PDFs in PDF_SPEC_DIR that no pattern recognised — they were NOT read. ' +
+      'Every other tool returns the id of the spec it read as `spec` (the default when `spec` was omitted); ' +
+      'compare_versions returns `specs`.',
     inputSchema: ListSpecsSchema,
     annotations: READ_ONLY,
   },

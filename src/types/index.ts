@@ -35,6 +35,11 @@ export interface ListSpecsResult {
   totalSpecs: number;
   specs: SpecInfo[];
   /**
+   * `.pdf` files in PDF_SPEC_DIR that no pattern recognised, so they were not read
+   * (SPEC-PDFSPEC-LIST-SPECS-001). `[]` when every PDF was recognised.
+   */
+  unrecognizedFiles: string[];
+  /**
    * What this server cannot answer for.
    *
    * Reported alongside what it *can* answer, because a caller that only sees the corpus has

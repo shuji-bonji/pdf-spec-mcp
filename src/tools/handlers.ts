@@ -17,8 +17,10 @@ import { compareVersions } from '../services/compare-service.js';
 import {
   ensureRegistryInitialized,
   getSpecInfo,
+  getUnrecognizedFiles,
   isSpecAvailable,
   listSpecs,
+  resolveSpecId,
 } from '../services/pdf-registry.js';
 import {
   getDefinitions,
@@ -60,6 +62,7 @@ async function handleListSpecs(rawArgs: unknown): Promise<ListSpecsResult> {
   return {
     totalSpecs: specs.length,
     specs,
+    unrecognizedFiles: getUnrecognizedFiles(),
     // Reported unconditionally, including when a category filter is in play: the gaps are
     // properties of the corpus, not of the current query.
     coverage: {
@@ -69,6 +72,14 @@ async function handleListSpecs(rawArgs: unknown): Promise<ListSpecsResult> {
       gaps: COVERAGE_GAPS,
     },
   };
+}
+
+/**
+ * Put the id of the spec that was read first in the result (SPEC-PDFSPEC-COMMON-OUTPUT-001),
+ * so an answer names its source even when `spec` was omitted and the default was used.
+ */
+function withSpec<T extends object>(specId: string | undefined, result: T): { spec: string } & T {
+  return { spec: resolveSpecId(specId), ...result };
 }
 
 // ========================================
@@ -84,12 +95,12 @@ async function handleGetStructure(rawArgs: unknown): Promise<StructureResult> {
 
   // Dynamic title from spec registry
   const specInfo = getSpecInfo(specId ?? 'iso32000-2');
-  return {
+  return withSpec(specId, {
     title: specInfo?.title ?? 'ISO 32000-2:2020 (PDF 2.0)',
     totalPages: index.totalPages,
     totalSections: index.flatOrder.length,
     sections,
-  };
+  });
 }
 
 // ========================================
@@ -99,7 +110,7 @@ async function handleGetStructure(rawArgs: unknown): Promise<StructureResult> {
 async function handleGetSection(rawArgs: unknown) {
   const args = parseArgs(GetSectionSchema, rawArgs);
   await ensureRegistryInitialized();
-  return getSectionContent(args.section, args.spec);
+  return withSpec(args.spec, await getSectionContent(args.section, args.spec));
 }
 
 // ========================================
@@ -112,11 +123,11 @@ async function handleSearchSpec(rawArgs: unknown) {
   await ensureRegistryInitialized();
   const hits = await searchSpec(args.query, maxResults, args.spec);
 
-  return {
+  return withSpec(args.spec, {
     query: args.query,
     totalResults: hits.length,
     results: hits,
-  };
+  });
 }
 
 /**
@@ -137,7 +148,7 @@ async function handleGetRequirements(rawArgs: unknown) {
   const args = parseArgs(GetRequirementsSchema, rawArgs);
   const level = normalizeRequirementLevel(args.level);
   await ensureRegistryInitialized();
-  return getRequirements(args.section, level, args.spec);
+  return withSpec(args.spec, await getRequirements(args.section, level, args.spec));
 }
 
 // ========================================
@@ -147,7 +158,7 @@ async function handleGetRequirements(rawArgs: unknown) {
 async function handleGetDefinitions(rawArgs: unknown) {
   const args = parseArgs(GetDefinitionsSchema, rawArgs);
   await ensureRegistryInitialized();
-  return getDefinitions(normalizeTerm(args.term), args.spec);
+  return withSpec(args.spec, await getDefinitions(normalizeTerm(args.term), args.spec));
 }
 
 // ========================================
@@ -157,7 +168,7 @@ async function handleGetDefinitions(rawArgs: unknown) {
 async function handleGetTables(rawArgs: unknown) {
   const args = parseArgs(GetTablesSchema, rawArgs);
   await ensureRegistryInitialized();
-  return getTables(args.section, args.table_index, args.spec);
+  return withSpec(args.spec, await getTables(args.section, args.table_index, args.spec));
 }
 
 // ========================================
@@ -200,7 +211,8 @@ async function handleCompareVersions(rawArgs: unknown) {
     );
   }
 
-  return compareVersions(args.section);
+  // SPEC-PDFSPEC-COMMON-OUTPUT-001: the two specs compared, oldest first
+  return { specs: ['pdf17', 'iso32000-2'], ...(await compareVersions(args.section)) };
 }
 
 // ========================================
