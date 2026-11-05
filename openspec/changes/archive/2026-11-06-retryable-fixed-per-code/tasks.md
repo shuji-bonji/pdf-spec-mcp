@@ -22,7 +22,7 @@
 
 ## 4. 承認と取り込み（人が判断する）
 
-- [ ] 4.1 人が `proposal.md` の front matter に `approved: YYYY-MM-DD` と `pr: N` を書く
-- [ ] 4.2 マージの前に、同じ PR の中で `npx openspec archive retryable-fixed-per-code --yes` を実行する
+- [x] 4.1 人が `proposal.md` の front matter に `approved: YYYY-MM-DD` と `pr: N` を書く
+- [x] 4.2 マージの前に、同じ PR の中で `npx openspec archive retryable-fixed-per-code --yes` を実行する
 - [ ] 4.3 archive の後、正本 `openspec/specs/common-errors/spec.md` の Purpose を直す: 「移行の版のあいだ旧い名前（`VALIDATION_ERROR`）も返すこと」を外し、「`REGISTRY_ERROR` は起きた箇所によって `retryable` の値が違うので、`code` だけでは決められません」を「`retryable` は `code` ごとに 1 つの値で、`code` だけで再試行を決められます」に直す
 - [ ] 4.4 `npx openspec validate --all && npx spec-ids check` が通る
