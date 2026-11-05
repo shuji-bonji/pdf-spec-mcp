@@ -28,7 +28,7 @@ introduced_by: family-error-contract
 
 ### Requirement: SPEC-PDFSPEC-COMMON-ERRORS-002 引数の誤りは INVALID_ARGUMENT を返す
 
-ハンドラが引数を拒むとき（引数の型・範囲の誤り、`level` の値の誤り）は、family の共通語彙の `code: "INVALID_ARGUMENT"` を返し、`retryable` を `true` にする（SHALL）。spec 固有のコードは `REGISTRY_ERROR`・`CONTENT_ERROR`・`PREREQUISITE_ERROR` だけで、共通語彙と同じ意味の別名（`VALIDATION_ERROR`）を `code` に返さない（SHALL）。
+ハンドラが引数を拒むとき（引数の型・範囲の誤り、`level` の値の誤り）は、family の共通語彙の `code: "INVALID_ARGUMENT"` を返し、`retryable` を `true` にする（SHALL）。spec 固有のコードは `REGISTRY_ERROR`・`CONTENT_ERROR`・`PREREQUISITE_ERROR` だけで、共通語彙と同じ意味の別名（`VALIDATION_ERROR`）を `code` に返さない（SHALL）。0.12.x が移行のために置いていた `detail.legacyCode` も書かない（SHALL）。
 
 #### Scenario: 要件の水準の誤りは INVALID_ARGUMENT
 
@@ -39,6 +39,11 @@ introduced_by: family-error-contract
 
 - **WHEN** ハンドラを直接呼び、スキーマに反する引数を渡す
 - **THEN** 投げられたエラーの `code` は `INVALID_ARGUMENT`
+
+#### Scenario: 移行の版の旧い名前を返さない
+
+- **WHEN** `get_requirements` に `level: "definitely-not-a-level"` を渡す
+- **THEN** 本文に `detail.legacyCode` が無い
 
 ### Requirement: SPEC-PDFSPEC-COMMON-ERRORS-003 retryable はすべてのエラーに書く
 
@@ -53,17 +58,3 @@ introduced_by: family-error-contract
 
 - **WHEN** `ToolPrerequisiteError` を本文に整形する
 - **THEN** `code` は `PREREQUISITE_ERROR`、`retryable` は `false`
-
-### Requirement: SPEC-PDFSPEC-COMMON-ERRORS-004 移行の版のあいだは旧い名前も返す
-
-この要求を入れた minor のあいだは、`INVALID_ARGUMENT` の本文に `detail.legacyCode: "VALIDATION_ERROR"`（0.11.x で同じ状況に返していた `code`）を書く（SHALL）。名前の変わらないコードには `detail.legacyCode` を書かない（SHALL）。次の minor で外す（別の変更で REMOVED にする）。
-
-#### Scenario: 引数の誤りの旧名
-
-- **WHEN** `get_requirements` に `level: "definitely-not-a-level"` を渡す
-- **THEN** `detail.legacyCode` は `VALIDATION_ERROR`
-
-#### Scenario: 名前の変わらないコードに旧名は付かない
-
-- **WHEN** `PDF_SPEC_DIR` を渡さずに `get_section` を呼ぶ
-- **THEN** 本文に `detail` が無い
