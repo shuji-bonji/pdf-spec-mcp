@@ -21,7 +21,7 @@ interface ErrorBody {
   retryable: unknown;
   hint?: string;
   next_actions?: { action: string; reason: string }[];
-  detail?: { legacyCode?: string };
+  detail?: Record<string, unknown>;
 }
 
 let client: Client;
@@ -95,6 +95,11 @@ describe('SPEC-PDFSPEC-COMMON-ERRORS-002 引数の誤りは INVALID_ARGUMENT を
     }
     expect((thrown as { code?: string }).code).toBe('INVALID_ARGUMENT');
   });
+
+  it('SPEC-PDFSPEC-COMMON-ERRORS-002 移行の版の旧い名前を返さない', async () => {
+    const { body } = await callError('get_requirements', badLevel);
+    expect(body.detail ?? {}).not.toHaveProperty('legacyCode');
+  });
 });
 
 describe('SPEC-PDFSPEC-COMMON-ERRORS-003 retryable はすべてのエラーに書く', () => {
@@ -118,17 +123,5 @@ describe('SPEC-PDFSPEC-COMMON-ERRORS-003 retryable はすべてのエラーに�
     expectShape(body);
     expect(body.code).toBe('PREREQUISITE_ERROR');
     expect(body.retryable).toBe(false);
-  });
-});
-
-describe('SPEC-PDFSPEC-COMMON-ERRORS-004 移行の版のあいだは旧い名前も返す', () => {
-  it('SPEC-PDFSPEC-COMMON-ERRORS-004 引数の誤りの旧名', async () => {
-    const { body } = await callError('get_requirements', badLevel);
-    expect(body.detail?.legacyCode).toBe('VALIDATION_ERROR');
-  });
-
-  it('SPEC-PDFSPEC-COMMON-ERRORS-004 名前の変わらないコードに旧名は付かない', async () => {
-    const { body } = await callError('get_section', { section: '7.1' });
-    expect(body.detail).toBeUndefined();
   });
 });

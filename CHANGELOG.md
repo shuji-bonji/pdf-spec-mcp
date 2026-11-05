@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Target version: 0.13.0. OpenSpec change `remove-legacy-error-names`
+(SPEC-PDFSPEC-COMMON-ERRORS-002 modified, -004 removed).
+
+### Removed (breaking for callers that still read the 0.11.x name)
+
+- **`detail.legacyCode: "VALIDATION_ERROR"` is gone from argument errors** (pdf-agent-stack#48).
+  0.12.x, the transition release, kept the 0.11.x name there; read `code`, which is
+  `INVALID_ARGUMENT`. No error of this server writes `detail` now. The `ErrorDetail` type
+  loses `legacyCode`. No receiving Skill branched on `VALIDATION_ERROR` (checked pdf-trust,
+  pdf-publish, pdf-read, the site and the pdf-agent-stack S6 contract test on 2026-11-05).
+
 ## [0.12.0] - 2026-11-05
 
 ### Changed (breaking for callers that branch on error codes)

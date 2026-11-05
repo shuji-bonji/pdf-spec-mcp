@@ -36,14 +36,12 @@ export interface SpecServiceError {
   detail?: ErrorDetail;
 }
 
-/** Server-specific detail of an error (規約 §2.3). */
-export interface ErrorDetail {
-  /**
-   * The `code` 0.11.x returned for the same case (SPEC-PDFSPEC-COMMON-ERRORS-004).
-   * @deprecated Only during the transition minor (0.12.x); removed in the next minor.
-   */
-  legacyCode?: string;
-}
+/**
+ * Server-specific detail of an error (規約 §2.3). No error of this server writes one at
+ * the moment: the only field, `legacyCode` (the 0.11.x name `VALIDATION_ERROR`), was a
+ * transition aid for 0.12.x and was removed in 0.13.0.
+ */
+export type ErrorDetail = Record<string, unknown>;
 
 /**
  * Base error class for all pdf-spec-mcp errors.
@@ -89,8 +87,6 @@ export class ValidationError extends PDFSpecError {
   constructor(message: string, options: ErrorOptions = {}) {
     super('INVALID_ARGUMENT', message, {
       retryable: true,
-      // 🔴 Transition minor (0.12.x) only: the name 0.11.x used. Remove in the next minor.
-      detail: { legacyCode: 'VALIDATION_ERROR' },
       ...options,
     });
     this.name = 'ValidationError';
