@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Proposed version: 0.14.0 (the maintainer decides; `code` values change). OpenSpec changes
+`name-what-was-read` (SPEC-PDFSPEC-LIST-SPECS-001 and SPEC-PDFSPEC-COMMON-OUTPUT-001, new
+capabilities) and `retryable-fixed-per-code` (SPEC-PDFSPEC-COMMON-ERRORS-002 and -003
+modified).
+
+### Changed (breaking for callers that branch on `code`)
+
+- **`retryable` is fixed per `code`** (#32). `INVALID_ARGUMENT` is `true`; `REGISTRY_ERROR`,
+  `CONTENT_ERROR`, `PREREQUISITE_ERROR` and `INTERNAL_ERROR` are `false`. Until 0.13.x the
+  call site chose the value, so `REGISTRY_ERROR` was `false` for a `PDF_SPEC_DIR` problem and
+  `true` for an unknown spec id. Reader, writer and verify already work this way.
+- **An unknown `spec` id is `INVALID_ARGUMENT`**, not `REGISTRY_ERROR`. The `list_specs`
+  next action stays.
+- **A section, table index or tool that the arguments point at but that does not exist is
+  `INVALID_ARGUMENT`**, not `CONTENT_ERROR`: a missing section (`get_section`,
+  `get_requirements`), `table_index` out of range (`get_tables`), and `get_definitions` on a
+  spec other than ISO 32000-2 / PDF 1.7. No call site raises `CONTENT_ERROR` any more.
+
+### Added
+
+- `list_specs` returns `unrecognizedFiles`: the `.pdf` files in `PDF_SPEC_DIR` that no
+  pattern recognised, so they were not read (#32, F-27). `[]` when every PDF was recognised.
+- The six tools that take `spec` return the id they read as `spec`, first in the result —
+  the default id when `spec` was omitted (#32, F-30). `compare_versions` returns
+  `specs: ["pdf17", "iso32000-2"]`.
+
 ## [0.13.0] - 2026-11-05
 
 Target version: 0.13.0. OpenSpec change `remove-legacy-error-names`
